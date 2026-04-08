@@ -52,15 +52,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install fbs pro
+      - name: Download and install fbs-pro
         run: |
-          curl -L -H "Accept: application/octet-stream" `
-               -H "Authorization: Bearer ${{ secrets.GH_PAT }}" `
-               -H "X-GitHub-Api-Version: 2022-11-28" `
-               -o fbs-pro.tar.gz `
-               "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
+          curl -L \
+            -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            -o fbs-pro.tar.gz \
+            https://github.com/SnoozToolbox/fbs-pro-version/releases/download/latest/fbs_pro-1.2.7.tar.gz
 
-          # Install only if it's valid
           pip install fbs-pro.tar.gz
 
       - name: Install NSIS
