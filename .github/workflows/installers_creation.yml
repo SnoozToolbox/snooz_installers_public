@@ -24,11 +24,11 @@ on:
       source_repo:
         description: 'Source repository (owner/name or repo only; owner defaults to SnoozToolbox)'
         required: true
-        default: 'SnoozToolbox/snooz-toolbox-ceams'
+        default: 'SnoozToolbox/snooz-toolbox'
       source_ref:
         description: 'Branch, tag, or commit SHA from source_repo'
         required: true
-        default: 'snooz-beta-2.1.0-pre'
+        default: 'main'
 
 jobs:
   build_exe:
