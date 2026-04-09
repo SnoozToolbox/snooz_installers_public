@@ -34,7 +34,7 @@ Make sure to unzip the Linux artifact before sharing, since the installer is als
 
 ## 🔐 API Token and Asset ID Setup
 
-To enable GitHub Actions to build installers using this repository, you need to configure two secrets: a GitHub API token and the Asset ID of the latest `fbs-pro` release.
+To enable GitHub Actions to build installers using this repository, you need to configure two secrets: a **GitHub API token** and the **Asset ID** of the latest `fbs-pro` release.
 
 ---
 
@@ -77,15 +77,15 @@ This will return a JSON response. Look for the assets section:
 Copy the id corresponding to fbs-pro.tar.gz
 
 ### 3. Add the Asset ID as a Secret
-Go back to **Settings → Secrets and variables → Actions**
-Add another secret (e.g., FBS_ASSET_ID)
-Paste the asset ID value
+- Go back to **Settings → Secrets and variables → Actions**
+- Add another secret (e.g., FBS_ASSET_ID)
+- Paste the asset ID value
 
 ## ✅ Final Setup
 
 Once both secrets are configured:
 
-GH_PAT → your GitHub token
-FBS_ASSET_ID → the release asset ID
+- **GH_PAT** → your GitHub token
+- **FBS_ASSET_ID** → the release asset ID
 
-GitHub Actions will be able to download the fbs-pro package and build installers successfully.
+GitHub Actions will be able to download the `fbs-pro` package and build installers successfully.
