@@ -31,3 +31,61 @@ The file that holds the different jobs to create the installers is in `.github/w
 
 Select the desired builds: Windows, macOS, and/or Linux.
 Make sure to unzip the Linux artifact before sharing, since the installer is also a ZIP file.
+
+## 🔐 API Token and Asset ID Setup
+
+To enable GitHub Actions to build installers using this repository, you need to configure two secrets: a GitHub API token and the Asset ID of the latest `fbs-pro` release.
+
+---
+
+### 1. Create a Personal Access Token (PAT)
+
+Generate a GitHub Personal Access Token and add it to your repository secrets:
+
+1. Go to: **Settings → Secrets and variables → Actions → Repository secrets**
+2. Click **New repository secret**
+3. Name it: `GH_PAT`
+4. Paste your token value
+
+#### Required permissions (Fine-grained token):
+- **Repository access**: Select the target repository (or all repositories if needed)
+- **Permissions**:
+  - `Contents: Read`
+  - `Releases: Read`
+
+---
+
+### 2. Retrieve the Asset ID
+
+You need the **Asset ID** of the latest `fbs-pro` release.
+
+Run the following command locally (replace `NEW_TOKEN` with your PAT):
+
+```bash
+curl -H "Authorization: token NEW_TOKEN" \
+https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/latest
+```
+This will return a JSON response. Look for the assets section:
+```
+"assets": [
+  {
+    "id": 123456789,
+    "name": "fbs-pro.tar.gz"
+  }
+]
+```
+Copy the id corresponding to fbs-pro.tar.gz
+
+### 3. Add the Asset ID as a Secret
+Go back to **Settings → Secrets and variables → Actions**
+Add another secret (e.g., FBS_ASSET_ID)
+Paste the asset ID value
+
+## ✅ Final Setup
+
+Once both secrets are configured:
+
+GH_PAT → your GitHub token
+FBS_ASSET_ID → the release asset ID
+
+GitHub Actions will be able to download the fbs-pro package and build installers successfully.
