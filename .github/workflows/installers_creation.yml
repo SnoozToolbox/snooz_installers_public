@@ -248,7 +248,7 @@ jobs:
       - name: Install fpm
         run: |
           sudo apt-get update
-          sudo apt-get install -y ruby ruby-dev build-essential rubygems
+          sudo apt-get install -y ruby ruby-dev build-essential rubygems zip
           sudo gem install --no-document fpm
           fpm --version
 
@@ -260,12 +260,25 @@ jobs:
         run: |
           python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz/_internal'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
-      - name: Build Linux installer (zip)
+      - name: Build Linux installer (.deb)
         run: |
           fbs installer
+
+      - name: Build Linux portable package (.zip)
+        run: |
+          cd target
+          zip -r SnoozSetup-portable-linux.zip Snooz
+
+      - name: Validate Linux package outputs
+        run: |
+          ls -la target
+          ls target/*.deb
+          ls target/*.zip
 
       - name: Upload Linux installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SnoozSetup.zip
-          path: target/*.zip
+          name: SnoozSetup-linux
+          path: |
+            target/*.zip
+            target/*.deb
