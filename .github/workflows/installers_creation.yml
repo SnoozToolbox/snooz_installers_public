@@ -39,6 +39,11 @@ on:
         description: 'Branch, tag, or commit SHA from source_repo'
         required: true
         default: 'snooz-beta-2.1.0-pre'
+      upload_artifacts:
+        description: 'Upload installers as workflow artifacts'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   build_exe:
@@ -105,10 +110,12 @@ jobs:
           fbs installer # Generates Test_AppSetup.exe
 
       - name: Upload Installer to Artifacts
+        if: ${{ inputs.upload_artifacts }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup.exe
           path: target/*.exe
+          retention-days: 2
 
   build_dmg_intel:
     if: ${{ inputs.build_macos && inputs.build_macos_intel }}
@@ -159,10 +166,12 @@ jobs:
           fbs installer
 
       - name: Upload .dmg to Artifacts
+        if: ${{ inputs.upload_artifacts }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-x64.dmg
           path: target/*.dmg
+          retention-days: 2
 
   build_dmg_arm64:
     if: ${{ inputs.build_macos && inputs.build_macos_arm64 }}
@@ -213,10 +222,12 @@ jobs:
           fbs installer
 
       - name: Upload .dmg to Artifacts
+        if: ${{ inputs.upload_artifacts }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-arm64.dmg
           path: target/*.dmg
+          retention-days: 2
 
   build_linux:
     runs-on: ubuntu-22.04
@@ -276,9 +287,11 @@ jobs:
           ls target/*.zip
 
       - name: Upload Linux installer artifact
+        if: ${{ inputs.upload_artifacts }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-linux
           path: |
             target/*.zip
             target/*.deb
+          retention-days: 2
