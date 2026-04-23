@@ -38,7 +38,7 @@ on:
       source_ref:
         description: 'Branch, tag, or commit SHA from source_repo'
         required: true
-        default: 'snooz-beta-2.1.0-pre'
+        default: 'main'
       upload_artifacts:
         description: 'Upload installers as workflow artifacts'
         required: true
