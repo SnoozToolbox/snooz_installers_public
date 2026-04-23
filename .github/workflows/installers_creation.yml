@@ -157,6 +157,10 @@ jobs:
         run: |
           fbs freeze
 
+      - name: Copy architecture-specific extensions (macOS x64)
+        run: |
+          cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
+
       - name: Copy missing packages (macOS)
         run: |
           python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz.app/Contents/Frameworks'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
@@ -198,6 +202,7 @@ jobs:
           arch
           sysctl -n machdep.cpu.brand_string
 
+
       - name: Install Python Dependencies
         run: |
           pip install --upgrade pip
@@ -212,6 +217,10 @@ jobs:
       - name: Freeze app with fbs
         run: |
           fbs freeze
+
+      - name: Copy architecture-specific extensions (macOS arm64)
+        run: |
+          cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
 
       - name: Copy missing packages (macOS)
         run: |
