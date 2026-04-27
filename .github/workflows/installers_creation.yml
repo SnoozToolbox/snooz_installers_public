@@ -57,6 +57,12 @@ jobs:
           ref: ${{ inputs.source_ref }}
           token: ${{ secrets.GH_PAT }}
 
+      - name: Patch is_dev for release
+        shell: pwsh
+        run: |
+          $file = "src/main/python/config.py"
+          (Get-Content $file) -replace 'is_dev = True', 'is_dev = False' | Set-Content $file
+
       - name: Set Up python
         uses: actions/setup-python@v6
         with:
@@ -128,6 +134,10 @@ jobs:
           ref: ${{ inputs.source_ref }}
           token: ${{ secrets.GH_PAT }}
 
+      - name: Patch is_dev for release
+        run: |
+          sed -i '' 's/is_dev = True/is_dev = False/' src/main/python/config.py
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -187,6 +197,10 @@ jobs:
           repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
           ref: ${{ inputs.source_ref }}
           token: ${{ secrets.GH_PAT }}
+
+      - name: Patch is_dev for release
+        run: |
+          sed -i '' 's/is_dev = True/is_dev = False/' src/main/python/config.py
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -248,6 +262,10 @@ jobs:
           repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
           ref: ${{ inputs.source_ref }}
           token: ${{ secrets.GH_PAT }}
+
+      - name: Patch is_dev for release
+        run: |
+          sed -i 's/is_dev = True/is_dev = False/' src/main/python/config.py
 
       - name: Set up Python
         uses: actions/setup-python@v6
