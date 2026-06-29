@@ -175,7 +175,7 @@ jobs:
         run: |
           python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz.app/Contents/Frameworks'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
-      - name: Build .dmg Installer (retry on transient hdiutil detach issue)
+      - name: Build .dmg Installer (CI-safe fallback)
         run: |
           set -eo pipefail
 
@@ -185,18 +185,36 @@ jobs:
 
             for vol in /Volumes/Snooz*; do
               if [ -d "$vol" ]; then
-                echo "Force-detaching $vol"
+                echo "Force-unmounting $vol"
                 hdiutil detach "$vol" -force || true
+                diskutil unmount force "$vol" || true
               fi
             done
           }
 
-          if ! fbs installer; then
-            echo "First fbs installer attempt failed. Cleaning DMG mounts and retrying once..."
-            cleanup_dmg_mounts
-            sleep 3
-            fbs installer
+          # Keep the standard path first.
+          if fbs installer; then
+            echo "fbs installer succeeded."
+            exit 0
           fi
+
+          echo "fbs installer failed (known intermittent create-dmg detach issue in CI)."
+          echo "Switching to fallback create-dmg with --skip-jenkins..."
+          cleanup_dmg_mounts
+          rm -f target/Snooz.dmg
+
+          CREATE_DMG="$(python -c "import inspect, os, fbs.installer.mac; print(os.path.join(os.path.dirname(inspect.getfile(fbs.installer.mac)), 'create-dmg', 'create-dmg'))")"
+
+          echo "Using create-dmg at: $CREATE_DMG"
+
+          "$CREATE_DMG" \
+            --no-internet-enable \
+            --skip-jenkins \
+            --volname "Snooz" \
+            --app-drop-link 170 10 \
+            --icon "Snooz.app" 0 10 \
+            "target/Snooz.dmg" \
+            "target/Snooz.app"
 
       - name: Upload .dmg to Artifacts
         if: ${{ inputs.upload_artifacts }}
