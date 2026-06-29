@@ -125,7 +125,7 @@ jobs:
 
   build_dmg_intel:
     if: ${{ inputs.build_macos && inputs.build_macos_intel }}
-    runs-on: macos-15-intel
+    runs-on: macos-13
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
@@ -175,9 +175,28 @@ jobs:
         run: |
           python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz.app/Contents/Frameworks'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
-      - name: Build .dmg Installer
+      - name: Build .dmg Installer (retry on transient hdiutil detach issue)
         run: |
-          fbs installer
+          set -eo pipefail
+
+          cleanup_dmg_mounts() {
+            echo "Mounted volumes before cleanup:"
+            ls /Volumes || true
+
+            for vol in /Volumes/Snooz*; do
+              if [ -d "$vol" ]; then
+                echo "Force-detaching $vol"
+                hdiutil detach "$vol" -force || true
+              fi
+            done
+          }
+
+          if ! fbs installer; then
+            echo "First fbs installer attempt failed. Cleaning DMG mounts and retrying once..."
+            cleanup_dmg_mounts
+            sleep 3
+            fbs installer
+          fi
 
       - name: Upload .dmg to Artifacts
         if: ${{ inputs.upload_artifacts }}
