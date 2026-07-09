@@ -205,6 +205,13 @@ jobs:
           test -n "$APP_PATH"
           PLIST_PATH="$APP_PATH/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $APP_BUNDLE_ID" "$PLIST_PATH"
+
+          find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
+            codesign --force --timestamp --options runtime \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$BIN"
+          done
+
           codesign --force --deep --options runtime --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
@@ -356,6 +363,13 @@ jobs:
           test -n "$APP_PATH"
           PLIST_PATH="$APP_PATH/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $APP_BUNDLE_ID" "$PLIST_PATH"
+
+          find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
+            codesign --force --timestamp --options runtime \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$BIN"
+          done
+
           codesign --force --deep --options runtime --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
