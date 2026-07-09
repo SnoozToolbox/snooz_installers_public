@@ -233,16 +233,35 @@ jobs:
 
       - name: Sign, notarize and staple .dmg
         run: |
+          set -eo pipefail
           DMG_PATH="$(ls target/*.dmg | head -n 1)"
           echo "DMG_PATH=$DMG_PATH"
           codesign --force --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$DMG_PATH"
-          xcrun notarytool submit "$DMG_PATH" \
+
+          SUBMIT_OUTPUT="$(xcrun notarytool submit "$DMG_PATH" \
             --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
             --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --wait \
+            --output-format json)"
+
+          echo "$SUBMIT_OUTPUT"
+          NOTARY_STATUS="$(python -c "import json,sys; print(json.load(sys.stdin).get('status',''))" <<< "$SUBMIT_OUTPUT")"
+          SUBMISSION_ID="$(python -c "import json,sys; print(json.load(sys.stdin).get('id',''))" <<< "$SUBMIT_OUTPUT")"
+
+          if [ "$NOTARY_STATUS" != "Accepted" ]; then
+            echo "Notarization failed with status: $NOTARY_STATUS"
+            if [ -n "$SUBMISSION_ID" ]; then
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
+                --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
+                --team-id "$APPLE_TEAM_ID" || true
+            fi
+            exit 1
+          fi
+
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
 
@@ -365,16 +384,35 @@ jobs:
 
       - name: Sign, notarize and staple .dmg
         run: |
+          set -eo pipefail
           DMG_PATH="$(ls target/*.dmg | head -n 1)"
           echo "DMG_PATH=$DMG_PATH"
           codesign --force --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$DMG_PATH"
-          xcrun notarytool submit "$DMG_PATH" \
+
+          SUBMIT_OUTPUT="$(xcrun notarytool submit "$DMG_PATH" \
             --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
             --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --wait \
+            --output-format json)"
+
+          echo "$SUBMIT_OUTPUT"
+          NOTARY_STATUS="$(python -c "import json,sys; print(json.load(sys.stdin).get('status',''))" <<< "$SUBMIT_OUTPUT")"
+          SUBMISSION_ID="$(python -c "import json,sys; print(json.load(sys.stdin).get('id',''))" <<< "$SUBMIT_OUTPUT")"
+
+          if [ "$NOTARY_STATUS" != "Accepted" ]; then
+            echo "Notarization failed with status: $NOTARY_STATUS"
+            if [ -n "$SUBMISSION_ID" ]; then
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
+                --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
+                --team-id "$APPLE_TEAM_ID" || true
+            fi
+            exit 1
+          fi
+
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
 
