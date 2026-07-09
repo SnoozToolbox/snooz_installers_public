@@ -126,6 +126,9 @@ jobs:
   build_dmg_intel:
     if: ${{ inputs.build_macos && inputs.build_macos_intel }}
     runs-on: macos-15-intel
+    env:
+      APPLE_TEAM_ID: UDE82H2SDR
+      APP_BUNDLE_ID: com.snooztoolbox
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
@@ -163,6 +166,17 @@ jobs:
                 "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
           pip install fbs-pro.tar.gz
 
+      - name: Configure Apple signing certificate
+        run: |
+          echo "${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_BASE64 }}" | base64 --decode > certificate.p12
+          security create-keychain -p "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" build.keychain
+          rm -f certificate.p12
+
       - name: Freeze app with fbs
         run: |
           fbs freeze
@@ -174,6 +188,15 @@ jobs:
       - name: Copy missing packages (macOS)
         run: |
           python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz.app/Contents/Frameworks'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+
+      - name: Sign Snooz.app
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" target/Snooz.app/Contents/Info.plist
+          codesign --force --deep --options runtime --timestamp \
+            --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+            target/Snooz.app
+          codesign --verify --deep --strict --verbose=2 target/Snooz.app
+          spctl -a -t exec -vv target/Snooz.app
 
       - name: Build .dmg Installer (CI-safe fallback)
         run: |
@@ -216,6 +239,21 @@ jobs:
             "target/Snooz.dmg" \
             "target/Snooz.app"
 
+      - name: Sign, notarize and staple .dmg
+        run: |
+          DMG_PATH="$(ls target/*.dmg | head -n 1)"
+          echo "DMG_PATH=$DMG_PATH"
+          codesign --force --timestamp \
+            --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+            "$DMG_PATH"
+          xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
+            --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+
       - name: Upload .dmg to Artifacts
         if: ${{ inputs.upload_artifacts }}
         uses: actions/upload-artifact@v4
@@ -227,6 +265,9 @@ jobs:
   build_dmg_arm64:
     if: ${{ inputs.build_macos && inputs.build_macos_arm64 }}
     runs-on: macos-14
+    env:
+      APPLE_TEAM_ID: UDE82H2SDR
+      APP_BUNDLE_ID: com.snooztoolbox
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
@@ -265,6 +306,17 @@ jobs:
                 "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
           pip install fbs-pro.tar.gz
 
+      - name: Configure Apple signing certificate
+        run: |
+          echo "${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_BASE64 }}" | base64 --decode > certificate.p12
+          security create-keychain -p "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${{ secrets.APPLE_KEYCHAIN_PASSWORD }}" build.keychain
+          rm -f certificate.p12
+
       - name: Freeze app with fbs
         run: |
           fbs freeze
@@ -277,9 +329,33 @@ jobs:
         run: |
           python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz.app/Contents/Frameworks'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
+      - name: Sign Snooz.app
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" target/Snooz.app/Contents/Info.plist
+          codesign --force --deep --options runtime --timestamp \
+            --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+            target/Snooz.app
+          codesign --verify --deep --strict --verbose=2 target/Snooz.app
+          spctl -a -t exec -vv target/Snooz.app
+
       - name: Build .dmg Installer
         run: |
           fbs installer
+
+      - name: Sign, notarize and staple .dmg
+        run: |
+          DMG_PATH="$(ls target/*.dmg | head -n 1)"
+          echo "DMG_PATH=$DMG_PATH"
+          codesign --force --timestamp \
+            --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+            "$DMG_PATH"
+          xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
+            --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
 
       - name: Upload .dmg to Artifacts
         if: ${{ inputs.upload_artifacts }}
