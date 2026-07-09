@@ -187,22 +187,29 @@ jobs:
 
       - name: Copy PSGReader extensions (macOS x64)
         run: |
-          mkdir -p target/Snooz.app/Contents/Resources/extension/PSGReader
-          cp -r src/main/resources/mac/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
-          cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          mkdir -p "$APP_PATH/Contents/Resources/extension/PSGReader"
+          cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
+          cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
 
       - name: Copy missing packages (macOS)
         run: |
-          python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz.app/Contents/Frameworks'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Sign Snooz.app
         run: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" target/Snooz.app/Contents/Info.plist
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          PLIST_PATH="$APP_PATH/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $APP_BUNDLE_ID" "$PLIST_PATH"
           codesign --force --deep --options runtime --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
-            target/Snooz.app
-          codesign --verify --deep --strict --verbose=2 target/Snooz.app
-          spctl -a -t exec -vv target/Snooz.app
+            "$APP_PATH"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          spctl -a -t exec -vv "$APP_PATH"
 
       - name: Build .dmg Installer (CI-safe fallback)
         run: |
@@ -233,6 +240,9 @@ jobs:
           rm -f target/Snooz.dmg
 
           CREATE_DMG="$(python -c "import inspect, os, fbs.installer.mac; print(os.path.join(os.path.dirname(inspect.getfile(fbs.installer.mac)), 'create-dmg', 'create-dmg'))")"
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          APP_NAME="$(basename "$APP_PATH")"
+          test -n "$APP_PATH"
 
           echo "Using create-dmg at: $CREATE_DMG"
 
@@ -241,9 +251,9 @@ jobs:
             --skip-jenkins \
             --volname "Snooz" \
             --app-drop-link 170 10 \
-            --icon "Snooz.app" 0 10 \
+            --icon "$APP_NAME" 0 10 \
             "target/Snooz.dmg" \
-            "target/Snooz.app"
+            "$APP_PATH"
 
       - name: Sign, notarize and staple .dmg
         run: |
@@ -333,22 +343,29 @@ jobs:
 
       - name: Copy PSGReader extensions (macOS arm64)
         run: |
-          mkdir -p target/Snooz.app/Contents/Resources/extension/PSGReader
-          cp -r src/main/resources/mac/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
-          cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          mkdir -p "$APP_PATH/Contents/Resources/extension/PSGReader"
+          cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
+          cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
 
       - name: Copy missing packages (macOS)
         run: |
-          python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz.app/Contents/Frameworks'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Sign Snooz.app
         run: |
-          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" target/Snooz.app/Contents/Info.plist
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          PLIST_PATH="$APP_PATH/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $APP_BUNDLE_ID" "$PLIST_PATH"
           codesign --force --deep --options runtime --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
-            target/Snooz.app
-          codesign --verify --deep --strict --verbose=2 target/Snooz.app
-          spctl -a -t exec -vv target/Snooz.app
+            "$APP_PATH"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          spctl -a -t exec -vv "$APP_PATH"
 
       - name: Build .dmg Installer
         run: |
