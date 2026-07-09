@@ -211,49 +211,25 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           spctl -a -t exec -vv "$APP_PATH"
 
-      - name: Build .dmg Installer (CI-safe fallback)
+      - name: Build .dmg Installer
         run: |
           set -eo pipefail
-
-          cleanup_dmg_mounts() {
-            echo "Mounted volumes before cleanup:"
-            ls /Volumes || true
-
-            for vol in /Volumes/Snooz*; do
-              if [ -d "$vol" ]; then
-                echo "Force-unmounting $vol"
-                hdiutil detach "$vol" -force || true
-                diskutil unmount force "$vol" || true
-              fi
-            done
-          }
-
-          # Keep the standard path first.
-          if fbs installer; then
-            echo "fbs installer succeeded."
-            exit 0
-          fi
-
-          echo "fbs installer failed (known intermittent create-dmg detach issue in CI)."
-          echo "Switching to fallback create-dmg with --skip-jenkins..."
-          cleanup_dmg_mounts
-          rm -f target/Snooz.dmg
-
-          CREATE_DMG="$(python -c "import inspect, os, fbs.installer.mac; print(os.path.join(os.path.dirname(inspect.getfile(fbs.installer.mac)), 'create-dmg', 'create-dmg'))")"
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          APP_NAME="$(basename "$APP_PATH")"
           test -n "$APP_PATH"
+          APP_NAME="$(basename "$APP_PATH")"
+          APP_BASE_NAME="${APP_NAME%.app}"
+          DMG_PATH="target/${APP_BASE_NAME}.dmg"
+          STAGE_DIR="$(mktemp -d)/dmg-root"
 
-          echo "Using create-dmg at: $CREATE_DMG"
+          mkdir -p "$STAGE_DIR"
+          cp -R "$APP_PATH" "$STAGE_DIR/"
+          ln -s /Applications "$STAGE_DIR/Applications"
 
-          "$CREATE_DMG" \
-            --no-internet-enable \
-            --skip-jenkins \
-            --volname "Snooz" \
-            --app-drop-link 170 10 \
-            --icon "$APP_NAME" 0 10 \
-            "target/Snooz.dmg" \
-            "$APP_PATH"
+          rm -f "$DMG_PATH"
+          hdiutil create -volname "$APP_BASE_NAME" -srcfolder "$STAGE_DIR" -ov -format UDZO "$DMG_PATH"
+
+          rm -rf "$STAGE_DIR"
+          ls -la target/*.dmg
 
       - name: Sign, notarize and staple .dmg
         run: |
@@ -369,7 +345,23 @@ jobs:
 
       - name: Build .dmg Installer
         run: |
-          fbs installer
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          APP_NAME="$(basename "$APP_PATH")"
+          APP_BASE_NAME="${APP_NAME%.app}"
+          DMG_PATH="target/${APP_BASE_NAME}.dmg"
+          STAGE_DIR="$(mktemp -d)/dmg-root"
+
+          mkdir -p "$STAGE_DIR"
+          cp -R "$APP_PATH" "$STAGE_DIR/"
+          ln -s /Applications "$STAGE_DIR/Applications"
+
+          rm -f "$DMG_PATH"
+          hdiutil create -volname "$APP_BASE_NAME" -srcfolder "$STAGE_DIR" -ov -format UDZO "$DMG_PATH"
+
+          rm -rf "$STAGE_DIR"
+          ls -la target/*.dmg
 
       - name: Sign, notarize and staple .dmg
         run: |
