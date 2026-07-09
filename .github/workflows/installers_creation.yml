@@ -185,8 +185,10 @@ jobs:
         run: |
           fbs freeze
 
-      - name: Copy architecture-specific extensions (macOS x64)
+      - name: Copy PSGReader extensions (macOS x64)
         run: |
+          mkdir -p target/Snooz.app/Contents/Resources/extension/PSGReader
+          cp -r src/main/resources/mac/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
           cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
 
       - name: Copy missing packages (macOS)
@@ -329,8 +331,10 @@ jobs:
         run: |
           fbs freeze
 
-      - name: Copy architecture-specific extensions (macOS arm64)
+      - name: Copy PSGReader extensions (macOS arm64)
         run: |
+          mkdir -p target/Snooz.app/Contents/Resources/extension/PSGReader
+          cp -r src/main/resources/mac/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
           cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. target/Snooz.app/Contents/Resources/extension/PSGReader/
 
       - name: Copy missing packages (macOS)
