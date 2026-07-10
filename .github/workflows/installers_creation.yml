@@ -26,6 +26,11 @@ on:
         required: true
         type: boolean
         default: true
+      sign_macos:
+        description: 'Sign and notarize macOS artifacts'
+        required: true
+        type: boolean
+        default: true
       dmg_builder:
         description: 'macOS DMG builder strategy'
         required: true
@@ -175,6 +180,7 @@ jobs:
           pip install fbs-pro.tar.gz
 
       - name: Configure Apple signing certificate
+        if: ${{ inputs.sign_macos }}
         env:
           APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_BASE64 }}
           APPLE_CERT_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_PASSWORD }}
@@ -214,6 +220,7 @@ jobs:
           APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Sign Snooz.app
+        if: ${{ inputs.sign_macos }}
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
@@ -259,6 +266,7 @@ jobs:
           ls -la target/*.dmg
 
       - name: Sign, notarize and staple .dmg
+        if: ${{ inputs.sign_macos }}
         run: |
           set -eo pipefail
           DMG_PATH="$(ls target/*.dmg | head -n 1)"
@@ -345,6 +353,7 @@ jobs:
           pip install fbs-pro.tar.gz
 
       - name: Configure Apple signing certificate
+        if: ${{ inputs.sign_macos }}
         env:
           APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_BASE64 }}
           APPLE_CERT_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_PASSWORD }}
@@ -384,6 +393,7 @@ jobs:
           APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Sign Snooz.app
+        if: ${{ inputs.sign_macos }}
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
@@ -429,6 +439,7 @@ jobs:
           ls -la target/*.dmg
 
       - name: Sign, notarize and staple .dmg
+        if: ${{ inputs.sign_macos }}
         run: |
           set -eo pipefail
           DMG_PATH="$(ls target/*.dmg | head -n 1)"
