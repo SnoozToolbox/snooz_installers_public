@@ -262,7 +262,7 @@ jobs:
               "$BIN"
           done
 
-          codesign --force --options runtime --timestamp \
+          codesign --force --deep --options runtime --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
@@ -485,7 +485,7 @@ jobs:
               "$BIN"
           done
 
-          codesign --force --options runtime --timestamp \
+          codesign --force --deep --options runtime --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
