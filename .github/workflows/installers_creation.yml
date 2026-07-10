@@ -1,5 +1,8 @@
 name: Build binaries
 
+permissions:
+  contents: write
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -62,6 +65,29 @@ on:
         required: true
         type: boolean
         default: false
+      publish_to_release:
+        description: 'Upload macOS DMG files to a GitHub Release'
+        required: true
+        type: boolean
+        default: false
+      release_tag:
+        description: 'Release tag (required when publish_to_release is true)'
+        required: false
+        default: ''
+      release_name:
+        description: 'Release name (optional)'
+        required: false
+        default: ''
+      release_draft:
+        description: 'Create/update release as draft'
+        required: true
+        type: boolean
+        default: true
+      release_prerelease:
+        description: 'Mark release as prerelease'
+        required: true
+        type: boolean
+        default: true
 
 jobs:
   build_exe:
@@ -318,6 +344,17 @@ jobs:
           path: target/*.dmg
           retention-days: 2
 
+      - name: Publish x64 .dmg to Release
+        if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
+          draft: ${{ inputs.release_draft }}
+          prerelease: ${{ inputs.release_prerelease }}
+          files: target/*.dmg
+          fail_on_unmatched_files: true
+
       - name: Upload target folder for debug
         if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
         uses: actions/upload-artifact@v4
@@ -503,6 +540,17 @@ jobs:
           name: SnoozSetup-arm64.dmg
           path: target/*.dmg
           retention-days: 2
+
+      - name: Publish arm64 .dmg to Release
+        if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
+          draft: ${{ inputs.release_draft }}
+          prerelease: ${{ inputs.release_prerelease }}
+          files: target/*.dmg
+          fail_on_unmatched_files: true
 
       - name: Upload target folder for debug
         if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
