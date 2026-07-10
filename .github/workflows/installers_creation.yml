@@ -26,6 +26,11 @@ on:
         required: true
         type: boolean
         default: true
+      freeze_only:
+        description: 'macOS debug mode: freeze only and upload target folder'
+        required: true
+        type: boolean
+        default: false
       sign_macos:
         description: 'Sign and notarize macOS artifacts'
         required: true
@@ -117,7 +122,11 @@ jobs:
 
       - name: Freeze app with fbs
         run: |
-          fbs freeze
+          if [ "${{ inputs.freeze_only }}" = "true" ]; then
+            fbs freeze --debug
+          else
+            fbs freeze
+          fi
 
       - name: Copy missing packages (Windows)
         shell: pwsh
@@ -220,7 +229,7 @@ jobs:
           APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Sign Snooz.app
-        if: ${{ inputs.sign_macos }}
+        if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
@@ -240,6 +249,7 @@ jobs:
           spctl -a -t exec -vv "$APP_PATH"
 
       - name: Build .dmg Installer
+        if: ${{ !inputs.freeze_only }}
         run: |
           set -eo pipefail
           if [ "${{ inputs.dmg_builder }}" = "fbs" ]; then
@@ -266,7 +276,7 @@ jobs:
           ls -la target/*.dmg
 
       - name: Sign, notarize and staple .dmg
-        if: ${{ inputs.sign_macos }}
+        if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
           set -eo pipefail
           DMG_PATH="$(ls target/*.dmg | head -n 1)"
@@ -301,11 +311,19 @@ jobs:
           xcrun stapler validate "$DMG_PATH"
 
       - name: Upload .dmg to Artifacts
-        if: ${{ inputs.upload_artifacts }}
+        if: ${{ inputs.upload_artifacts && !inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-x64.dmg
           path: target/*.dmg
+          retention-days: 2
+
+      - name: Upload target folder for debug
+        if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozTarget-x64
+          path: target/**
           retention-days: 2
 
   build_dmg_arm64:
@@ -370,7 +388,11 @@ jobs:
 
       - name: Freeze app with fbs
         run: |
-          fbs freeze
+          if [ "${{ inputs.freeze_only }}" = "true" ]; then
+            fbs freeze --debug
+          else
+            fbs freeze
+          fi
 
       - name: Copy PSGReader extensions (macOS arm64)
         run: |
@@ -393,7 +415,7 @@ jobs:
           APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Sign Snooz.app
-        if: ${{ inputs.sign_macos }}
+        if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
@@ -413,6 +435,7 @@ jobs:
           spctl -a -t exec -vv "$APP_PATH"
 
       - name: Build .dmg Installer
+        if: ${{ !inputs.freeze_only }}
         run: |
           set -eo pipefail
           if [ "${{ inputs.dmg_builder }}" = "fbs" ]; then
@@ -439,7 +462,7 @@ jobs:
           ls -la target/*.dmg
 
       - name: Sign, notarize and staple .dmg
-        if: ${{ inputs.sign_macos }}
+        if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
           set -eo pipefail
           DMG_PATH="$(ls target/*.dmg | head -n 1)"
@@ -474,11 +497,19 @@ jobs:
           xcrun stapler validate "$DMG_PATH"
 
       - name: Upload .dmg to Artifacts
-        if: ${{ inputs.upload_artifacts }}
+        if: ${{ inputs.upload_artifacts && !inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-arm64.dmg
           path: target/*.dmg
+          retention-days: 2
+
+      - name: Upload target folder for debug
+        if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozTarget-arm64
+          path: target/**
           retention-days: 2
 
   build_linux:
