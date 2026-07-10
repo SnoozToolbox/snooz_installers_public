@@ -26,6 +26,14 @@ on:
         required: true
         type: boolean
         default: true
+      dmg_builder:
+        description: 'macOS DMG builder strategy'
+        required: true
+        type: choice
+        options:
+          - hdiutil
+          - fbs
+        default: hdiutil
       build_linux:
         description: 'Build Linux installer (zip)'
         required: true
@@ -221,21 +229,27 @@ jobs:
       - name: Build .dmg Installer
         run: |
           set -eo pipefail
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          test -n "$APP_PATH"
-          APP_NAME="$(basename "$APP_PATH")"
-          APP_BASE_NAME="${APP_NAME%.app}"
-          DMG_PATH="target/${APP_BASE_NAME}.dmg"
-          STAGE_DIR="$(mktemp -d)/dmg-root"
+          if [ "${{ inputs.dmg_builder }}" = "fbs" ]; then
+            echo "Building DMG with fbs installer"
+            fbs installer
+          else
+            echo "Building DMG with hdiutil"
+            APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+            test -n "$APP_PATH"
+            APP_NAME="$(basename "$APP_PATH")"
+            APP_BASE_NAME="${APP_NAME%.app}"
+            DMG_PATH="target/${APP_BASE_NAME}.dmg"
+            STAGE_DIR="$(mktemp -d)/dmg-root"
 
-          mkdir -p "$STAGE_DIR"
-          cp -R "$APP_PATH" "$STAGE_DIR/"
-          ln -s /Applications "$STAGE_DIR/Applications"
+            mkdir -p "$STAGE_DIR"
+            cp -R "$APP_PATH" "$STAGE_DIR/"
+            ln -s /Applications "$STAGE_DIR/Applications"
 
-          rm -f "$DMG_PATH"
-          hdiutil create -volname "$APP_BASE_NAME" -srcfolder "$STAGE_DIR" -ov -format UDZO "$DMG_PATH"
+            rm -f "$DMG_PATH"
+            hdiutil create -volname "$APP_BASE_NAME" -srcfolder "$STAGE_DIR" -ov -format UDZO "$DMG_PATH"
 
-          rm -rf "$STAGE_DIR"
+            rm -rf "$STAGE_DIR"
+          fi
           ls -la target/*.dmg
 
       - name: Sign, notarize and staple .dmg
@@ -379,21 +393,27 @@ jobs:
       - name: Build .dmg Installer
         run: |
           set -eo pipefail
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          test -n "$APP_PATH"
-          APP_NAME="$(basename "$APP_PATH")"
-          APP_BASE_NAME="${APP_NAME%.app}"
-          DMG_PATH="target/${APP_BASE_NAME}.dmg"
-          STAGE_DIR="$(mktemp -d)/dmg-root"
+          if [ "${{ inputs.dmg_builder }}" = "fbs" ]; then
+            echo "Building DMG with fbs installer"
+            fbs installer
+          else
+            echo "Building DMG with hdiutil"
+            APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+            test -n "$APP_PATH"
+            APP_NAME="$(basename "$APP_PATH")"
+            APP_BASE_NAME="${APP_NAME%.app}"
+            DMG_PATH="target/${APP_BASE_NAME}.dmg"
+            STAGE_DIR="$(mktemp -d)/dmg-root"
 
-          mkdir -p "$STAGE_DIR"
-          cp -R "$APP_PATH" "$STAGE_DIR/"
-          ln -s /Applications "$STAGE_DIR/Applications"
+            mkdir -p "$STAGE_DIR"
+            cp -R "$APP_PATH" "$STAGE_DIR/"
+            ln -s /Applications "$STAGE_DIR/Applications"
 
-          rm -f "$DMG_PATH"
-          hdiutil create -volname "$APP_BASE_NAME" -srcfolder "$STAGE_DIR" -ov -format UDZO "$DMG_PATH"
+            rm -f "$DMG_PATH"
+            hdiutil create -volname "$APP_BASE_NAME" -srcfolder "$STAGE_DIR" -ov -format UDZO "$DMG_PATH"
 
-          rm -rf "$STAGE_DIR"
+            rm -rf "$STAGE_DIR"
+          fi
           ls -la target/*.dmg
 
       - name: Sign, notarize and staple .dmg
