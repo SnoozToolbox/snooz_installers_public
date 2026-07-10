@@ -255,7 +255,7 @@ jobs:
             STAGE_DIR="$(mktemp -d)/dmg-root"
 
             mkdir -p "$STAGE_DIR"
-            cp -R "$APP_PATH" "$STAGE_DIR/"
+            ditto "$APP_PATH" "$STAGE_DIR/$APP_NAME"
             ln -s /Applications "$STAGE_DIR/Applications"
 
             rm -f "$DMG_PATH"
@@ -428,7 +428,7 @@ jobs:
             STAGE_DIR="$(mktemp -d)/dmg-root"
 
             mkdir -p "$STAGE_DIR"
-            cp -R "$APP_PATH" "$STAGE_DIR/"
+            ditto "$APP_PATH" "$STAGE_DIR/$APP_NAME"
             ln -s /Applications "$STAGE_DIR/Applications"
 
             rm -f "$DMG_PATH"
