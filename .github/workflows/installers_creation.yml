@@ -274,8 +274,13 @@ jobs:
           set -eo pipefail
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
+          APP_NAME="$(basename "$APP_PATH")"
+          APP_ZIP="target/${APP_NAME}.zip"
 
-          APP_SUBMIT_OUTPUT="$(xcrun notarytool submit "$APP_PATH" \
+          rm -f "$APP_ZIP"
+          ditto -c -k --keepParent "$APP_PATH" "$APP_ZIP"
+
+          APP_SUBMIT_OUTPUT="$(xcrun notarytool submit "$APP_ZIP" \
             --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
             --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
             --team-id "$APPLE_TEAM_ID" \
@@ -299,6 +304,7 @@ jobs:
 
           xcrun stapler staple "$APP_PATH"
           xcrun stapler validate "$APP_PATH"
+          rm -f "$APP_ZIP"
 
       - name: Build .dmg Installer
         if: ${{ !inputs.freeze_only }}
@@ -497,8 +503,13 @@ jobs:
           set -eo pipefail
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
+          APP_NAME="$(basename "$APP_PATH")"
+          APP_ZIP="target/${APP_NAME}.zip"
 
-          APP_SUBMIT_OUTPUT="$(xcrun notarytool submit "$APP_PATH" \
+          rm -f "$APP_ZIP"
+          ditto -c -k --keepParent "$APP_PATH" "$APP_ZIP"
+
+          APP_SUBMIT_OUTPUT="$(xcrun notarytool submit "$APP_ZIP" \
             --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
             --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
             --team-id "$APPLE_TEAM_ID" \
@@ -522,6 +533,7 @@ jobs:
 
           xcrun stapler staple "$APP_PATH"
           xcrun stapler validate "$APP_PATH"
+          rm -f "$APP_ZIP"
 
       - name: Build .dmg Installer
         if: ${{ !inputs.freeze_only }}
