@@ -242,12 +242,6 @@ jobs:
           cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
           cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
 
-      - name: Prune opposite-architecture resources (macOS x64)
-        run: |
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          test -n "$APP_PATH"
-          rm -rf "$APP_PATH/Contents/Resources/mac-arm64"
-
       - name: Copy missing packages (macOS)
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -268,11 +262,43 @@ jobs:
               "$BIN"
           done
 
-          codesign --force --deep --options runtime --timestamp \
+          codesign --force --options runtime --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           spctl -a -t exec -vv "$APP_PATH"
+
+      - name: Notarize and staple Snooz.app
+        if: ${{ inputs.sign_macos && !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+
+          APP_SUBMIT_OUTPUT="$(xcrun notarytool submit "$APP_PATH" \
+            --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
+            --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --output-format json)"
+
+          echo "$APP_SUBMIT_OUTPUT"
+          APP_NOTARY_STATUS="$(python -c "import json,sys; print(json.load(sys.stdin).get('status',''))" <<< "$APP_SUBMIT_OUTPUT")"
+          APP_SUBMISSION_ID="$(python -c "import json,sys; print(json.load(sys.stdin).get('id',''))" <<< "$APP_SUBMIT_OUTPUT")"
+
+          if [ "$APP_NOTARY_STATUS" != "Accepted" ]; then
+            echo "App notarization failed with status: $APP_NOTARY_STATUS"
+            if [ -n "$APP_SUBMISSION_ID" ]; then
+              xcrun notarytool log "$APP_SUBMISSION_ID" \
+                --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
+                --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
+                --team-id "$APPLE_TEAM_ID" || true
+            fi
+            exit 1
+          fi
+
+          xcrun stapler staple "$APP_PATH"
+          xcrun stapler validate "$APP_PATH"
 
       - name: Build .dmg Installer
         if: ${{ !inputs.freeze_only }}
@@ -439,12 +465,6 @@ jobs:
           cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
           cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
 
-      - name: Prune opposite-architecture resources (macOS arm64)
-        run: |
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          test -n "$APP_PATH"
-          rm -rf "$APP_PATH/Contents/Resources/mac-X64"
-
       - name: Copy missing packages (macOS)
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -465,11 +485,43 @@ jobs:
               "$BIN"
           done
 
-          codesign --force --deep --options runtime --timestamp \
+          codesign --force --options runtime --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           spctl -a -t exec -vv "$APP_PATH"
+
+      - name: Notarize and staple Snooz.app
+        if: ${{ inputs.sign_macos && !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+
+          APP_SUBMIT_OUTPUT="$(xcrun notarytool submit "$APP_PATH" \
+            --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
+            --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --output-format json)"
+
+          echo "$APP_SUBMIT_OUTPUT"
+          APP_NOTARY_STATUS="$(python -c "import json,sys; print(json.load(sys.stdin).get('status',''))" <<< "$APP_SUBMIT_OUTPUT")"
+          APP_SUBMISSION_ID="$(python -c "import json,sys; print(json.load(sys.stdin).get('id',''))" <<< "$APP_SUBMIT_OUTPUT")"
+
+          if [ "$APP_NOTARY_STATUS" != "Accepted" ]; then
+            echo "App notarization failed with status: $APP_NOTARY_STATUS"
+            if [ -n "$APP_SUBMISSION_ID" ]; then
+              xcrun notarytool log "$APP_SUBMISSION_ID" \
+                --apple-id "${{ secrets.APPLE_NOTARY_APPLE_ID }}" \
+                --password "${{ secrets.APPLE_NOTARY_APP_PASSWORD }}" \
+                --team-id "$APPLE_TEAM_ID" || true
+            fi
+            exit 1
+          fi
+
+          xcrun stapler staple "$APP_PATH"
+          xcrun stapler validate "$APP_PATH"
 
       - name: Build .dmg Installer
         if: ${{ !inputs.freeze_only }}
