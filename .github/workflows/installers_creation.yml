@@ -384,8 +384,14 @@ jobs:
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
           set -eo pipefail
-          DMG_PATH="$(ls target/*.dmg | head -n 1)"
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
           echo "DMG_PATH=$DMG_PATH"
+          xattr -cr "$DMG_PATH"
           codesign --force --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$DMG_PATH"
@@ -653,8 +659,14 @@ jobs:
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
           set -eo pipefail
-          DMG_PATH="$(ls target/*.dmg | head -n 1)"
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
           echo "DMG_PATH=$DMG_PATH"
+          xattr -cr "$DMG_PATH"
           codesign --force --timestamp \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$DMG_PATH"
