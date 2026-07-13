@@ -124,11 +124,26 @@ jobs:
 
       - name: Install fbs pro
         run: |
-          curl -L -H "Accept: application/octet-stream" `
-               -H "Authorization: Bearer ${{ secrets.GH_PAT }}" `
-               -H "X-GitHub-Api-Version: 2022-11-28" `
-               -o fbs-pro.tar.gz `
-               "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
+          $maxAttempts = 5
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 180 `
+                 -H "Accept: application/octet-stream" `
+                 -H "Authorization: Bearer ${{ secrets.GH_PAT }}" `
+                 -H "X-GitHub-Api-Version: 2022-11-28" `
+                 -o fbs-pro.tar.gz `
+                 "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
+
+            if ($LASTEXITCODE -eq 0 -and (Test-Path "fbs-pro.tar.gz") -and ((Get-Item "fbs-pro.tar.gz").Length -gt 0)) {
+              break
+            }
+
+            if ($attempt -eq $maxAttempts) {
+              throw "Failed to download fbs-pro.tar.gz after $maxAttempts attempts"
+            }
+
+            Write-Host "Retrying fbs-pro download (attempt $attempt/$maxAttempts)"
+            Start-Sleep -Seconds (3 * $attempt)
+          }
 
           # Install only if it's valid
           pip install fbs-pro.tar.gz
@@ -212,11 +227,26 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          curl -L -H "Accept: application/octet-stream" \
-                -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                -o fbs-pro.tar.gz \
-                "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
+
+          MAX_ATTEMPTS=5
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 180 \
+              -H "Accept: application/octet-stream" \
+              -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -o fbs-pro.tar.gz \
+              "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}" && break
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Failed to download fbs-pro.tar.gz after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+
+            echo "Retrying fbs-pro download (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep $((ATTEMPT * 3))
+          done
+
+          test -s fbs-pro.tar.gz
           pip install fbs-pro.tar.gz
 
       - name: Configure Apple signing certificate
@@ -343,11 +373,26 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          curl -L -H "Accept: application/octet-stream" \
-                -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                -o fbs-pro.tar.gz \
-                "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
+
+          MAX_ATTEMPTS=5
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 180 \
+              -H "Accept: application/octet-stream" \
+              -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -o fbs-pro.tar.gz \
+              "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}" && break
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Failed to download fbs-pro.tar.gz after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+
+            echo "Retrying fbs-pro download (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep $((ATTEMPT * 3))
+          done
+
+          test -s fbs-pro.tar.gz
           pip install fbs-pro.tar.gz
 
       - name: Download prepared app bundle
@@ -364,7 +409,51 @@ jobs:
           set -eo pipefail
           if [ "${{ inputs.dmg_builder }}" = "fbs" ]; then
             echo "Building DMG with fbs installer"
-            fbs installer
+            APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+            test -n "$APP_PATH"
+            APP_NAME="$(basename "$APP_PATH")"
+            APP_BASE_NAME="${APP_NAME%.app}"
+            VOL_PATH="/Volumes/$APP_BASE_NAME"
+
+            cleanup_volume() {
+              if mount | grep -q "on $VOL_PATH "; then
+                echo "Detaching leftover mounted volume $VOL_PATH"
+                hdiutil detach "$VOL_PATH" -force || true
+              fi
+            }
+
+            cleanup_volume
+
+            MAX_ATTEMPTS=3
+            for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+              rm -f target/*.dmg
+              echo "fbs DMG attempt $ATTEMPT/$MAX_ATTEMPTS"
+
+              set +e
+              fbs installer
+              FBS_STATUS=$?
+              set -e
+
+              cleanup_volume
+
+              if ls target/*.dmg >/dev/null 2>&1; then
+                echo "DMG created successfully."
+                break
+              fi
+
+              if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+                EXIT_CODE="$FBS_STATUS"
+                if [ "$EXIT_CODE" -eq 0 ]; then
+                  EXIT_CODE=1
+                fi
+                echo "fbs installer failed after $MAX_ATTEMPTS attempts (last exit: $FBS_STATUS)."
+                hdiutil info || true
+                exit "$EXIT_CODE"
+              fi
+
+              echo "Retrying fbs installer after cleanup..."
+              sleep 3
+            done
           else
             echo "Building DMG with hdiutil"
             APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -476,11 +565,26 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          curl -L -H "Accept: application/octet-stream" \
-                -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                -o fbs-pro.tar.gz \
-                "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
+
+          MAX_ATTEMPTS=5
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 180 \
+              -H "Accept: application/octet-stream" \
+              -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -o fbs-pro.tar.gz \
+              "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}" && break
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Failed to download fbs-pro.tar.gz after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+
+            echo "Retrying fbs-pro download (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep $((ATTEMPT * 3))
+          done
+
+          test -s fbs-pro.tar.gz
           pip install fbs-pro.tar.gz
 
       - name: Configure Apple signing certificate
@@ -585,7 +689,51 @@ jobs:
           set -eo pipefail
           if [ "${{ inputs.dmg_builder }}" = "fbs" ]; then
             echo "Building DMG with fbs installer"
-            fbs installer
+            APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+            test -n "$APP_PATH"
+            APP_NAME="$(basename "$APP_PATH")"
+            APP_BASE_NAME="${APP_NAME%.app}"
+            VOL_PATH="/Volumes/$APP_BASE_NAME"
+
+            cleanup_volume() {
+              if mount | grep -q "on $VOL_PATH "; then
+                echo "Detaching leftover mounted volume $VOL_PATH"
+                hdiutil detach "$VOL_PATH" -force || true
+              fi
+            }
+
+            cleanup_volume
+
+            MAX_ATTEMPTS=3
+            for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+              rm -f target/*.dmg
+              echo "fbs DMG attempt $ATTEMPT/$MAX_ATTEMPTS"
+
+              set +e
+              fbs installer
+              FBS_STATUS=$?
+              set -e
+
+              cleanup_volume
+
+              if ls target/*.dmg >/dev/null 2>&1; then
+                echo "DMG created successfully."
+                break
+              fi
+
+              if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+                EXIT_CODE="$FBS_STATUS"
+                if [ "$EXIT_CODE" -eq 0 ]; then
+                  EXIT_CODE=1
+                fi
+                echo "fbs installer failed after $MAX_ATTEMPTS attempts (last exit: $FBS_STATUS)."
+                hdiutil info || true
+                exit "$EXIT_CODE"
+              fi
+
+              echo "Retrying fbs installer after cleanup..."
+              sleep 3
+            done
           else
             echo "Building DMG with hdiutil"
             APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -692,11 +840,26 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          curl -L -H "Accept: application/octet-stream" \
-                -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
-                -H "X-GitHub-Api-Version: 2022-11-28" \
-                -o fbs-pro.tar.gz \
-                "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
+
+          MAX_ATTEMPTS=5
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 180 \
+              -H "Accept: application/octet-stream" \
+              -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -o fbs-pro.tar.gz \
+              "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}" && break
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Failed to download fbs-pro.tar.gz after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+
+            echo "Retrying fbs-pro download (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep $((ATTEMPT * 3))
+          done
+
+          test -s fbs-pro.tar.gz
           pip install fbs-pro.tar.gz
 
       - name: Install fpm
