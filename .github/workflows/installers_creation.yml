@@ -404,6 +404,22 @@ jobs:
           github-token: ${{ secrets.GH_PAT }}
           run-id: ${{ inputs.resume_macos_intel_run_id != '' && inputs.resume_macos_intel_run_id || github.run_id }}
 
+      - name: Configure Apple signing certificate
+        if: ${{ inputs.sign_macos }}
+        env:
+          APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_BASE64 }}
+          APPLE_CERT_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_PASSWORD }}
+          APPLE_CI_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          printf '%s' "$APPLE_CERT_P12_BASE64" | base64 --decode > certificate.p12
+          security create-keychain -p "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERT_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
+          rm -f certificate.p12
+
       - name: Build .dmg Installer
         run: |
           set -eo pipefail
