@@ -34,10 +34,11 @@ on:
         required: true
         type: boolean
         default: false
-        resume_macos_intel_run_id:
-          description: 'Resume the Intel macOS DMG job from a previous run id (optional)'
-          required: false
-          default: ''
+      resume_macos_intel_run_id:
+        description: 'Resume the Intel macOS DMG job from a previous run id (optional)'
+        required: false
+        type: string
+        default: ''
       sign_macos:
         description: 'Sign and notarize macOS artifacts'
         required: true
