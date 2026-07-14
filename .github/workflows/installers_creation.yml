@@ -369,10 +369,24 @@ jobs:
 
             if [ -f "$RW_DMG_PATH" ]; then
               echo "Temporary rw DMG found. Attempting to recover final DMG."
-              set +e
-              hdiutil convert "$RW_DMG_PATH" -format UDZO -o "$FINAL_DMG_PATH"
-              CONVERT_STATUS=$?
-              set -e
+              CONVERT_STATUS=1
+              CONVERT_MAX_ATTEMPTS=5
+              for CONVERT_ATTEMPT in $(seq 1 "$CONVERT_MAX_ATTEMPTS"); do
+                rm -f "$FINAL_DMG_PATH"
+                set +e
+                hdiutil convert "$RW_DMG_PATH" -format UDZO -o "$FINAL_DMG_PATH"
+                CONVERT_STATUS=$?
+                set -e
+
+                if [ "$CONVERT_STATUS" -eq 0 ] && [ -f "$FINAL_DMG_PATH" ]; then
+                  break
+                fi
+
+                if [ "$CONVERT_ATTEMPT" -lt "$CONVERT_MAX_ATTEMPTS" ]; then
+                  echo "hdiutil convert retry $CONVERT_ATTEMPT/$CONVERT_MAX_ATTEMPTS after transient failure."
+                  sleep $((CONVERT_ATTEMPT * 2))
+                fi
+              done
 
               if [ "$CONVERT_STATUS" -eq 0 ] && [ -f "$FINAL_DMG_PATH" ]; then
                 rm -f "$RW_DMG_PATH" || true
@@ -660,10 +674,24 @@ jobs:
 
             if [ -f "$RW_DMG_PATH" ]; then
               echo "Temporary rw DMG found. Attempting to recover final DMG."
-              set +e
-              hdiutil convert "$RW_DMG_PATH" -format UDZO -o "$FINAL_DMG_PATH"
-              CONVERT_STATUS=$?
-              set -e
+              CONVERT_STATUS=1
+              CONVERT_MAX_ATTEMPTS=5
+              for CONVERT_ATTEMPT in $(seq 1 "$CONVERT_MAX_ATTEMPTS"); do
+                rm -f "$FINAL_DMG_PATH"
+                set +e
+                hdiutil convert "$RW_DMG_PATH" -format UDZO -o "$FINAL_DMG_PATH"
+                CONVERT_STATUS=$?
+                set -e
+
+                if [ "$CONVERT_STATUS" -eq 0 ] && [ -f "$FINAL_DMG_PATH" ]; then
+                  break
+                fi
+
+                if [ "$CONVERT_ATTEMPT" -lt "$CONVERT_MAX_ATTEMPTS" ]; then
+                  echo "hdiutil convert retry $CONVERT_ATTEMPT/$CONVERT_MAX_ATTEMPTS after transient failure."
+                  sleep $((CONVERT_ATTEMPT * 2))
+                fi
+              done
 
               if [ "$CONVERT_STATUS" -eq 0 ] && [ -f "$FINAL_DMG_PATH" ]; then
                 rm -f "$RW_DMG_PATH" || true
