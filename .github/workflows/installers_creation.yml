@@ -243,6 +243,7 @@ jobs:
           APPLE_CERT_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_PASSWORD }}
           APPLE_CI_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
         run: |
+          KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
           printf '%s' "$APPLE_CERT_P12_BASE64" | base64 --decode > certificate.p12
           security create-keychain -p "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
@@ -250,6 +251,7 @@ jobs:
           security set-keychain-settings -lut 21600 build.keychain
           security import certificate.p12 -k build.keychain -P "$APPLE_CERT_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -d user -s "$KEYCHAIN_PATH" "$HOME/Library/Keychains/login.keychain-db" "/Library/Keychains/System.keychain"
           rm -f certificate.p12
 
       - name: Freeze app with fbs
@@ -273,6 +275,7 @@ jobs:
       - name: Sign Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
+          KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
           PLIST_PATH="$APP_PATH/Contents/Info.plist"
@@ -280,11 +283,13 @@ jobs:
 
           find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
             codesign --force --timestamp --options runtime \
+              --keychain "$KEYCHAIN_PATH" \
               --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
               "$BIN"
           done
 
           codesign --force --deep --options runtime --timestamp \
+            --keychain "$KEYCHAIN_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
@@ -414,6 +419,7 @@ jobs:
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
           set -eo pipefail
+          KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
           DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
           if [ -z "$DMG_PATH" ]; then
             echo "No final DMG found in target/."
@@ -423,6 +429,7 @@ jobs:
           echo "DMG_PATH=$DMG_PATH"
           xattr -cr "$DMG_PATH"
           codesign --force --timestamp \
+            --keychain "$KEYCHAIN_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$DMG_PATH"
 
@@ -544,6 +551,7 @@ jobs:
           APPLE_CERT_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APP_CERT_P12_PASSWORD }}
           APPLE_CI_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
         run: |
+          KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
           printf '%s' "$APPLE_CERT_P12_BASE64" | base64 --decode > certificate.p12
           security create-keychain -p "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
@@ -551,6 +559,7 @@ jobs:
           security set-keychain-settings -lut 21600 build.keychain
           security import certificate.p12 -k build.keychain -P "$APPLE_CERT_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -d user -s "$KEYCHAIN_PATH" "$HOME/Library/Keychains/login.keychain-db" "/Library/Keychains/System.keychain"
           rm -f certificate.p12
 
       - name: Freeze app with fbs
@@ -578,6 +587,7 @@ jobs:
       - name: Sign Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
+          KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
           PLIST_PATH="$APP_PATH/Contents/Info.plist"
@@ -585,11 +595,13 @@ jobs:
 
           find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
             codesign --force --timestamp --options runtime \
+              --keychain "$KEYCHAIN_PATH" \
               --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
               "$BIN"
           done
 
           codesign --force --deep --options runtime --timestamp \
+            --keychain "$KEYCHAIN_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
@@ -719,6 +731,7 @@ jobs:
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
           set -eo pipefail
+          KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
           DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
           if [ -z "$DMG_PATH" ]; then
             echo "No final DMG found in target/."
@@ -728,6 +741,7 @@ jobs:
           echo "DMG_PATH=$DMG_PATH"
           xattr -cr "$DMG_PATH"
           codesign --force --timestamp \
+            --keychain "$KEYCHAIN_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$DMG_PATH"
 
