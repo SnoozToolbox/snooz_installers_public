@@ -180,7 +180,7 @@ jobs:
 
   build_dmg_intel:
     if: ${{ inputs.build_macos && inputs.build_macos_intel }}
-    runs-on: macos-15-intel
+    runs-on: [self-hosted, macOS, X64]
     env:
       APPLE_TEAM_ID: UDE82H2SDR
       APP_BUNDLE_ID: com.snooztoolbox
