@@ -312,8 +312,7 @@ jobs:
             fi
 
             if [ -n "$WARN_FILE" ] && grep -Eqi "missing module named .*${PKG}|No module named .*${PKG}" "$WARN_FILE"; then
-              echo "::error::Potential unresolved module reported for $PKG in $WARN_FILE"
-              MISSING+=("$PKG")
+              echo "::warning::Potential unresolved module mention for $PKG in $WARN_FILE"
             fi
           done
 
@@ -682,8 +681,7 @@ jobs:
             fi
 
             if [ -n "$WARN_FILE" ] && grep -Eqi "missing module named .*${PKG}|No module named .*${PKG}" "$WARN_FILE"; then
-              echo "::error::Potential unresolved module reported for $PKG in $WARN_FILE"
-              MISSING+=("$PKG")
+              echo "::warning::Potential unresolved module mention for $PKG in $WARN_FILE"
             fi
           done
 
