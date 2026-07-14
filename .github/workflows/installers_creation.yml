@@ -34,6 +34,11 @@ on:
         required: true
         type: boolean
         default: false
+      copy_missing_packages_macos:
+        description: 'Copy missing Python packages into macOS app bundle'
+        required: true
+        type: boolean
+        default: true
       sign_macos:
         description: 'Sign and notarize macOS artifacts'
         required: true
@@ -269,6 +274,7 @@ jobs:
           cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
 
       - name: Copy missing packages (macOS)
+        if: ${{ inputs.copy_missing_packages_macos }}
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
@@ -290,7 +296,7 @@ jobs:
               "$BIN"
           done
 
-          codesign --force --deep --options runtime --timestamp \
+          codesign --force --options runtime --timestamp \
             --keychain "$KEYCHAIN_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
@@ -583,6 +589,7 @@ jobs:
           cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
 
       - name: Copy missing packages (macOS)
+        if: ${{ inputs.copy_missing_packages_macos }}
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
@@ -604,7 +611,7 @@ jobs:
               "$BIN"
           done
 
-          codesign --force --deep --options runtime --timestamp \
+          codesign --force --options runtime --timestamp \
             --keychain "$KEYCHAIN_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
