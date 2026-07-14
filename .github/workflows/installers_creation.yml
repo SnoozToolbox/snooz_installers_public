@@ -301,7 +301,9 @@ jobs:
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-          spctl -a -t exec -vv "$APP_PATH"
+          if ! spctl -a -t exec -vv "$APP_PATH"; then
+            echo "Pre-notarization spctl assessment rejected (expected on some CI hosts)."
+          fi
 
       - name: Notarize and staple Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
@@ -616,7 +618,9 @@ jobs:
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-          spctl -a -t exec -vv "$APP_PATH"
+          if ! spctl -a -t exec -vv "$APP_PATH"; then
+            echo "Pre-notarization spctl assessment rejected (expected on some CI hosts)."
+          fi
 
       - name: Notarize and staple Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
