@@ -244,6 +244,8 @@ jobs:
           APPLE_CI_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
         run: |
           KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
+          security delete-keychain build.keychain >/dev/null 2>&1 || true
+          security delete-keychain "$KEYCHAIN_PATH" >/dev/null 2>&1 || true
           printf '%s' "$APPLE_CERT_P12_BASE64" | base64 --decode > certificate.p12
           security create-keychain -p "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
@@ -552,6 +554,8 @@ jobs:
           APPLE_CI_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
         run: |
           KEYCHAIN_PATH="$HOME/Library/Keychains/build.keychain-db"
+          security delete-keychain build.keychain >/dev/null 2>&1 || true
+          security delete-keychain "$KEYCHAIN_PATH" >/dev/null 2>&1 || true
           printf '%s' "$APPLE_CERT_P12_BASE64" | base64 --decode > certificate.p12
           security create-keychain -p "$APPLE_CI_KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
