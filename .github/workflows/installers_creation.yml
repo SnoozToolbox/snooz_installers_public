@@ -38,6 +38,11 @@ on:
         description: 'Copy missing Python packages into macOS app bundle'
         required: true
         type: boolean
+        default: false
+      verify_hooks_macos:
+        description: 'Fail early if PyInstaller hooks did not include required macOS packages'
+        required: true
+        type: boolean
         default: true
       sign_macos:
         description: 'Sign and notarize macOS artifacts'
@@ -279,6 +284,45 @@ jobs:
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
           APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+
+      - name: Verify PyInstaller hook outputs (macOS)
+        if: ${{ inputs.verify_hooks_macos }}
+        run: |
+          ANALYSIS_TOC="$(find target -type f -name 'Analysis-00.toc' | head -n 1)"
+          if [ -z "$ANALYSIS_TOC" ]; then
+            echo "::error::Analysis-00.toc not found. Unable to validate hook packaging output."
+            exit 1
+          fi
+          echo "Using analysis file: $ANALYSIS_TOC"
+
+          WARN_FILE="$(find "$(dirname "$ANALYSIS_TOC")" -maxdepth 1 -type f -name 'warn-*.txt' | head -n 1)"
+          if [ -n "$WARN_FILE" ]; then
+            echo "Using warning file: $WARN_FILE"
+          else
+            echo "No warn-*.txt file found next to Analysis-00.toc"
+          fi
+
+          MISSING=()
+          for PKG in mne lazy_loader lspopt yasa; do
+            if grep -qi "'$PKG'" "$ANALYSIS_TOC"; then
+              echo "Package appears in analysis: $PKG"
+            else
+              echo "Package missing from analysis: $PKG"
+              MISSING+=("$PKG")
+            fi
+
+            if [ -n "$WARN_FILE" ] && grep -Eqi "missing module named .*${PKG}|No module named .*${PKG}" "$WARN_FILE"; then
+              echo "::error::Potential unresolved module reported for $PKG in $WARN_FILE"
+              MISSING+=("$PKG")
+            fi
+          done
+
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
+            echo "::error::Hook validation failed for required packages: $UNIQUE_MISSING"
+            echo "Inspect hook files in src/hooks and PyInstaller analysis outputs before signing/notarization."
+            exit 1
+          fi
 
       - name: Sign Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
@@ -610,6 +654,45 @@ jobs:
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
           APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+
+      - name: Verify PyInstaller hook outputs (macOS)
+        if: ${{ inputs.verify_hooks_macos }}
+        run: |
+          ANALYSIS_TOC="$(find target -type f -name 'Analysis-00.toc' | head -n 1)"
+          if [ -z "$ANALYSIS_TOC" ]; then
+            echo "::error::Analysis-00.toc not found. Unable to validate hook packaging output."
+            exit 1
+          fi
+          echo "Using analysis file: $ANALYSIS_TOC"
+
+          WARN_FILE="$(find "$(dirname "$ANALYSIS_TOC")" -maxdepth 1 -type f -name 'warn-*.txt' | head -n 1)"
+          if [ -n "$WARN_FILE" ]; then
+            echo "Using warning file: $WARN_FILE"
+          else
+            echo "No warn-*.txt file found next to Analysis-00.toc"
+          fi
+
+          MISSING=()
+          for PKG in mne lazy_loader lspopt yasa; do
+            if grep -qi "'$PKG'" "$ANALYSIS_TOC"; then
+              echo "Package appears in analysis: $PKG"
+            else
+              echo "Package missing from analysis: $PKG"
+              MISSING+=("$PKG")
+            fi
+
+            if [ -n "$WARN_FILE" ] && grep -Eqi "missing module named .*${PKG}|No module named .*${PKG}" "$WARN_FILE"; then
+              echo "::error::Potential unresolved module reported for $PKG in $WARN_FILE"
+              MISSING+=("$PKG")
+            fi
+          done
+
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
+            echo "::error::Hook validation failed for required packages: $UNIQUE_MISSING"
+            echo "Inspect hook files in src/hooks and PyInstaller analysis outputs before signing/notarization."
+            exit 1
+          fi
 
       - name: Sign Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
