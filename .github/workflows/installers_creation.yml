@@ -184,6 +184,8 @@ jobs:
     env:
       APPLE_TEAM_ID: UDE82H2SDR
       APP_BUNDLE_ID: com.snooztoolbox
+      RUNNER_TOOL_CACHE: /Users/karine/Documents/actions-runner/_toolcache
+      AGENT_TOOLSDIRECTORY: /Users/karine/Documents/actions-runner/_toolcache
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
