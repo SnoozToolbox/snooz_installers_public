@@ -289,6 +289,20 @@ jobs:
           PLIST_PATH="$APP_PATH/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $APP_BUNDLE_ID" "$PLIST_PATH"
 
+          find "$APP_PATH" -mindepth 1 -type d -name '*.app' -print0 | while IFS= read -r -d '' NESTED_APP; do
+            codesign --force --options runtime --timestamp \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$NESTED_APP"
+          done
+
+          find "$APP_PATH" -type f -perm -111 ! -name '*.py' ! -name '*.pyc' ! -name '*.pyo' -print0 | while IFS= read -r -d '' BIN; do
+            codesign --force --timestamp --options runtime \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$BIN"
+          done
+
           find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
             codesign --force --timestamp --options runtime \
               --keychain "$KEYCHAIN_PATH" \
@@ -605,6 +619,20 @@ jobs:
           test -n "$APP_PATH"
           PLIST_PATH="$APP_PATH/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $APP_BUNDLE_ID" "$PLIST_PATH"
+
+          find "$APP_PATH" -mindepth 1 -type d -name '*.app' -print0 | while IFS= read -r -d '' NESTED_APP; do
+            codesign --force --options runtime --timestamp \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$NESTED_APP"
+          done
+
+          find "$APP_PATH" -type f -perm -111 ! -name '*.py' ! -name '*.pyc' ! -name '*.pyo' -print0 | while IFS= read -r -d '' BIN; do
+            codesign --force --timestamp --options runtime \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$BIN"
+          done
 
           find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
             codesign --force --timestamp --options runtime \
