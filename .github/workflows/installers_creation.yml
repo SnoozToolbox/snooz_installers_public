@@ -338,6 +338,8 @@ jobs:
           APP_NAME="$(basename "$APP_PATH")"
           APP_BASE_NAME="${APP_NAME%.app}"
           VOL_PATH="/Volumes/$APP_BASE_NAME"
+          FINAL_DMG_PATH="target/${APP_BASE_NAME}.dmg"
+          RW_DMG_PATH="target/rw.${APP_BASE_NAME}.dmg"
 
           cleanup_volume() {
             if mount | grep -q "on $VOL_PATH "; then
@@ -350,7 +352,7 @@ jobs:
 
           MAX_ATTEMPTS=3
           for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
-            rm -f target/*.dmg
+            rm -f "$FINAL_DMG_PATH" "$RW_DMG_PATH"
             echo "fbs DMG attempt $ATTEMPT/$MAX_ATTEMPTS"
 
             set +e
@@ -360,9 +362,23 @@ jobs:
 
             cleanup_volume
 
-            if ls target/*.dmg >/dev/null 2>&1; then
+            if [ -f "$FINAL_DMG_PATH" ]; then
               echo "DMG created successfully."
               break
+            fi
+
+            if [ -f "$RW_DMG_PATH" ]; then
+              echo "Temporary rw DMG found. Attempting to recover final DMG."
+              set +e
+              hdiutil convert "$RW_DMG_PATH" -format UDZO -o "$FINAL_DMG_PATH"
+              CONVERT_STATUS=$?
+              set -e
+
+              if [ "$CONVERT_STATUS" -eq 0 ] && [ -f "$FINAL_DMG_PATH" ]; then
+                rm -f "$RW_DMG_PATH" || true
+                echo "DMG recovered successfully from temporary image."
+                break
+              fi
             fi
 
             if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
@@ -613,6 +629,8 @@ jobs:
           APP_NAME="$(basename "$APP_PATH")"
           APP_BASE_NAME="${APP_NAME%.app}"
           VOL_PATH="/Volumes/$APP_BASE_NAME"
+          FINAL_DMG_PATH="target/${APP_BASE_NAME}.dmg"
+          RW_DMG_PATH="target/rw.${APP_BASE_NAME}.dmg"
 
           cleanup_volume() {
             if mount | grep -q "on $VOL_PATH "; then
@@ -625,7 +643,7 @@ jobs:
 
           MAX_ATTEMPTS=3
           for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
-            rm -f target/*.dmg
+            rm -f "$FINAL_DMG_PATH" "$RW_DMG_PATH"
             echo "fbs DMG attempt $ATTEMPT/$MAX_ATTEMPTS"
 
             set +e
@@ -635,9 +653,23 @@ jobs:
 
             cleanup_volume
 
-            if ls target/*.dmg >/dev/null 2>&1; then
+            if [ -f "$FINAL_DMG_PATH" ]; then
               echo "DMG created successfully."
               break
+            fi
+
+            if [ -f "$RW_DMG_PATH" ]; then
+              echo "Temporary rw DMG found. Attempting to recover final DMG."
+              set +e
+              hdiutil convert "$RW_DMG_PATH" -format UDZO -o "$FINAL_DMG_PATH"
+              CONVERT_STATUS=$?
+              set -e
+
+              if [ "$CONVERT_STATUS" -eq 0 ] && [ -f "$FINAL_DMG_PATH" ]; then
+                rm -f "$RW_DMG_PATH" || true
+                echo "DMG recovered successfully from temporary image."
+                break
+              fi
             fi
 
             if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
