@@ -310,6 +310,41 @@ jobs:
         run: |
           fbs freeze
 
+      - name: Ensure required mne stub exists in app bundle (macOS x64)
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          MNE_STUB_SRC="$(python - <<'PY'
+          import importlib.util
+          import pathlib
+
+          spec = importlib.util.find_spec('mne')
+          if spec is None or spec.origin is None:
+              raise SystemExit(1)
+
+          stub = pathlib.Path(spec.origin).parent / '__init__.pyi'
+          if not stub.exists():
+              raise SystemExit(1)
+
+          print(stub)
+          PY
+          )"
+
+          if [ -z "$MNE_STUB_SRC" ]; then
+            echo "::error::Unable to locate mne/__init__.pyi in site-packages."
+            exit 1
+          fi
+
+          mkdir -p "$APP_PATH/Contents/Resources/mne"
+          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Resources/mne/__init__.pyi"
+          echo "Copied required stub: $MNE_STUB_SRC -> $APP_PATH/Contents/Resources/mne/__init__.pyi"
+
       - name: Copy PSGReader extensions (macOS x64)
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -323,7 +358,7 @@ jobs:
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
-          APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+          APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Resources'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Verify PyInstaller hook outputs (macOS)
         if: ${{ inputs.verify_hooks_macos }}
@@ -913,6 +948,41 @@ jobs:
             fbs freeze
           fi
 
+      - name: Ensure required mne stub exists in app bundle (macOS arm64)
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          MNE_STUB_SRC="$(python - <<'PY'
+          import importlib.util
+          import pathlib
+
+          spec = importlib.util.find_spec('mne')
+          if spec is None or spec.origin is None:
+              raise SystemExit(1)
+
+          stub = pathlib.Path(spec.origin).parent / '__init__.pyi'
+          if not stub.exists():
+              raise SystemExit(1)
+
+          print(stub)
+          PY
+          )"
+
+          if [ -z "$MNE_STUB_SRC" ]; then
+            echo "::error::Unable to locate mne/__init__.pyi in site-packages."
+            exit 1
+          fi
+
+          mkdir -p "$APP_PATH/Contents/Resources/mne"
+          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Resources/mne/__init__.pyi"
+          echo "Copied required stub: $MNE_STUB_SRC -> $APP_PATH/Contents/Resources/mne/__init__.pyi"
+
       - name: Copy PSGReader extensions (macOS arm64)
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -926,7 +996,7 @@ jobs:
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
-          APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+          APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Resources'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Verify PyInstaller hook outputs (macOS)
         if: ${{ inputs.verify_hooks_macos }}
