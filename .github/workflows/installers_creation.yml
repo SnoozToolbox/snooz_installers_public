@@ -496,6 +496,13 @@ jobs:
               "$BIN"
           done
 
+          find "$APP_PATH" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
+            codesign --force --timestamp \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$STUB"
+          done
+
           codesign --force --options runtime --timestamp \
             --keychain "$KEYCHAIN_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
@@ -1073,6 +1080,13 @@ jobs:
               --keychain "$KEYCHAIN_PATH" \
               --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
               "$BIN"
+          done
+
+          find "$APP_PATH" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
+            codesign --force --timestamp \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$STUB"
           done
 
           codesign --force --options runtime --timestamp \
