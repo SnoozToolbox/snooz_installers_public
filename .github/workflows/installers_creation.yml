@@ -323,6 +323,83 @@ jobs:
             exit 1
           fi
 
+      - name: Verify required packages inside app bundle (macOS x64)
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          BASE="$APP_PATH/Contents/Frameworks"
+          MISSING=()
+          for PKG in mne lazy_loader lspopt yasa; do
+            if [ -d "$BASE/$PKG" ] || [ -f "$BASE/$PKG.py" ]; then
+              echo "Package found in app bundle: $PKG"
+            else
+              echo "Package missing in app bundle: $PKG"
+              MISSING+=("$PKG")
+            fi
+          done
+
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
+            echo "::error::Required packages missing from app bundle: $UNIQUE_MISSING"
+            exit 1
+          fi
+
+      - name: Smoke test app bundle launch (macOS x64)
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          APP_EXEC="$(find "$APP_PATH/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found inside app bundle."
+            find "$APP_PATH/Contents/MacOS" -maxdepth 2 -print || true
+            exit 1
+          fi
+
+          LOG_FILE="$(mktemp /tmp/snooz-app-smoke.XXXXXX.log)"
+          APP_PID=""
+          cleanup() {
+            if [ -n "$APP_PID" ] && kill -0 "$APP_PID" >/dev/null 2>&1; then
+              kill "$APP_PID" >/dev/null 2>&1 || true
+              wait "$APP_PID" >/dev/null 2>&1 || true
+            fi
+            rm -f "$LOG_FILE"
+          }
+          trap cleanup EXIT
+
+          "$APP_EXEC" >"$LOG_FILE" 2>&1 &
+          APP_PID=$!
+          sleep 20
+
+          if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+            set +e
+            wait "$APP_PID"
+            APP_STATUS=$?
+            set -e
+            cat "$LOG_FILE" || true
+            if [ "$APP_STATUS" -ne 0 ]; then
+              echo "::error::App exited during smoke test with status $APP_STATUS"
+              exit "$APP_STATUS"
+            fi
+          fi
+
+          if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
+            cat "$LOG_FILE" || true
+            echo "::error::App launch log contains import or dynamic library errors."
+            exit 1
+          fi
+
       - name: Sign Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
@@ -732,6 +809,83 @@ jobs:
             UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
             echo "::error::Hook validation failed for required packages: $UNIQUE_MISSING"
             echo "Inspect hook files in src/hooks and PyInstaller analysis outputs before signing/notarization."
+            exit 1
+          fi
+
+      - name: Verify required packages inside app bundle (macOS arm64)
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          BASE="$APP_PATH/Contents/Frameworks"
+          MISSING=()
+          for PKG in mne lazy_loader lspopt yasa; do
+            if [ -d "$BASE/$PKG" ] || [ -f "$BASE/$PKG.py" ]; then
+              echo "Package found in app bundle: $PKG"
+            else
+              echo "Package missing in app bundle: $PKG"
+              MISSING+=("$PKG")
+            fi
+          done
+
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
+            echo "::error::Required packages missing from app bundle: $UNIQUE_MISSING"
+            exit 1
+          fi
+
+      - name: Smoke test app bundle launch (macOS arm64)
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          APP_EXEC="$(find "$APP_PATH/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found inside app bundle."
+            find "$APP_PATH/Contents/MacOS" -maxdepth 2 -print || true
+            exit 1
+          fi
+
+          LOG_FILE="$(mktemp /tmp/snooz-app-smoke.XXXXXX.log)"
+          APP_PID=""
+          cleanup() {
+            if [ -n "$APP_PID" ] && kill -0 "$APP_PID" >/dev/null 2>&1; then
+              kill "$APP_PID" >/dev/null 2>&1 || true
+              wait "$APP_PID" >/dev/null 2>&1 || true
+            fi
+            rm -f "$LOG_FILE"
+          }
+          trap cleanup EXIT
+
+          "$APP_EXEC" >"$LOG_FILE" 2>&1 &
+          APP_PID=$!
+          sleep 20
+
+          if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+            set +e
+            wait "$APP_PID"
+            APP_STATUS=$?
+            set -e
+            cat "$LOG_FILE" || true
+            if [ "$APP_STATUS" -ne 0 ]; then
+              echo "::error::App exited during smoke test with status $APP_STATUS"
+              exit "$APP_STATUS"
+            fi
+          fi
+
+          if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
+            cat "$LOG_FILE" || true
+            echo "::error::App launch log contains import or dynamic library errors."
             exit 1
           fi
 
