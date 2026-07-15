@@ -482,6 +482,49 @@ jobs:
           done
           ls -la target/*.dmg
 
+      - name: Verify required packages inside .dmg (macOS x64)
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "::error::No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-check.XXXXXX)"
+          cleanup() {
+            hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
+            rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_DIR" -nobrowse -readonly
+          APP_IN_DMG="$(find "$MOUNT_DIR" -maxdepth 2 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_IN_DMG" ]; then
+            echo "::error::No .app bundle found inside DMG."
+            find "$MOUNT_DIR" -maxdepth 3 -print || true
+            exit 1
+          fi
+
+          BASE="$APP_IN_DMG/Contents/Frameworks"
+          MISSING=()
+          for PKG in mne lazy_loader lspopt yasa; do
+            if [ -d "$BASE/$PKG" ] || [ -f "$BASE/$PKG.py" ]; then
+              echo "Package found in DMG app bundle: $PKG"
+            else
+              echo "Package missing in DMG app bundle: $PKG"
+              MISSING+=("$PKG")
+            fi
+          done
+
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
+            echo "::error::Required packages missing from DMG app bundle: $UNIQUE_MISSING"
+            exit 1
+          fi
+
       - name: Sign, notarize and staple .dmg
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
@@ -850,6 +893,49 @@ jobs:
             sleep 3
           done
           ls -la target/*.dmg
+
+      - name: Verify required packages inside .dmg (macOS arm64)
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "::error::No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-check.XXXXXX)"
+          cleanup() {
+            hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
+            rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_DIR" -nobrowse -readonly
+          APP_IN_DMG="$(find "$MOUNT_DIR" -maxdepth 2 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_IN_DMG" ]; then
+            echo "::error::No .app bundle found inside DMG."
+            find "$MOUNT_DIR" -maxdepth 3 -print || true
+            exit 1
+          fi
+
+          BASE="$APP_IN_DMG/Contents/Frameworks"
+          MISSING=()
+          for PKG in mne lazy_loader lspopt yasa; do
+            if [ -d "$BASE/$PKG" ] || [ -f "$BASE/$PKG.py" ]; then
+              echo "Package found in DMG app bundle: $PKG"
+            else
+              echo "Package missing in DMG app bundle: $PKG"
+              MISSING+=("$PKG")
+            fi
+          done
+
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
+            echo "::error::Required packages missing from DMG app bundle: $UNIQUE_MISSING"
+            exit 1
+          fi
 
       - name: Sign, notarize and staple .dmg
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
