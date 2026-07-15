@@ -258,6 +258,33 @@ jobs:
           else
             echo "::warning::src/hooks/hook-mne.py not found in checked out source."
           fi
+          python - <<'PY'
+          import importlib.util
+          import pathlib
+          import sys
+
+          print("python:", sys.version)
+          try:
+              import PyInstaller  # type: ignore
+              print("pyinstaller:", PyInstaller.__version__)
+          except Exception as exc:
+              print("pyinstaller: unavailable", repr(exc))
+
+          spec = importlib.util.find_spec("mne")
+          if spec is None or spec.origin is None:
+              print("::error::mne package not found after dependency install.")
+              raise SystemExit(1)
+
+          pkg_dir = pathlib.Path(spec.origin).parent
+          init_py = pkg_dir / "__init__.py"
+          init_pyi = pkg_dir / "__init__.pyi"
+          print("mne package dir:", pkg_dir)
+          print("mne __init__.py exists:", init_py.exists(), init_py)
+          print("mne __init__.pyi exists:", init_pyi.exists(), init_pyi)
+          if not init_pyi.exists():
+              print("::error::mne/__init__.pyi is missing in site-packages before freeze.")
+              raise SystemExit(1)
+          PY
 
       - name: Configure Apple signing certificate
         if: ${{ inputs.sign_macos }}
@@ -830,6 +857,33 @@ jobs:
           else
             echo "::warning::src/hooks/hook-mne.py not found in checked out source."
           fi
+          python - <<'PY'
+          import importlib.util
+          import pathlib
+          import sys
+
+          print("python:", sys.version)
+          try:
+              import PyInstaller  # type: ignore
+              print("pyinstaller:", PyInstaller.__version__)
+          except Exception as exc:
+              print("pyinstaller: unavailable", repr(exc))
+
+          spec = importlib.util.find_spec("mne")
+          if spec is None or spec.origin is None:
+              print("::error::mne package not found after dependency install.")
+              raise SystemExit(1)
+
+          pkg_dir = pathlib.Path(spec.origin).parent
+          init_py = pkg_dir / "__init__.py"
+          init_pyi = pkg_dir / "__init__.pyi"
+          print("mne package dir:", pkg_dir)
+          print("mne __init__.py exists:", init_py.exists(), init_py)
+          print("mne __init__.pyi exists:", init_pyi.exists(), init_pyi)
+          if not init_pyi.exists():
+              print("::error::mne/__init__.pyi is missing in site-packages before freeze.")
+              raise SystemExit(1)
+          PY
 
       - name: Configure Apple signing certificate
         if: ${{ inputs.sign_macos }}
