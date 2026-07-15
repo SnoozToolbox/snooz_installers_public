@@ -285,6 +285,52 @@ jobs:
           test -n "$APP_PATH"
           APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
+      - name: Fallback copy required stubs (macOS x64)
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          APP_PATH="$APP_PATH" python - <<'PY'
+            import importlib.util
+            import os
+            import pathlib
+            import shutil
+
+            app_path = pathlib.Path(os.environ["APP_PATH"])
+            frameworks = app_path / "Contents" / "Frameworks"
+            packages = ("mne", "lazy_loader", "lspopt", "yasa")
+
+            copied = []
+            missing = []
+            for pkg in packages:
+              spec = importlib.util.find_spec(pkg)
+              if not spec or not spec.origin:
+                missing.append(pkg)
+                continue
+
+              src_stub = pathlib.Path(spec.origin).with_name("__init__.pyi")
+              if not src_stub.exists():
+                missing.append(pkg)
+                continue
+
+              dst_dir = frameworks / pkg
+              dst_dir.mkdir(parents=True, exist_ok=True)
+              dst_stub = dst_dir / "__init__.pyi"
+              shutil.copy2(src_stub, dst_stub)
+              copied.append((pkg, str(src_stub), str(dst_stub)))
+
+            for pkg, src, dst in copied:
+              print(f"Copied stub for {pkg}: {src} -> {dst}")
+
+            for pkg in missing:
+              print(f"::warning::Stub not found for package: {pkg}")
+            PY
+
       - name: Verify PyInstaller hook outputs (macOS)
         if: ${{ inputs.verify_hooks_macos }}
         run: |
@@ -817,6 +863,52 @@ jobs:
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           test -n "$APP_PATH"
           APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Frameworks'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+
+      - name: Fallback copy required stubs (macOS arm64)
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          APP_PATH="$APP_PATH" python - <<'PY'
+            import importlib.util
+            import os
+            import pathlib
+            import shutil
+
+            app_path = pathlib.Path(os.environ["APP_PATH"])
+            frameworks = app_path / "Contents" / "Frameworks"
+            packages = ("mne", "lazy_loader", "lspopt", "yasa")
+
+            copied = []
+            missing = []
+            for pkg in packages:
+              spec = importlib.util.find_spec(pkg)
+              if not spec or not spec.origin:
+                missing.append(pkg)
+                continue
+
+              src_stub = pathlib.Path(spec.origin).with_name("__init__.pyi")
+              if not src_stub.exists():
+                missing.append(pkg)
+                continue
+
+              dst_dir = frameworks / pkg
+              dst_dir.mkdir(parents=True, exist_ok=True)
+              dst_stub = dst_dir / "__init__.pyi"
+              shutil.copy2(src_stub, dst_stub)
+              copied.append((pkg, str(src_stub), str(dst_stub)))
+
+            for pkg, src, dst in copied:
+              print(f"Copied stub for {pkg}: {src} -> {dst}")
+
+            for pkg in missing:
+              print(f"::warning::Stub not found for package: {pkg}")
+            PY
 
       - name: Verify PyInstaller hook outputs (macOS)
         if: ${{ inputs.verify_hooks_macos }}
