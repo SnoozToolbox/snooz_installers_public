@@ -295,15 +295,15 @@ jobs:
             exit 1
           fi
 
-          APP_PATH="$APP_PATH" python - <<'PY'
+            APP_PATH="$APP_PATH" python -c "import textwrap; exec(textwrap.dedent('''
             import importlib.util
             import os
             import pathlib
             import shutil
 
-            app_path = pathlib.Path(os.environ["APP_PATH"])
-            frameworks = app_path / "Contents" / "Frameworks"
-            packages = ("mne", "lazy_loader", "lspopt", "yasa")
+            app_path = pathlib.Path(os.environ['APP_PATH'])
+            frameworks = app_path / 'Contents' / 'Frameworks'
+            packages = ('mne', 'lazy_loader', 'lspopt', 'yasa')
 
             copied = []
             missing = []
@@ -313,23 +313,23 @@ jobs:
                 missing.append(pkg)
                 continue
 
-              src_stub = pathlib.Path(spec.origin).with_name("__init__.pyi")
+              src_stub = pathlib.Path(spec.origin).with_name('__init__.pyi')
               if not src_stub.exists():
                 missing.append(pkg)
                 continue
 
               dst_dir = frameworks / pkg
               dst_dir.mkdir(parents=True, exist_ok=True)
-              dst_stub = dst_dir / "__init__.pyi"
+              dst_stub = dst_dir / '__init__.pyi'
               shutil.copy2(src_stub, dst_stub)
               copied.append((pkg, str(src_stub), str(dst_stub)))
 
             for pkg, src, dst in copied:
-              print(f"Copied stub for {pkg}: {src} -> {dst}")
+              print(f'Copied stub for {pkg}: {src} -> {dst}')
 
             for pkg in missing:
-              print(f"::warning::Stub not found for package: {pkg}")
-            PY
+              print(f'::warning::Stub not found for package: {pkg}')
+            '''))"
 
       - name: Verify PyInstaller hook outputs (macOS)
         if: ${{ inputs.verify_hooks_macos }}
@@ -874,15 +874,15 @@ jobs:
             exit 1
           fi
 
-          APP_PATH="$APP_PATH" python - <<'PY'
+            APP_PATH="$APP_PATH" python -c "import textwrap; exec(textwrap.dedent('''
             import importlib.util
             import os
             import pathlib
             import shutil
 
-            app_path = pathlib.Path(os.environ["APP_PATH"])
-            frameworks = app_path / "Contents" / "Frameworks"
-            packages = ("mne", "lazy_loader", "lspopt", "yasa")
+            app_path = pathlib.Path(os.environ['APP_PATH'])
+            frameworks = app_path / 'Contents' / 'Frameworks'
+            packages = ('mne', 'lazy_loader', 'lspopt', 'yasa')
 
             copied = []
             missing = []
@@ -892,23 +892,23 @@ jobs:
                 missing.append(pkg)
                 continue
 
-              src_stub = pathlib.Path(spec.origin).with_name("__init__.pyi")
+              src_stub = pathlib.Path(spec.origin).with_name('__init__.pyi')
               if not src_stub.exists():
                 missing.append(pkg)
                 continue
 
               dst_dir = frameworks / pkg
               dst_dir.mkdir(parents=True, exist_ok=True)
-              dst_stub = dst_dir / "__init__.pyi"
+              dst_stub = dst_dir / '__init__.pyi'
               shutil.copy2(src_stub, dst_stub)
               copied.append((pkg, str(src_stub), str(dst_stub)))
 
             for pkg, src, dst in copied:
-              print(f"Copied stub for {pkg}: {src} -> {dst}")
+              print(f'Copied stub for {pkg}: {src} -> {dst}')
 
             for pkg in missing:
-              print(f"::warning::Stub not found for package: {pkg}")
-            PY
+              print(f'::warning::Stub not found for package: {pkg}')
+            '''))"
 
       - name: Verify PyInstaller hook outputs (macOS)
         if: ${{ inputs.verify_hooks_macos }}
