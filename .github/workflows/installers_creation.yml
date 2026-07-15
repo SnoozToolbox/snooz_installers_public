@@ -751,6 +751,73 @@ jobs:
           fi
           echo "Found required stub: $REQUIRED_STUB"
 
+      - name: Smoke test app launch from .dmg (macOS x64)
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "::error::No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-smoke.XXXXXX)"
+          LOG_FILE="$(mktemp /tmp/snooz-dmg-smoke.XXXXXX.log)"
+          APP_PID=""
+          cleanup() {
+            if [ -n "$APP_PID" ] && kill -0 "$APP_PID" >/dev/null 2>&1; then
+              kill "$APP_PID" >/dev/null 2>&1 || true
+              wait "$APP_PID" >/dev/null 2>&1 || true
+            fi
+            hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
+            rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+            rm -f "$LOG_FILE"
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_DIR" -nobrowse -readonly
+          APP_IN_DMG="$(find "$MOUNT_DIR" -maxdepth 2 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_IN_DMG" ]; then
+            echo "::error::No .app bundle found inside DMG."
+            find "$MOUNT_DIR" -maxdepth 3 -print || true
+            exit 1
+          fi
+
+          APP_EXEC="$(find "$APP_IN_DMG/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found in DMG app bundle."
+            find "$APP_IN_DMG/Contents/MacOS" -maxdepth 2 -print || true
+            exit 1
+          fi
+          echo "APP_EXEC=$APP_EXEC"
+
+          "$APP_EXEC" >"$LOG_FILE" 2>&1 &
+          APP_PID=$!
+          echo "APP_PID=$APP_PID"
+          sleep 20
+
+          if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+            set +e
+            wait "$APP_PID"
+            APP_STATUS=$?
+            set -e
+            echo "DMG app process exited during smoke window"
+            cat "$LOG_FILE" || true
+            if [ "$APP_STATUS" -ne 0 ]; then
+              echo "::error::DMG app exited during smoke test with status $APP_STATUS"
+              exit "$APP_STATUS"
+            fi
+          else
+            echo "DMG app process is still running after smoke window"
+          fi
+
+          if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
+            cat "$LOG_FILE" || true
+            echo "::error::DMG app launch log contains import or dynamic library errors."
+            exit 1
+          fi
+
       - name: Sign, notarize and staple .dmg
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
         run: |
@@ -1388,6 +1455,73 @@ jobs:
             exit 1
           fi
           echo "Found required stub: $REQUIRED_STUB"
+
+      - name: Smoke test app launch from .dmg (macOS arm64)
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "::error::No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-smoke.XXXXXX)"
+          LOG_FILE="$(mktemp /tmp/snooz-dmg-smoke.XXXXXX.log)"
+          APP_PID=""
+          cleanup() {
+            if [ -n "$APP_PID" ] && kill -0 "$APP_PID" >/dev/null 2>&1; then
+              kill "$APP_PID" >/dev/null 2>&1 || true
+              wait "$APP_PID" >/dev/null 2>&1 || true
+            fi
+            hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
+            rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+            rm -f "$LOG_FILE"
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_DIR" -nobrowse -readonly
+          APP_IN_DMG="$(find "$MOUNT_DIR" -maxdepth 2 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_IN_DMG" ]; then
+            echo "::error::No .app bundle found inside DMG."
+            find "$MOUNT_DIR" -maxdepth 3 -print || true
+            exit 1
+          fi
+
+          APP_EXEC="$(find "$APP_IN_DMG/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found in DMG app bundle."
+            find "$APP_IN_DMG/Contents/MacOS" -maxdepth 2 -print || true
+            exit 1
+          fi
+          echo "APP_EXEC=$APP_EXEC"
+
+          "$APP_EXEC" >"$LOG_FILE" 2>&1 &
+          APP_PID=$!
+          echo "APP_PID=$APP_PID"
+          sleep 20
+
+          if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+            set +e
+            wait "$APP_PID"
+            APP_STATUS=$?
+            set -e
+            echo "DMG app process exited during smoke window"
+            cat "$LOG_FILE" || true
+            if [ "$APP_STATUS" -ne 0 ]; then
+              echo "::error::DMG app exited during smoke test with status $APP_STATUS"
+              exit "$APP_STATUS"
+            fi
+          else
+            echo "DMG app process is still running after smoke window"
+          fi
+
+          if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
+            cat "$LOG_FILE" || true
+            echo "::error::DMG app launch log contains import or dynamic library errors."
+            exit 1
+          fi
 
       - name: Sign, notarize and staple .dmg
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
