@@ -246,6 +246,19 @@ jobs:
           test -s fbs-pro.tar.gz
           pip install fbs-pro.tar.gz
 
+      - name: Print active source revision and mne hook (macOS x64)
+        if: ${{ inputs.verify_hooks_macos }}
+        run: |
+          echo "source_repo=${{ inputs.source_repo }}"
+          echo "source_ref=${{ inputs.source_ref }}"
+          git rev-parse HEAD
+          if [ -f src/hooks/hook-mne.py ]; then
+            echo "Active hook file: src/hooks/hook-mne.py"
+            sed -n '1,200p' src/hooks/hook-mne.py
+          else
+            echo "::warning::src/hooks/hook-mne.py not found in checked out source."
+          fi
+
       - name: Configure Apple signing certificate
         if: ${{ inputs.sign_macos }}
         env:
@@ -351,9 +364,22 @@ jobs:
             exit 1
           fi
 
+          MNE_INIT="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          if [ -n "$MNE_INIT" ]; then
+            echo "mne __init__.py location: $MNE_INIT"
+            echo "Expected sibling stub: ${MNE_INIT%__init__.py}__init__.pyi"
+          else
+            echo "mne __init__.py not found as loose file under app bundle (may be in PYZ archive)."
+          fi
+
           REQUIRED_STUB="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
           if [ -z "$REQUIRED_STUB" ]; then
             echo "::error::Required stub file missing from app bundle: mne/__init__.pyi"
+            ANALYSIS_TOC="$(find target -type f -name 'Analysis-00.toc' | head -n 1)"
+            if [ -n "$ANALYSIS_TOC" ]; then
+              echo "Relevant Analysis-00.toc entries (mne/__init__.py and mne/__init__.pyi):"
+              grep -E "mne[/\\]__init__\.py(i)?" "$ANALYSIS_TOC" || true
+            fi
             find "$APP_PATH/Contents" -type f -name '*.pyi' | sort || true
             exit 1
           fi
@@ -647,6 +673,14 @@ jobs:
             exit 1
           fi
 
+          MNE_INIT="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          if [ -n "$MNE_INIT" ]; then
+            echo "mne __init__.py location in DMG app: $MNE_INIT"
+            echo "Expected sibling stub in DMG app: ${MNE_INIT%__init__.py}__init__.pyi"
+          else
+            echo "mne __init__.py not found as loose file in DMG app bundle (may be in PYZ archive)."
+          fi
+
           REQUIRED_STUB="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
           if [ -z "$REQUIRED_STUB" ]; then
             echo "::error::Required stub file missing from DMG app bundle: mne/__init__.pyi"
@@ -784,6 +818,19 @@ jobs:
           test -s fbs-pro.tar.gz
           pip install fbs-pro.tar.gz
 
+      - name: Print active source revision and mne hook (macOS arm64)
+        if: ${{ inputs.verify_hooks_macos }}
+        run: |
+          echo "source_repo=${{ inputs.source_repo }}"
+          echo "source_ref=${{ inputs.source_ref }}"
+          git rev-parse HEAD
+          if [ -f src/hooks/hook-mne.py ]; then
+            echo "Active hook file: src/hooks/hook-mne.py"
+            sed -n '1,200p' src/hooks/hook-mne.py
+          else
+            echo "::warning::src/hooks/hook-mne.py not found in checked out source."
+          fi
+
       - name: Configure Apple signing certificate
         if: ${{ inputs.sign_macos }}
         env:
@@ -893,9 +940,22 @@ jobs:
             exit 1
           fi
 
+          MNE_INIT="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          if [ -n "$MNE_INIT" ]; then
+            echo "mne __init__.py location: $MNE_INIT"
+            echo "Expected sibling stub: ${MNE_INIT%__init__.py}__init__.pyi"
+          else
+            echo "mne __init__.py not found as loose file under app bundle (may be in PYZ archive)."
+          fi
+
           REQUIRED_STUB="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
           if [ -z "$REQUIRED_STUB" ]; then
             echo "::error::Required stub file missing from app bundle: mne/__init__.pyi"
+            ANALYSIS_TOC="$(find target -type f -name 'Analysis-00.toc' | head -n 1)"
+            if [ -n "$ANALYSIS_TOC" ]; then
+              echo "Relevant Analysis-00.toc entries (mne/__init__.py and mne/__init__.pyi):"
+              grep -E "mne[/\\]__init__\.py(i)?" "$ANALYSIS_TOC" || true
+            fi
             find "$APP_PATH/Contents" -type f -name '*.pyi' | sort || true
             exit 1
           fi
@@ -1187,6 +1247,14 @@ jobs:
             echo "::error::No .app bundle found inside DMG."
             find "$MOUNT_DIR" -maxdepth 3 -print || true
             exit 1
+          fi
+
+          MNE_INIT="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          if [ -n "$MNE_INIT" ]; then
+            echo "mne __init__.py location in DMG app: $MNE_INIT"
+            echo "Expected sibling stub in DMG app: ${MNE_INIT%__init__.py}__init__.pyi"
+          else
+            echo "mne __init__.py not found as loose file in DMG app bundle (may be in PYZ archive)."
           fi
 
           REQUIRED_STUB="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
