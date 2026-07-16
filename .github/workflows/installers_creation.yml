@@ -310,6 +310,74 @@ jobs:
         run: |
           fbs freeze
 
+      - name: Runtime smoke test from frozen app bundle (macOS x64)
+        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
+        run: |
+          set -eo pipefail
+          PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
+          if [ ! -f "$PROCESS_JSON_SRC" ]; then
+            echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
+            find . -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
+          echo "Downloading runtime smoke EDF to: $EDF_LOCAL_PATH"
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 600 \
+            -o "$EDF_LOCAL_PATH" \
+            "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          test -s "$EDF_LOCAL_PATH"
+          echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          APP_EXEC="$(find "$APP_PATH/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found in frozen app bundle."
+            find "$APP_PATH/Contents/MacOS" -maxdepth 2 -print || true
+            exit 1
+          fi
+
+          MNE_INIT_PY="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          MNE_INIT_PYI="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
+          echo "mne __init__.py in frozen app: ${MNE_INIT_PY:-<not found>}"
+          echo "mne __init__.pyi in frozen app: ${MNE_INIT_PYI:-<not found>}"
+
+          LOG_FILE="$(mktemp /tmp/snooz-freeze-runtime-smoke.XXXXXX.log)"
+          cleanup() {
+            rm -f "$LOG_FILE"
+          }
+          trap cleanup EXIT
+
+          echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
+          set +e
+          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
+          APP_STATUS=$?
+          set -e
+
+          cat "$LOG_FILE" || true
+          if [ "$APP_STATUS" -ne 0 ]; then
+            echo "::error::Runtime smoke execution on frozen app exited with status $APP_STATUS"
+            exit "$APP_STATUS"
+          fi
+
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution on frozen app reported errors in logs."
+            exit 1
+          fi
+
+          if ! grep -q "Process completed." "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution on frozen app did not reach 'Process completed.'"
+            exit 1
+          fi
+
       - name: Ensure required mne stub exists in app bundle (macOS x64)
         run: |
           set -eo pipefail
@@ -523,6 +591,27 @@ jobs:
           if ! spctl -a -t exec -vv "$APP_PATH"; then
             echo "Pre-notarization spctl assessment rejected (expected on some CI hosts)."
           fi
+
+      - name: Audit Frameworks .pyi signature status (macOS x64)
+        if: ${{ inputs.sign_macos && !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          FRAMEWORKS_DIR="$APP_PATH/Contents/Frameworks"
+          if [ ! -d "$FRAMEWORKS_DIR" ]; then
+            echo "No Frameworks directory found at $FRAMEWORKS_DIR"
+            exit 0
+          fi
+
+          PYI_COUNT="$(find "$FRAMEWORKS_DIR" -type f -name '*.pyi' | wc -l | tr -d ' ')"
+          echo "Frameworks .pyi file count: $PYI_COUNT"
+          find "$FRAMEWORKS_DIR" -type f -name '*.pyi' | sort || true
+
+          find "$FRAMEWORKS_DIR" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
+            echo "Verifying codesign on $STUB"
+            codesign --verify --verbose=2 "$STUB"
+          done
 
       - name: Notarize and staple Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
@@ -841,6 +930,11 @@ jobs:
             exit 1
           fi
 
+          MNE_INIT_PY="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          MNE_INIT_PYI="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
+          echo "mne __init__.py in DMG app: ${MNE_INIT_PY:-<not found>}"
+          echo "mne __init__.pyi in DMG app: ${MNE_INIT_PYI:-<not found>}"
+
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
@@ -1053,6 +1147,74 @@ jobs:
             fbs freeze --debug
           else
             fbs freeze
+          fi
+
+      - name: Runtime smoke test from frozen app bundle (macOS arm64)
+        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
+        run: |
+          set -eo pipefail
+          PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
+          if [ ! -f "$PROCESS_JSON_SRC" ]; then
+            echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
+            find . -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
+          echo "Downloading runtime smoke EDF to: $EDF_LOCAL_PATH"
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 600 \
+            -o "$EDF_LOCAL_PATH" \
+            "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          test -s "$EDF_LOCAL_PATH"
+          echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::No .app bundle found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          APP_EXEC="$(find "$APP_PATH/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found in frozen app bundle."
+            find "$APP_PATH/Contents/MacOS" -maxdepth 2 -print || true
+            exit 1
+          fi
+
+          MNE_INIT_PY="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          MNE_INIT_PYI="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
+          echo "mne __init__.py in frozen app: ${MNE_INIT_PY:-<not found>}"
+          echo "mne __init__.pyi in frozen app: ${MNE_INIT_PYI:-<not found>}"
+
+          LOG_FILE="$(mktemp /tmp/snooz-freeze-runtime-smoke.XXXXXX.log)"
+          cleanup() {
+            rm -f "$LOG_FILE"
+          }
+          trap cleanup EXIT
+
+          echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
+          set +e
+          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
+          APP_STATUS=$?
+          set -e
+
+          cat "$LOG_FILE" || true
+          if [ "$APP_STATUS" -ne 0 ]; then
+            echo "::error::Runtime smoke execution on frozen app exited with status $APP_STATUS"
+            exit "$APP_STATUS"
+          fi
+
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution on frozen app reported errors in logs."
+            exit 1
+          fi
+
+          if ! grep -q "Process completed." "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution on frozen app did not reach 'Process completed.'"
+            exit 1
           fi
 
       - name: Ensure required mne stub exists in app bundle (macOS arm64)
@@ -1268,6 +1430,27 @@ jobs:
           if ! spctl -a -t exec -vv "$APP_PATH"; then
             echo "Pre-notarization spctl assessment rejected (expected on some CI hosts)."
           fi
+
+      - name: Audit Frameworks .pyi signature status (macOS arm64)
+        if: ${{ inputs.sign_macos && !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          FRAMEWORKS_DIR="$APP_PATH/Contents/Frameworks"
+          if [ ! -d "$FRAMEWORKS_DIR" ]; then
+            echo "No Frameworks directory found at $FRAMEWORKS_DIR"
+            exit 0
+          fi
+
+          PYI_COUNT="$(find "$FRAMEWORKS_DIR" -type f -name '*.pyi' | wc -l | tr -d ' ')"
+          echo "Frameworks .pyi file count: $PYI_COUNT"
+          find "$FRAMEWORKS_DIR" -type f -name '*.pyi' | sort || true
+
+          find "$FRAMEWORKS_DIR" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
+            echo "Verifying codesign on $STUB"
+            codesign --verify --verbose=2 "$STUB"
+          done
 
       - name: Notarize and staple Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
@@ -1585,6 +1768,11 @@ jobs:
             find "$APP_IN_DMG/Contents/MacOS" -maxdepth 2 -print || true
             exit 1
           fi
+
+          MNE_INIT_PY="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          MNE_INIT_PYI="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
+          echo "mne __init__.py in DMG app: ${MNE_INIT_PY:-<not found>}"
+          echo "mne __init__.pyi in DMG app: ${MNE_INIT_PYI:-<not found>}"
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
           set +e
