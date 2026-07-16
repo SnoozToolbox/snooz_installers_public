@@ -174,12 +174,25 @@ jobs:
             throw "Runtime smoke EDF download failed: $edfLocalPath"
           }
 
-          $appExe = Get-ChildItem -Path "target/Snooz" -Filter "*.exe" -Recurse |
+          $appRoot = Get-ChildItem -Path "target" -Directory |
+            Where-Object { $_.Name -notmatch 'cache|installer' } |
+            Select-Object -First 1
+          if (-not $appRoot) {
+            throw "No frozen app directory found under target"
+          }
+
+          $appExe = Get-ChildItem -Path $appRoot.FullName -Filter "*.exe" -Recurse |
             Where-Object { $_.Name -notmatch 'unins|setup|installer' } |
+            Sort-Object FullName |
             Select-Object -First 1
           if (-not $appExe) {
-            throw "No executable found in target/Snooz"
+            Write-Host "Executable candidates in $($appRoot.FullName):"
+            Get-ChildItem -Path $appRoot.FullName -Recurse -File |
+              Where-Object { $_.Extension -eq '.exe' } |
+              Select-Object -ExpandProperty FullName
+            throw "No executable found in $($appRoot.FullName)"
           }
+          Write-Host "Detected Windows frozen executable: $($appExe.FullName)"
 
           $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-runtime-smoke.log"
           & $appExe.FullName --f $processJson *> $logFile
@@ -364,12 +377,16 @@ jobs:
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
 
-          APP_EXEC="$(find target/Snooz -type f -perm -111 -name 'Snooz*' | head -n 1)"
+          APP_EXEC="$(find target/Snooz -type f -perm -111 ! -path '*/_internal/*' | sort | head -n 1)"
           if [ -z "$APP_EXEC" ]; then
             echo "::error::No executable found in target/Snooz"
-            find target/Snooz -maxdepth 4 -type f | sort || true
+            echo "Executable candidates (excluding _internal):"
+            find target/Snooz -type f -perm -111 ! -path '*/_internal/*' | sort || true
+            echo "Top-level files (excluding _internal):"
+            find target/Snooz -maxdepth 3 -type f ! -path '*/_internal/*' | sort || true
             exit 1
           fi
+          echo "Detected Linux frozen executable: $APP_EXEC"
 
           LOG_FILE="$(mktemp /tmp/snooz-linux-runtime-smoke.XXXXXX.log)"
           cleanup() {
@@ -443,12 +460,16 @@ jobs:
           trap cleanup EXIT
 
           dpkg-deb -x "$DEB_PATH" "$EXTRACT_DIR"
-          APP_EXEC="$(find "$EXTRACT_DIR" -type f -perm -111 -name 'Snooz*' | head -n 1)"
+          APP_EXEC="$(find "$EXTRACT_DIR" -type f -perm -111 ! -path '*/_internal/*' | sort | head -n 1)"
           if [ -z "$APP_EXEC" ]; then
             echo "::error::No executable found in extracted .deb payload."
-            find "$EXTRACT_DIR" -maxdepth 5 -type f | sort || true
+            echo "Executable candidates in extracted payload (excluding _internal):"
+            find "$EXTRACT_DIR" -type f -perm -111 ! -path '*/_internal/*' | sort || true
+            echo "Top-level files in extracted payload (excluding _internal):"
+            find "$EXTRACT_DIR" -maxdepth 5 -type f ! -path '*/_internal/*' | sort || true
             exit 1
           fi
+          echo "Detected Linux installed executable: $APP_EXEC"
 
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
