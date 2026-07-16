@@ -19,6 +19,11 @@ on:
         required: true
         type: boolean
         default: true
+      freeze_only:
+        description: Freeze only and upload target folder for debug
+        required: true
+        type: boolean
+        default: false
       runtime_smoke_test:
         description: Run runtime completion smoke tests on executable and installer outputs
         required: true
@@ -159,7 +164,7 @@ jobs:
           }
 
       - name: Runtime completion smoke test on executable (Windows)
-        if: ${{ inputs.runtime_smoke_test }}
+        if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
         shell: pwsh
         run: |
           $processJson = "runtime-smoke/snooz_runtime_smoke.json"
@@ -174,23 +179,20 @@ jobs:
             throw "Runtime smoke EDF download failed: $edfLocalPath"
           }
 
-          $appRoot = Get-ChildItem -Path "target" -Directory |
-            Where-Object { $_.Name -notmatch 'cache|installer' } |
-            Select-Object -First 1
-          if (-not $appRoot) {
-            throw "No frozen app directory found under target"
-          }
-
-          $appExe = Get-ChildItem -Path $appRoot.FullName -Filter "*.exe" -Recurse |
-            Where-Object { $_.Name -notmatch 'unins|setup|installer' } |
+          $appExe = Get-ChildItem -Path "target" -Filter "*.exe" -Recurse -File |
+            Where-Object {
+              $_.Name -notmatch 'unins|setup|installer' -and
+              $_.FullName -notmatch '[\\/]_internal[\\/]'
+            } |
             Sort-Object FullName |
             Select-Object -First 1
           if (-not $appExe) {
-            Write-Host "Executable candidates in $($appRoot.FullName):"
-            Get-ChildItem -Path $appRoot.FullName -Recurse -File |
+            Write-Host "Executable candidates under target:"
+            Get-ChildItem -Path "target" -Recurse -File |
               Where-Object { $_.Extension -eq '.exe' } |
+              Sort-Object FullName |
               Select-Object -ExpandProperty FullName
-            throw "No executable found in $($appRoot.FullName)"
+            throw "No executable found under target"
           }
           Write-Host "Detected Windows frozen executable: $($appExe.FullName)"
 
@@ -212,12 +214,13 @@ jobs:
           }
 
       - name: Build installer with fbs (Windows)
+        if: ${{ !inputs.freeze_only }}
         shell: pwsh
         run: |
           fbs installer
 
       - name: Runtime completion smoke test on installer (Windows)
-        if: ${{ inputs.runtime_smoke_test }}
+        if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
         shell: pwsh
         run: |
           $processJson = "runtime-smoke/snooz_runtime_smoke.json"
@@ -271,15 +274,23 @@ jobs:
           }
 
       - name: Upload Windows installer artifact
-        if: ${{ inputs.upload_artifacts }}
+        if: ${{ inputs.upload_artifacts && !inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup.exe
           path: target/*.exe
           retention-days: 2
 
+      - name: Upload target folder for debug (Windows)
+        if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozTarget-windows
+          path: target/**
+          retention-days: 2
+
       - name: Publish Windows installer to Release
-        if: ${{ inputs.publish_to_release && inputs.release_tag != '' }}
+        if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag }}
@@ -359,7 +370,7 @@ jobs:
           fi
 
       - name: Runtime completion smoke test on executable (Linux)
-        if: ${{ inputs.runtime_smoke_test }}
+        if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
         run: |
           set -eo pipefail
           PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
@@ -416,16 +427,18 @@ jobs:
           fi
 
       - name: Build Linux installer (.deb)
+        if: ${{ !inputs.freeze_only }}
         run: |
           fbs installer
 
       - name: Build Linux portable package (.zip)
+        if: ${{ !inputs.freeze_only }}
         run: |
           cd target
           zip -r SnoozSetup-portable-linux.zip Snooz
 
       - name: Runtime completion smoke test on installer (Linux)
-        if: ${{ inputs.runtime_smoke_test }}
+        if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
         run: |
           set -eo pipefail
           PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
@@ -493,13 +506,14 @@ jobs:
           fi
 
       - name: Validate Linux package outputs
+        if: ${{ !inputs.freeze_only }}
         run: |
           ls -la target
           ls target/*.deb
           ls target/*.zip
 
       - name: Upload Linux installer artifact
-        if: ${{ inputs.upload_artifacts }}
+        if: ${{ inputs.upload_artifacts && !inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-linux
@@ -508,8 +522,16 @@ jobs:
             target/*.deb
           retention-days: 2
 
+      - name: Upload target folder for debug (Linux)
+        if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozTarget-linux
+          path: target/**
+          retention-days: 2
+
       - name: Publish Linux installers to Release
-        if: ${{ inputs.publish_to_release && inputs.release_tag != '' }}
+        if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag }}
