@@ -486,6 +486,18 @@ jobs:
               "$STUB"
           done
 
+          MNE_FRAMEWORKS_DIR="$APP_PATH/Contents/Frameworks/mne"
+          if [ -d "$MNE_FRAMEWORKS_DIR" ]; then
+            echo "Signing and verifying Frameworks/mne Python files"
+            find "$MNE_FRAMEWORKS_DIR" -type f \( -name '*.py' -o -name '*.pyi' \) -print0 | while IFS= read -r -d '' MNE_FILE; do
+              codesign --force --timestamp \
+                --keychain "$KEYCHAIN_PATH" \
+                --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+                "$MNE_FILE"
+              codesign --verify --verbose=2 "$MNE_FILE"
+            done
+          fi
+
           codesign --force --options runtime --timestamp \
             --keychain "$KEYCHAIN_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
@@ -1232,6 +1244,18 @@ jobs:
               --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
               "$STUB"
           done
+
+          MNE_FRAMEWORKS_DIR="$APP_PATH/Contents/Frameworks/mne"
+          if [ -d "$MNE_FRAMEWORKS_DIR" ]; then
+            echo "Signing and verifying Frameworks/mne Python files"
+            find "$MNE_FRAMEWORKS_DIR" -type f \( -name '*.py' -o -name '*.pyi' \) -print0 | while IFS= read -r -d '' MNE_FILE; do
+              codesign --force --timestamp \
+                --keychain "$KEYCHAIN_PATH" \
+                --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+                "$MNE_FILE"
+              codesign --verify --verbose=2 "$MNE_FILE"
+            done
+          fi
 
           codesign --force --options runtime --timestamp \
             --keychain "$KEYCHAIN_PATH" \
