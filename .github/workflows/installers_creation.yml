@@ -45,7 +45,7 @@ on:
         type: boolean
         default: true
       runtime_smoke_test:
-        description: 'Run headless runtime smoke test from DMG using a process JSON'
+        description: 'Run headless runtime smoke tests (frozen app and DMG) using a process JSON'
         required: true
         type: boolean
         default: false
@@ -345,6 +345,29 @@ jobs:
             exit 1
           fi
 
+          MNE_STUB_SRC="$(python - <<'PY'
+          import importlib.util
+          import pathlib
+
+          spec = importlib.util.find_spec('mne')
+          if spec is None or spec.origin is None:
+              raise SystemExit(1)
+
+          stub = pathlib.Path(spec.origin).parent / '__init__.pyi'
+          if not stub.exists():
+              raise SystemExit(1)
+
+          print(stub)
+          PY
+          )"
+          if [ -z "$MNE_STUB_SRC" ]; then
+            echo "::error::Unable to locate mne/__init__.pyi in site-packages."
+            exit 1
+          fi
+          mkdir -p "$APP_PATH/Contents/Frameworks/mne"
+          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Frameworks/mne/__init__.pyi"
+          echo "Prepared mne stub for runtime: $MNE_STUB_SRC"
+
           MNE_INIT_PY="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
           MNE_INIT_PYI="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
           echo "mne __init__.py in frozen app: ${MNE_INIT_PY:-<not found>}"
@@ -409,9 +432,9 @@ jobs:
             exit 1
           fi
 
-          mkdir -p "$APP_PATH/Contents/Resources/mne"
-          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Resources/mne/__init__.pyi"
-          echo "Copied required stub: $MNE_STUB_SRC -> $APP_PATH/Contents/Resources/mne/__init__.pyi"
+          mkdir -p "$APP_PATH/Contents/Frameworks/mne"
+          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Frameworks/mne/__init__.pyi"
+          echo "Copied required stub to Frameworks: $MNE_STUB_SRC"
 
       - name: Copy PSGReader extensions (macOS x64)
         run: |
@@ -420,13 +443,6 @@ jobs:
           mkdir -p "$APP_PATH/Contents/Resources/extension/PSGReader"
           cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
           cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
-
-      - name: Copy missing packages (macOS)
-        if: ${{ inputs.copy_missing_packages_macos }}
-        run: |
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          test -n "$APP_PATH"
-          APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Resources'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Verify PyInstaller hook outputs (macOS)
         if: ${{ inputs.verify_hooks_macos }}
@@ -1184,6 +1200,29 @@ jobs:
             exit 1
           fi
 
+          MNE_STUB_SRC="$(python - <<'PY'
+          import importlib.util
+          import pathlib
+
+          spec = importlib.util.find_spec('mne')
+          if spec is None or spec.origin is None:
+              raise SystemExit(1)
+
+          stub = pathlib.Path(spec.origin).parent / '__init__.pyi'
+          if not stub.exists():
+              raise SystemExit(1)
+
+          print(stub)
+          PY
+          )"
+          if [ -z "$MNE_STUB_SRC" ]; then
+            echo "::error::Unable to locate mne/__init__.pyi in site-packages."
+            exit 1
+          fi
+          mkdir -p "$APP_PATH/Contents/Frameworks/mne"
+          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Frameworks/mne/__init__.pyi"
+          echo "Prepared mne stub for runtime: $MNE_STUB_SRC"
+
           MNE_INIT_PY="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
           MNE_INIT_PYI="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
           echo "mne __init__.py in frozen app: ${MNE_INIT_PY:-<not found>}"
@@ -1248,9 +1287,9 @@ jobs:
             exit 1
           fi
 
-          mkdir -p "$APP_PATH/Contents/Resources/mne"
-          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Resources/mne/__init__.pyi"
-          echo "Copied required stub: $MNE_STUB_SRC -> $APP_PATH/Contents/Resources/mne/__init__.pyi"
+          mkdir -p "$APP_PATH/Contents/Frameworks/mne"
+          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Frameworks/mne/__init__.pyi"
+          echo "Copied required stub to Frameworks: $MNE_STUB_SRC"
 
       - name: Copy PSGReader extensions (macOS arm64)
         run: |
@@ -1259,13 +1298,6 @@ jobs:
           mkdir -p "$APP_PATH/Contents/Resources/extension/PSGReader"
           cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
           cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
-
-      - name: Copy missing packages (macOS)
-        if: ${{ inputs.copy_missing_packages_macos }}
-        run: |
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          test -n "$APP_PATH"
-          APP_PATH="$APP_PATH" python -c "import os, shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(os.environ['APP_PATH'])/'Contents'/'Resources'; dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
 
       - name: Verify PyInstaller hook outputs (macOS)
         if: ${{ inputs.verify_hooks_macos }}
