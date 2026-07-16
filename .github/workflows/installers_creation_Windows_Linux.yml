@@ -152,12 +152,23 @@ jobs:
       - name: Copy package content after freeze (Windows)
         shell: pwsh
         run: |
+          $appDir = Get-ChildItem -Path "target" -Directory |
+            Where-Object { Test-Path (Join-Path $_.FullName "_internal") } |
+            Sort-Object FullName |
+            Select-Object -First 1
+          if (-not $appDir) {
+            Write-Host "Directories under target:"
+            Get-ChildItem -Path "target" -Directory | Select-Object -ExpandProperty FullName
+            throw "No frozen app directory containing _internal found under target"
+          }
+
+          $internalPath = Join-Path $appDir.FullName "_internal"
           $mode = "${{ inputs.package_copy_mode }}"
           if ($mode -eq "all_packages") {
-            python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz/_internal'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+            python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(r'$internalPath'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
           }
           elseif ($mode -eq "mne_stubs") {
-            python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent; dst=pathlib.Path('target/Snooz/_internal/mne'); dst.mkdir(parents=True, exist_ok=True); stubs=list(src.rglob('*.pyi')); [((dst / p.relative_to(src)).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(p, dst / p.relative_to(src))) for p in stubs]; assert stubs, 'No mne .pyi stubs found'; print(f'Copied {len(stubs)} mne stubs to {dst}')"
+            python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent; dst=pathlib.Path(r'$internalPath') / 'mne'; dst.mkdir(parents=True, exist_ok=True); stubs=list(src.rglob('*.pyi')); [((dst / p.relative_to(src)).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(p, dst / p.relative_to(src))) for p in stubs]; assert stubs, 'No mne .pyi stubs found'; print(f'Copied {len(stubs)} mne stubs to {dst}')"
           }
           else {
             throw "Unsupported package_copy_mode: $mode"
@@ -359,11 +370,24 @@ jobs:
 
       - name: Copy package content after freeze (Linux)
         run: |
+          APP_DIR=""
+          for d in target/*; do
+            if [ -d "$d" ] && [ -d "$d/_internal" ]; then
+              APP_DIR="$d"
+              break
+            fi
+          done
+          if [ -z "$APP_DIR" ]; then
+            echo "::error::No frozen app directory containing _internal found under target"
+            find target -mindepth 1 -maxdepth 1 -type d | sort || true
+            exit 1
+          fi
+
           MODE="${{ inputs.package_copy_mode }}"
           if [ "$MODE" = "all_packages" ]; then
-            python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz/_internal'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+            python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('$APP_DIR/_internal'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
           elif [ "$MODE" = "mne_stubs" ]; then
-            python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent; dst=pathlib.Path('target/Snooz/_internal/mne'); dst.mkdir(parents=True, exist_ok=True); stubs=list(src.rglob('*.pyi')); [((dst / p.relative_to(src)).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(p, dst / p.relative_to(src))) for p in stubs]; assert stubs, 'No mne .pyi stubs found'; print(f'Copied {len(stubs)} mne stubs to {dst}')"
+            python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent; dst=pathlib.Path('$APP_DIR/_internal/mne'); dst.mkdir(parents=True, exist_ok=True); stubs=list(src.rglob('*.pyi')); [((dst / p.relative_to(src)).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(p, dst / p.relative_to(src))) for p in stubs]; assert stubs, 'No mne .pyi stubs found'; print(f'Copied {len(stubs)} mne stubs to {dst}')"
           else
             echo "Unsupported package_copy_mode: $MODE"
             exit 1
@@ -388,13 +412,13 @@ jobs:
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
 
-          APP_EXEC="$(find target/Snooz -type f -perm -111 ! -path '*/_internal/*' | sort | head -n 1)"
+          APP_EXEC="$(find target -type f -perm -111 ! -path '*/_internal/*' | sort | head -n 1)"
           if [ -z "$APP_EXEC" ]; then
-            echo "::error::No executable found in target/Snooz"
+            echo "::error::No executable found under target"
             echo "Executable candidates (excluding _internal):"
-            find target/Snooz -type f -perm -111 ! -path '*/_internal/*' | sort || true
+            find target -type f -perm -111 ! -path '*/_internal/*' | sort || true
             echo "Top-level files (excluding _internal):"
-            find target/Snooz -maxdepth 3 -type f ! -path '*/_internal/*' | sort || true
+            find target -maxdepth 3 -type f ! -path '*/_internal/*' | sort || true
             exit 1
           fi
           echo "Detected Linux frozen executable: $APP_EXEC"
@@ -434,8 +458,21 @@ jobs:
       - name: Build Linux portable package (.zip)
         if: ${{ !inputs.freeze_only }}
         run: |
+          APP_DIR=""
+          for d in target/*; do
+            if [ -d "$d" ] && [ -d "$d/_internal" ]; then
+              APP_DIR="$d"
+              break
+            fi
+          done
+          if [ -z "$APP_DIR" ]; then
+            echo "::error::No frozen app directory containing _internal found under target"
+            find target -mindepth 1 -maxdepth 1 -type d | sort || true
+            exit 1
+          fi
+
           cd target
-          zip -r SnoozSetup-portable-linux.zip Snooz
+          zip -r SnoozSetup-portable-linux.zip "$(basename "$APP_DIR")"
 
       - name: Runtime completion smoke test on installer (Linux)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
