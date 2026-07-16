@@ -379,13 +379,28 @@ jobs:
           cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
           cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
 
-      - name: Smoke test app bundle launch (macOS x64)
+      - name: Runtime completion smoke test app bundle (macOS x64)
+        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
         run: |
           set -eo pipefail
-          echo "PWD=$(pwd)"
-          ls -la || true
-          ls -la target || true
-          find target -maxdepth 4 -type d -name '*.app' -print || true
+          PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
+          if [ ! -f "$PROCESS_JSON_SRC" ]; then
+            echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
+            find . -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "Downloading runtime smoke EDF to: $EDF_LOCAL_PATH"
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
+              --connect-timeout 20 --max-time 600 \
+              -o "$EDF_LOCAL_PATH" \
+              "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+            test -s "$EDF_LOCAL_PATH"
+          fi
+          echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
 
           APP_PATH="$(find target -type d -name '*.app' | head -n 1)"
           if [ -z "$APP_PATH" ]; then
@@ -393,7 +408,6 @@ jobs:
             ls -la target || true
             exit 1
           fi
-          echo "APP_PATH=$APP_PATH"
 
           APP_EXEC="$(find "$APP_PATH/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
           if [ -z "$APP_EXEC" ]; then
@@ -401,45 +415,39 @@ jobs:
             find "$APP_PATH/Contents/MacOS" -maxdepth 2 -print || true
             exit 1
           fi
-          echo "APP_EXEC=$APP_EXEC"
 
-          LOG_FILE="$(mktemp /tmp/snooz-app-smoke.XXXXXX.log)"
-          APP_PID=""
+          LOG_FILE="$(mktemp /tmp/snooz-app-runtime-smoke.XXXXXX.log)"
           cleanup() {
-            if [ -n "$APP_PID" ] && kill -0 "$APP_PID" >/dev/null 2>&1; then
-              kill "$APP_PID" >/dev/null 2>&1 || true
-              wait "$APP_PID" >/dev/null 2>&1 || true
-            fi
             rm -f "$LOG_FILE"
           }
           trap cleanup EXIT
 
-          echo "Launching app executable for smoke test"
-          "$APP_EXEC" >"$LOG_FILE" 2>&1 &
-          APP_PID=$!
-          echo "APP_PID=$APP_PID"
-          sleep 20
+          echo "Running app bundle runtime completion smoke with process JSON: $PROCESS_JSON_SRC"
+          set +e
+          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
+          APP_STATUS=$?
+          set -e
 
-          if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
-            set +e
-            wait "$APP_PID"
-            APP_STATUS=$?
-            set -e
-            echo "App process exited during smoke window"
-            cat "$LOG_FILE" || true
-            if [ "$APP_STATUS" -ne 0 ]; then
-              echo "::error::App exited during smoke test with status $APP_STATUS"
-              exit "$APP_STATUS"
-            fi
-          else
-            echo "App process is still running after smoke window"
+          echo "--- App bundle runtime smoke log (last 200 lines) ---"
+          tail -n 200 "$LOG_FILE" || true
+          echo "APP_STATUS=$APP_STATUS"
+
+          if [ "$APP_STATUS" -ne 0 ]; then
+            echo "::error::App bundle runtime smoke exited with status $APP_STATUS"
+            exit "$APP_STATUS"
           fi
 
-          if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
-            cat "$LOG_FILE" || true
-            echo "::error::App launch log contains import or dynamic library errors."
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library not loaded|dlopen\\(" "$LOG_FILE"; then
+            echo "::error::App bundle runtime smoke reported errors in logs."
             exit 1
           fi
+
+          if ! grep -q "Process completed." "$LOG_FILE"; then
+            echo "::error::App bundle runtime smoke did not reach 'Process completed.'"
+            exit 1
+          fi
+
+          echo "App bundle runtime smoke verdict: PASS_COMPLETED"
 
       - name: Sign Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
@@ -1118,13 +1126,28 @@ jobs:
           cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
           cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
 
-      - name: Smoke test app bundle launch (macOS arm64)
+      - name: Runtime completion smoke test app bundle (macOS arm64)
+        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
         run: |
           set -eo pipefail
-          echo "PWD=$(pwd)"
-          ls -la || true
-          ls -la target || true
-          find target -maxdepth 4 -type d -name '*.app' -print || true
+          PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
+          if [ ! -f "$PROCESS_JSON_SRC" ]; then
+            echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
+            find . -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "Downloading runtime smoke EDF to: $EDF_LOCAL_PATH"
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
+              --connect-timeout 20 --max-time 600 \
+              -o "$EDF_LOCAL_PATH" \
+              "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+            test -s "$EDF_LOCAL_PATH"
+          fi
+          echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
 
           APP_PATH="$(find target -type d -name '*.app' | head -n 1)"
           if [ -z "$APP_PATH" ]; then
@@ -1132,7 +1155,6 @@ jobs:
             ls -la target || true
             exit 1
           fi
-          echo "APP_PATH=$APP_PATH"
 
           APP_EXEC="$(find "$APP_PATH/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
           if [ -z "$APP_EXEC" ]; then
@@ -1140,45 +1162,39 @@ jobs:
             find "$APP_PATH/Contents/MacOS" -maxdepth 2 -print || true
             exit 1
           fi
-          echo "APP_EXEC=$APP_EXEC"
 
-          LOG_FILE="$(mktemp /tmp/snooz-app-smoke.XXXXXX.log)"
-          APP_PID=""
+          LOG_FILE="$(mktemp /tmp/snooz-app-runtime-smoke.XXXXXX.log)"
           cleanup() {
-            if [ -n "$APP_PID" ] && kill -0 "$APP_PID" >/dev/null 2>&1; then
-              kill "$APP_PID" >/dev/null 2>&1 || true
-              wait "$APP_PID" >/dev/null 2>&1 || true
-            fi
             rm -f "$LOG_FILE"
           }
           trap cleanup EXIT
 
-          echo "Launching app executable for smoke test"
-          "$APP_EXEC" >"$LOG_FILE" 2>&1 &
-          APP_PID=$!
-          echo "APP_PID=$APP_PID"
-          sleep 20
+          echo "Running app bundle runtime completion smoke with process JSON: $PROCESS_JSON_SRC"
+          set +e
+          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
+          APP_STATUS=$?
+          set -e
 
-          if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
-            set +e
-            wait "$APP_PID"
-            APP_STATUS=$?
-            set -e
-            echo "App process exited during smoke window"
-            cat "$LOG_FILE" || true
-            if [ "$APP_STATUS" -ne 0 ]; then
-              echo "::error::App exited during smoke test with status $APP_STATUS"
-              exit "$APP_STATUS"
-            fi
-          else
-            echo "App process is still running after smoke window"
+          echo "--- App bundle runtime smoke log (last 200 lines) ---"
+          tail -n 200 "$LOG_FILE" || true
+          echo "APP_STATUS=$APP_STATUS"
+
+          if [ "$APP_STATUS" -ne 0 ]; then
+            echo "::error::App bundle runtime smoke exited with status $APP_STATUS"
+            exit "$APP_STATUS"
           fi
 
-          if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
-            cat "$LOG_FILE" || true
-            echo "::error::App launch log contains import or dynamic library errors."
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library not loaded|dlopen\\(" "$LOG_FILE"; then
+            echo "::error::App bundle runtime smoke reported errors in logs."
             exit 1
           fi
+
+          if ! grep -q "Process completed." "$LOG_FILE"; then
+            echo "::error::App bundle runtime smoke did not reach 'Process completed.'"
+            exit 1
+          fi
+
+          echo "App bundle runtime smoke verdict: PASS_COMPLETED"
 
       - name: Sign Snooz.app
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
