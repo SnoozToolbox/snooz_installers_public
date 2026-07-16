@@ -1,0 +1,501 @@
+name: Build installers (Windows/Linux)
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_windows:
+        description: Build Windows installer
+        required: true
+        type: boolean
+        default: true
+      build_linux:
+        description: Build Linux installer (deb + zip)
+        required: true
+        type: boolean
+        default: true
+      runtime_smoke_test:
+        description: Run runtime completion smoke tests on executable and installer outputs
+        required: true
+        type: boolean
+        default: false
+      package_copy_mode:
+        description: Package copy strategy after freeze
+        required: true
+        type: choice
+        default: all_packages
+        options:
+          - all_packages
+          - mne_stubs
+      source_repo:
+        description: Source repository (owner/name or repo only; owner defaults to SnoozToolbox)
+        required: true
+        default: SnoozToolbox/snooz-toolbox
+      source_ref:
+        description: Branch, tag, or commit SHA from source_repo
+        required: true
+        default: main
+      upload_artifacts:
+        description: Upload installers as workflow artifacts
+        required: true
+        type: boolean
+        default: false
+      publish_to_release:
+        description: Upload installers to a GitHub Release
+        required: true
+        type: boolean
+        default: false
+      release_tag:
+        description: Release tag (required when publish_to_release is true)
+        required: false
+        default: ''
+      release_name:
+        description: Release name (optional)
+        required: false
+        default: ''
+      release_draft:
+        description: Create/update release as draft
+        required: true
+        type: boolean
+        default: true
+      release_prerelease:
+        description: Mark release as prerelease
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  build_windows:
+    runs-on: windows-2022
+    if: ${{ inputs.build_windows }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Patch is_dev for release
+        shell: pwsh
+        run: |
+          $file = "src/main/python/config.py"
+          (Get-Content $file) -replace 'is_dev = True', 'is_dev = False' | Set-Content $file
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10.11'
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+          $maxAttempts = 5
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            curl.exe --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 180 `
+              -H "Accept: application/octet-stream" `
+              -H "Authorization: Bearer ${{ secrets.GH_PAT }}" `
+              -H "X-GitHub-Api-Version: 2022-11-28" `
+              -o fbs-pro.tar.gz `
+              "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}"
+
+            if ($LASTEXITCODE -eq 0 -and (Test-Path "fbs-pro.tar.gz") -and ((Get-Item "fbs-pro.tar.gz").Length -gt 0)) {
+              break
+            }
+
+            if ($attempt -eq $maxAttempts) {
+              throw "Failed to download fbs-pro.tar.gz after $maxAttempts attempts"
+            }
+
+            Write-Host "Retrying fbs-pro download (attempt $attempt/$maxAttempts)"
+            Start-Sleep -Seconds (3 * $attempt)
+          }
+
+          pip install fbs-pro.tar.gz
+
+      - name: Install NSIS
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          choco install vcredist2010 -y
+          choco install vcredist2012 -y
+
+      - name: Verify makensis is available
+        shell: pwsh
+        run: |
+          $nsisPath = "C:\Program Files (x86)\NSIS"
+          $makensisExe = Join-Path $nsisPath "makensis.exe"
+          if (-not (Test-Path $makensisExe)) {
+            throw "makensis.exe not found at expected path: $makensisExe"
+          }
+          $nsisPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & $makensisExe /VERSION
+
+      - name: Freeze app with fbs
+        shell: pwsh
+        run: |
+          fbs freeze
+
+      - name: Copy package content after freeze (Windows)
+        shell: pwsh
+        run: |
+          $mode = "${{ inputs.package_copy_mode }}"
+          if ($mode -eq "all_packages") {
+            python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz/_internal'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+          }
+          elseif ($mode -eq "mne_stubs") {
+            python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent; dst=pathlib.Path('target/Snooz/_internal/mne'); dst.mkdir(parents=True, exist_ok=True); stubs=list(src.rglob('*.pyi')); [((dst / p.relative_to(src)).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(p, dst / p.relative_to(src))) for p in stubs]; assert stubs, 'No mne .pyi stubs found'; print(f'Copied {len(stubs)} mne stubs to {dst}')"
+          }
+          else {
+            throw "Unsupported package_copy_mode: $mode"
+          }
+
+      - name: Runtime completion smoke test on executable (Windows)
+        if: ${{ inputs.runtime_smoke_test }}
+        shell: pwsh
+        run: |
+          $processJson = "runtime-smoke/snooz_runtime_smoke.json"
+          if (-not (Test-Path $processJson)) {
+            throw "Runtime smoke process JSON not found: $processJson"
+          }
+
+          $edfLocalPath = "runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          New-Item -ItemType Directory -Path (Split-Path $edfLocalPath -Parent) -Force | Out-Null
+          curl.exe --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 600 -o $edfLocalPath "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          if (-not (Test-Path $edfLocalPath)) {
+            throw "Runtime smoke EDF download failed: $edfLocalPath"
+          }
+
+          $appExe = Get-ChildItem -Path "target/Snooz" -Filter "*.exe" -Recurse |
+            Where-Object { $_.Name -notmatch 'unins|setup|installer' } |
+            Select-Object -First 1
+          if (-not $appExe) {
+            throw "No executable found in target/Snooz"
+          }
+
+          $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-runtime-smoke.log"
+          & $appExe.FullName --f $processJson *> $logFile
+          $appStatus = $LASTEXITCODE
+
+          Get-Content $logFile
+          if ($appStatus -ne 0) {
+            throw "Runtime smoke execution on frozen executable exited with status $appStatus"
+          }
+
+          if (Select-String -Path $logFile -Pattern "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" -Quiet) {
+            throw "Runtime smoke execution on frozen executable reported errors in logs"
+          }
+
+          if (-not (Select-String -Path $logFile -Pattern "Process completed\." -Quiet)) {
+            throw "Runtime smoke execution on frozen executable did not reach 'Process completed.'"
+          }
+
+      - name: Build installer with fbs (Windows)
+        shell: pwsh
+        run: |
+          fbs installer
+
+      - name: Runtime completion smoke test on installer (Windows)
+        if: ${{ inputs.runtime_smoke_test }}
+        shell: pwsh
+        run: |
+          $processJson = "runtime-smoke/snooz_runtime_smoke.json"
+          if (-not (Test-Path $processJson)) {
+            throw "Runtime smoke process JSON not found: $processJson"
+          }
+
+          $edfLocalPath = "runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          if (-not (Test-Path $edfLocalPath)) {
+            New-Item -ItemType Directory -Path (Split-Path $edfLocalPath -Parent) -Force | Out-Null
+            curl.exe --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 600 -o $edfLocalPath "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          }
+
+          $installer = Get-ChildItem -Path target -Filter "*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $installer) {
+            throw "No Windows installer executable found in target"
+          }
+
+          $installDir = "C:\snooz_ci_install"
+          if (Test-Path $installDir) {
+            Remove-Item -Path $installDir -Recurse -Force
+          }
+
+          & $installer.FullName /S /D=$installDir
+          if ($LASTEXITCODE -ne 0) {
+            throw "Silent installer failed with status $LASTEXITCODE"
+          }
+
+          $installedExe = Get-ChildItem -Path $installDir -Filter "*.exe" -Recurse |
+            Where-Object { $_.Name -notmatch 'unins|setup|installer' } |
+            Select-Object -First 1
+          if (-not $installedExe) {
+            throw "No installed executable found under $installDir"
+          }
+
+          $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-installer-runtime-smoke.log"
+          & $installedExe.FullName --f $processJson *> $logFile
+          $appStatus = $LASTEXITCODE
+
+          Get-Content $logFile
+          if ($appStatus -ne 0) {
+            throw "Runtime smoke execution from installer output exited with status $appStatus"
+          }
+
+          if (Select-String -Path $logFile -Pattern "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" -Quiet) {
+            throw "Runtime smoke execution from installer output reported errors in logs"
+          }
+
+          if (-not (Select-String -Path $logFile -Pattern "Process completed\." -Quiet)) {
+            throw "Runtime smoke execution from installer output did not reach 'Process completed.'"
+          }
+
+      - name: Upload Windows installer artifact
+        if: ${{ inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozSetup.exe
+          path: target/*.exe
+          retention-days: 2
+
+      - name: Publish Windows installer to Release
+        if: ${{ inputs.publish_to_release && inputs.release_tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
+          draft: ${{ inputs.release_draft }}
+          prerelease: ${{ inputs.release_prerelease }}
+          files: target/*.exe
+          fail_on_unmatched_files: true
+
+  build_linux:
+    runs-on: ubuntu-22.04
+    if: ${{ inputs.build_linux }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Patch is_dev for release
+        run: |
+          sed -i 's/is_dev = True/is_dev = False/' src/main/python/config.py
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+          MAX_ATTEMPTS=5
+          for ATTEMPT in $(seq 1 "$MAX_ATTEMPTS"); do
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 180 \
+              -H "Accept: application/octet-stream" \
+              -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -o fbs-pro.tar.gz \
+              "https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/${{ secrets.FBS_ASSET_ID }}" && break
+
+            if [ "$ATTEMPT" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Failed to download fbs-pro.tar.gz after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+
+            echo "Retrying fbs-pro download (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep $((ATTEMPT * 3))
+          done
+
+          test -s fbs-pro.tar.gz
+          pip install fbs-pro.tar.gz
+
+      - name: Install fpm
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby ruby-dev build-essential rubygems zip
+          sudo gem install --no-document fpm
+          fpm --version
+
+      - name: Freeze app with fbs
+        run: |
+          fbs freeze
+
+      - name: Copy package content after freeze (Linux)
+        run: |
+          MODE="${{ inputs.package_copy_mode }}"
+          if [ "$MODE" = "all_packages" ]; then
+            python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('target/Snooz/_internal'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+          elif [ "$MODE" = "mne_stubs" ]; then
+            python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent; dst=pathlib.Path('target/Snooz/_internal/mne'); dst.mkdir(parents=True, exist_ok=True); stubs=list(src.rglob('*.pyi')); [((dst / p.relative_to(src)).parent.mkdir(parents=True, exist_ok=True), shutil.copy2(p, dst / p.relative_to(src))) for p in stubs]; assert stubs, 'No mne .pyi stubs found'; print(f'Copied {len(stubs)} mne stubs to {dst}')"
+          else
+            echo "Unsupported package_copy_mode: $MODE"
+            exit 1
+          fi
+
+      - name: Runtime completion smoke test on executable (Linux)
+        if: ${{ inputs.runtime_smoke_test }}
+        run: |
+          set -eo pipefail
+          PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
+          if [ ! -f "$PROCESS_JSON_SRC" ]; then
+            echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
+            find . -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 600 \
+            -o "$EDF_LOCAL_PATH" \
+            "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          test -s "$EDF_LOCAL_PATH"
+
+          APP_EXEC="$(find target/Snooz -type f -perm -111 -name 'Snooz*' | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found in target/Snooz"
+            find target/Snooz -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          LOG_FILE="$(mktemp /tmp/snooz-linux-runtime-smoke.XXXXXX.log)"
+          cleanup() {
+            rm -f "$LOG_FILE"
+          }
+          trap cleanup EXIT
+
+          set +e
+          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
+          APP_STATUS=$?
+          set -e
+
+          cat "$LOG_FILE" || true
+          if [ "$APP_STATUS" -ne 0 ]; then
+            echo "::error::Runtime smoke execution on frozen executable exited with status $APP_STATUS"
+            exit "$APP_STATUS"
+          fi
+
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution on frozen executable reported errors in logs."
+            exit 1
+          fi
+
+          if ! grep -q "Process completed\." "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution on frozen executable did not reach 'Process completed.'"
+            exit 1
+          fi
+
+      - name: Build Linux installer (.deb)
+        run: |
+          fbs installer
+
+      - name: Build Linux portable package (.zip)
+        run: |
+          cd target
+          zip -r SnoozSetup-portable-linux.zip Snooz
+
+      - name: Runtime completion smoke test on installer (Linux)
+        if: ${{ inputs.runtime_smoke_test }}
+        run: |
+          set -eo pipefail
+          PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
+          if [ ! -f "$PROCESS_JSON_SRC" ]; then
+            echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
+            find . -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
+              --connect-timeout 20 --max-time 600 \
+              -o "$EDF_LOCAL_PATH" \
+              "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          fi
+
+          DEB_PATH="$(find target -maxdepth 1 -type f -name '*.deb' | head -n 1)"
+          if [ -z "$DEB_PATH" ]; then
+            echo "::error::No .deb installer found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          EXTRACT_DIR="$(mktemp -d /tmp/snooz-deb-runtime-smoke.XXXXXX)"
+          LOG_FILE="$(mktemp /tmp/snooz-linux-installer-runtime-smoke.XXXXXX.log)"
+          cleanup() {
+            rm -rf "$EXTRACT_DIR"
+            rm -f "$LOG_FILE"
+          }
+          trap cleanup EXIT
+
+          dpkg-deb -x "$DEB_PATH" "$EXTRACT_DIR"
+          APP_EXEC="$(find "$EXTRACT_DIR" -type f -perm -111 -name 'Snooz*' | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found in extracted .deb payload."
+            find "$EXTRACT_DIR" -maxdepth 5 -type f | sort || true
+            exit 1
+          fi
+
+          set +e
+          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
+          APP_STATUS=$?
+          set -e
+
+          cat "$LOG_FILE" || true
+          if [ "$APP_STATUS" -ne 0 ]; then
+            echo "::error::Runtime smoke execution from .deb payload exited with status $APP_STATUS"
+            exit "$APP_STATUS"
+          fi
+
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution from .deb payload reported errors in logs."
+            exit 1
+          fi
+
+          if ! grep -q "Process completed\." "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution from .deb payload did not reach 'Process completed.'"
+            exit 1
+          fi
+
+      - name: Validate Linux package outputs
+        run: |
+          ls -la target
+          ls target/*.deb
+          ls target/*.zip
+
+      - name: Upload Linux installer artifact
+        if: ${{ inputs.upload_artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozSetup-linux
+          path: |
+            target/*.zip
+            target/*.deb
+          retention-days: 2
+
+      - name: Publish Linux installers to Release
+        if: ${{ inputs.publish_to_release && inputs.release_tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
+          draft: ${{ inputs.release_draft }}
+          prerelease: ${{ inputs.release_prerelease }}
+          files: |
+            target/*.zip
+            target/*.deb
+          fail_on_unmatched_files: true
