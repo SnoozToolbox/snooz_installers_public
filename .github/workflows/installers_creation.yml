@@ -49,22 +49,6 @@ on:
         required: true
         type: boolean
         default: false
-      runtime_smoke_repo:
-        description: 'Repository containing runtime smoke JSON/data (owner/name or repo only; owner defaults to SnoozToolbox)'
-        required: true
-        default: 'SnoozToolbox/snooz-runtime-smoke-data'
-      runtime_smoke_ref:
-        description: 'Branch, tag, or commit SHA for runtime_smoke_repo'
-        required: true
-        default: 'main'
-      runtime_smoke_process_json:
-        description: 'Path to process JSON inside runtime_smoke_repo (supports __SNOOZ_TEST_DATA_DIR__ placeholder)'
-        required: false
-        default: ''
-      runtime_smoke_data_subdir:
-        description: 'Optional data subdirectory inside runtime_smoke_repo to map to __SNOOZ_TEST_DATA_DIR__'
-        required: false
-        default: ''
       sign_macos:
         description: 'Sign and notarize macOS artifacts'
         required: true
@@ -863,38 +847,14 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout runtime smoke data repository (macOS x64)
-        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
-        uses: actions/checkout@v5
-        with:
-          repository: ${{ contains(inputs.runtime_smoke_repo, '/') && inputs.runtime_smoke_repo || format('SnoozToolbox/{0}', inputs.runtime_smoke_repo) }}
-          ref: ${{ inputs.runtime_smoke_ref }}
-          token: ${{ secrets.GH_PAT }}
-          path: runtime_smoke_repo
-
       - name: Runtime smoke test from .dmg (macOS x64)
         if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
         run: |
           set -eo pipefail
-          if [ -z "${{ inputs.runtime_smoke_process_json }}" ]; then
-            echo "::error::runtime_smoke_process_json must be set when runtime_smoke_test is enabled."
-            exit 1
-          fi
-
-          PROCESS_JSON_SRC="runtime_smoke_repo/${{ inputs.runtime_smoke_process_json }}"
+          PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
           if [ ! -f "$PROCESS_JSON_SRC" ]; then
             echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
-            find runtime_smoke_repo -maxdepth 4 -type f | sort || true
-            exit 1
-          fi
-
-          if [ -n "${{ inputs.runtime_smoke_data_subdir }}" ]; then
-            DATA_DIR="$(cd "runtime_smoke_repo/${{ inputs.runtime_smoke_data_subdir }}" && pwd)"
-          else
-            DATA_DIR="$(cd runtime_smoke_repo && pwd)"
-          fi
-          if [ ! -d "$DATA_DIR" ]; then
-            echo "::error::Runtime smoke data directory not found: $DATA_DIR"
+            find . -maxdepth 4 -type f | sort || true
             exit 1
           fi
 
@@ -908,9 +868,6 @@ jobs:
           test -s "$EDF_LOCAL_PATH"
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
 
-          RESOLVED_JSON="$(mktemp /tmp/snooz-runtime-process.XXXXXX.json)"
-          sed "s|__SNOOZ_TEST_DATA_DIR__|$DATA_DIR|g" "$PROCESS_JSON_SRC" > "$RESOLVED_JSON"
-
           DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
           if [ -z "$DMG_PATH" ]; then
             echo "::error::No final DMG found in target/."
@@ -923,7 +880,7 @@ jobs:
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
-            rm -f "$LOG_FILE" "$RESOLVED_JSON"
+            rm -f "$LOG_FILE"
           }
           trap cleanup EXIT
 
@@ -944,7 +901,7 @@ jobs:
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
           set +e
-          "$APP_EXEC" --f "$RESOLVED_JSON" >"$LOG_FILE" 2>&1
+          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
           set -e
 
@@ -1693,38 +1650,14 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout runtime smoke data repository (macOS arm64)
-        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
-        uses: actions/checkout@v5
-        with:
-          repository: ${{ contains(inputs.runtime_smoke_repo, '/') && inputs.runtime_smoke_repo || format('SnoozToolbox/{0}', inputs.runtime_smoke_repo) }}
-          ref: ${{ inputs.runtime_smoke_ref }}
-          token: ${{ secrets.GH_PAT }}
-          path: runtime_smoke_repo
-
       - name: Runtime smoke test from .dmg (macOS arm64)
         if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
         run: |
           set -eo pipefail
-          if [ -z "${{ inputs.runtime_smoke_process_json }}" ]; then
-            echo "::error::runtime_smoke_process_json must be set when runtime_smoke_test is enabled."
-            exit 1
-          fi
-
-          PROCESS_JSON_SRC="runtime_smoke_repo/${{ inputs.runtime_smoke_process_json }}"
+          PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
           if [ ! -f "$PROCESS_JSON_SRC" ]; then
             echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
-            find runtime_smoke_repo -maxdepth 4 -type f | sort || true
-            exit 1
-          fi
-
-          if [ -n "${{ inputs.runtime_smoke_data_subdir }}" ]; then
-            DATA_DIR="$(cd "runtime_smoke_repo/${{ inputs.runtime_smoke_data_subdir }}" && pwd)"
-          else
-            DATA_DIR="$(cd runtime_smoke_repo && pwd)"
-          fi
-          if [ ! -d "$DATA_DIR" ]; then
-            echo "::error::Runtime smoke data directory not found: $DATA_DIR"
+            find . -maxdepth 4 -type f | sort || true
             exit 1
           fi
 
@@ -1738,9 +1671,6 @@ jobs:
           test -s "$EDF_LOCAL_PATH"
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
 
-          RESOLVED_JSON="$(mktemp /tmp/snooz-runtime-process.XXXXXX.json)"
-          sed "s|__SNOOZ_TEST_DATA_DIR__|$DATA_DIR|g" "$PROCESS_JSON_SRC" > "$RESOLVED_JSON"
-
           DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
           if [ -z "$DMG_PATH" ]; then
             echo "::error::No final DMG found in target/."
@@ -1753,7 +1683,7 @@ jobs:
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
-            rm -f "$LOG_FILE" "$RESOLVED_JSON"
+            rm -f "$LOG_FILE"
           }
           trap cleanup EXIT
 
@@ -1774,7 +1704,7 @@ jobs:
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
           set +e
-          "$APP_EXEC" --f "$RESOLVED_JSON" >"$LOG_FILE" 2>&1
+          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
           set -e
 
