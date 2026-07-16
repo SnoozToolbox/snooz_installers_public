@@ -44,6 +44,27 @@ on:
         required: true
         type: boolean
         default: true
+      runtime_smoke_test:
+        description: 'Run headless runtime smoke test from DMG using a process JSON'
+        required: true
+        type: boolean
+        default: false
+      runtime_smoke_repo:
+        description: 'Repository containing runtime smoke JSON/data (owner/name or repo only; owner defaults to SnoozToolbox)'
+        required: true
+        default: 'SnoozToolbox/snooz-runtime-smoke-data'
+      runtime_smoke_ref:
+        description: 'Branch, tag, or commit SHA for runtime_smoke_repo'
+        required: true
+        default: 'main'
+      runtime_smoke_process_json:
+        description: 'Path to process JSON inside runtime_smoke_repo (supports __SNOOZ_TEST_DATA_DIR__ placeholder)'
+        required: false
+        default: ''
+      runtime_smoke_data_subdir:
+        description: 'Optional data subdirectory inside runtime_smoke_repo to map to __SNOOZ_TEST_DATA_DIR__'
+        required: false
+        default: ''
       sign_macos:
         description: 'Sign and notarize macOS artifacts'
         required: true
@@ -812,9 +833,134 @@ jobs:
             echo "DMG app process is still running after smoke window"
           fi
 
+          APP_NAME="$(basename "$APP_IN_DMG" .app)"
+          echo "APP_NAME=$APP_NAME"
+          GUI_RUNNING="$(osascript -e 'tell application "System Events" to (name of application processes) contains "'"$APP_NAME"'"' 2>/dev/null || true)"
+          if [ "$GUI_RUNNING" != "true" ]; then
+            echo "::error::DMG app binary is running but no GUI application process was detected for '$APP_NAME'."
+            cat "$LOG_FILE" || true
+            exit 1
+          fi
+
+          WINDOW_COUNT="$(osascript -e 'tell application "System Events" to count windows of application process "'"$APP_NAME"'"' 2>/dev/null || true)"
+          case "$WINDOW_COUNT" in
+            ''|*[!0-9]*)
+              echo "::error::Unable to confirm visible windows for '$APP_NAME' (raw result: $WINDOW_COUNT)."
+              cat "$LOG_FILE" || true
+              exit 1
+              ;;
+          esac
+          if [ "$WINDOW_COUNT" -lt 1 ]; then
+            echo "::error::DMG app launched but no visible window appeared for '$APP_NAME'."
+            cat "$LOG_FILE" || true
+            exit 1
+          fi
+          echo "Detected visible window count: $WINDOW_COUNT"
+
           if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
             cat "$LOG_FILE" || true
             echo "::error::DMG app launch log contains import or dynamic library errors."
+            exit 1
+          fi
+
+      - name: Checkout runtime smoke data repository (macOS x64)
+        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ contains(inputs.runtime_smoke_repo, '/') && inputs.runtime_smoke_repo || format('SnoozToolbox/{0}', inputs.runtime_smoke_repo) }}
+          ref: ${{ inputs.runtime_smoke_ref }}
+          token: ${{ secrets.GH_PAT }}
+          path: runtime_smoke_repo
+
+      - name: Runtime smoke test from .dmg (macOS x64)
+        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
+        run: |
+          set -eo pipefail
+          if [ -z "${{ inputs.runtime_smoke_process_json }}" ]; then
+            echo "::error::runtime_smoke_process_json must be set when runtime_smoke_test is enabled."
+            exit 1
+          fi
+
+          PROCESS_JSON_SRC="runtime_smoke_repo/${{ inputs.runtime_smoke_process_json }}"
+          if [ ! -f "$PROCESS_JSON_SRC" ]; then
+            echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
+            find runtime_smoke_repo -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          if [ -n "${{ inputs.runtime_smoke_data_subdir }}" ]; then
+            DATA_DIR="$(cd "runtime_smoke_repo/${{ inputs.runtime_smoke_data_subdir }}" && pwd)"
+          else
+            DATA_DIR="$(cd runtime_smoke_repo && pwd)"
+          fi
+          if [ ! -d "$DATA_DIR" ]; then
+            echo "::error::Runtime smoke data directory not found: $DATA_DIR"
+            exit 1
+          fi
+
+          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
+          echo "Downloading runtime smoke EDF to: $EDF_LOCAL_PATH"
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 600 \
+            -o "$EDF_LOCAL_PATH" \
+            "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          test -s "$EDF_LOCAL_PATH"
+          echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+
+          RESOLVED_JSON="$(mktemp /tmp/snooz-runtime-process.XXXXXX.json)"
+          sed "s|__SNOOZ_TEST_DATA_DIR__|$DATA_DIR|g" "$PROCESS_JSON_SRC" > "$RESOLVED_JSON"
+
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "::error::No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
+          LOG_FILE="$(mktemp /tmp/snooz-dmg-runtime-smoke.XXXXXX.log)"
+          cleanup() {
+            hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
+            rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+            rm -f "$LOG_FILE" "$RESOLVED_JSON"
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_DIR" -nobrowse -readonly
+          APP_IN_DMG="$(find "$MOUNT_DIR" -maxdepth 2 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_IN_DMG" ]; then
+            echo "::error::No .app bundle found inside DMG."
+            find "$MOUNT_DIR" -maxdepth 3 -print || true
+            exit 1
+          fi
+
+          APP_EXEC="$(find "$APP_IN_DMG/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found in DMG app bundle."
+            find "$APP_IN_DMG/Contents/MacOS" -maxdepth 2 -print || true
+            exit 1
+          fi
+
+          echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
+          set +e
+          "$APP_EXEC" --f "$RESOLVED_JSON" >"$LOG_FILE" 2>&1
+          APP_STATUS=$?
+          set -e
+
+          cat "$LOG_FILE" || true
+          if [ "$APP_STATUS" -ne 0 ]; then
+            echo "::error::Runtime smoke execution exited with status $APP_STATUS"
+            exit "$APP_STATUS"
+          fi
+
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution reported errors in logs."
+            exit 1
+          fi
+
+          if ! grep -q "Process completed." "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution did not reach 'Process completed.'"
             exit 1
           fi
 
@@ -1517,9 +1663,134 @@ jobs:
             echo "DMG app process is still running after smoke window"
           fi
 
+          APP_NAME="$(basename "$APP_IN_DMG" .app)"
+          echo "APP_NAME=$APP_NAME"
+          GUI_RUNNING="$(osascript -e 'tell application "System Events" to (name of application processes) contains "'"$APP_NAME"'"' 2>/dev/null || true)"
+          if [ "$GUI_RUNNING" != "true" ]; then
+            echo "::error::DMG app binary is running but no GUI application process was detected for '$APP_NAME'."
+            cat "$LOG_FILE" || true
+            exit 1
+          fi
+
+          WINDOW_COUNT="$(osascript -e 'tell application "System Events" to count windows of application process "'"$APP_NAME"'"' 2>/dev/null || true)"
+          case "$WINDOW_COUNT" in
+            ''|*[!0-9]*)
+              echo "::error::Unable to confirm visible windows for '$APP_NAME' (raw result: $WINDOW_COUNT)."
+              cat "$LOG_FILE" || true
+              exit 1
+              ;;
+          esac
+          if [ "$WINDOW_COUNT" -lt 1 ]; then
+            echo "::error::DMG app launched but no visible window appeared for '$APP_NAME'."
+            cat "$LOG_FILE" || true
+            exit 1
+          fi
+          echo "Detected visible window count: $WINDOW_COUNT"
+
           if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
             cat "$LOG_FILE" || true
             echo "::error::DMG app launch log contains import or dynamic library errors."
+            exit 1
+          fi
+
+      - name: Checkout runtime smoke data repository (macOS arm64)
+        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ contains(inputs.runtime_smoke_repo, '/') && inputs.runtime_smoke_repo || format('SnoozToolbox/{0}', inputs.runtime_smoke_repo) }}
+          ref: ${{ inputs.runtime_smoke_ref }}
+          token: ${{ secrets.GH_PAT }}
+          path: runtime_smoke_repo
+
+      - name: Runtime smoke test from .dmg (macOS arm64)
+        if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
+        run: |
+          set -eo pipefail
+          if [ -z "${{ inputs.runtime_smoke_process_json }}" ]; then
+            echo "::error::runtime_smoke_process_json must be set when runtime_smoke_test is enabled."
+            exit 1
+          fi
+
+          PROCESS_JSON_SRC="runtime_smoke_repo/${{ inputs.runtime_smoke_process_json }}"
+          if [ ! -f "$PROCESS_JSON_SRC" ]; then
+            echo "::error::Runtime smoke process JSON not found: $PROCESS_JSON_SRC"
+            find runtime_smoke_repo -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+          if [ -n "${{ inputs.runtime_smoke_data_subdir }}" ]; then
+            DATA_DIR="$(cd "runtime_smoke_repo/${{ inputs.runtime_smoke_data_subdir }}" && pwd)"
+          else
+            DATA_DIR="$(cd runtime_smoke_repo && pwd)"
+          fi
+          if [ ! -d "$DATA_DIR" ]; then
+            echo "::error::Runtime smoke data directory not found: $DATA_DIR"
+            exit 1
+          fi
+
+          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
+          echo "Downloading runtime smoke EDF to: $EDF_LOCAL_PATH"
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
+            --connect-timeout 20 --max-time 600 \
+            -o "$EDF_LOCAL_PATH" \
+            "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          test -s "$EDF_LOCAL_PATH"
+          echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+
+          RESOLVED_JSON="$(mktemp /tmp/snooz-runtime-process.XXXXXX.json)"
+          sed "s|__SNOOZ_TEST_DATA_DIR__|$DATA_DIR|g" "$PROCESS_JSON_SRC" > "$RESOLVED_JSON"
+
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "::error::No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
+          LOG_FILE="$(mktemp /tmp/snooz-dmg-runtime-smoke.XXXXXX.log)"
+          cleanup() {
+            hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
+            rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+            rm -f "$LOG_FILE" "$RESOLVED_JSON"
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_DIR" -nobrowse -readonly
+          APP_IN_DMG="$(find "$MOUNT_DIR" -maxdepth 2 -type d -name '*.app' | head -n 1)"
+          if [ -z "$APP_IN_DMG" ]; then
+            echo "::error::No .app bundle found inside DMG."
+            find "$MOUNT_DIR" -maxdepth 3 -print || true
+            exit 1
+          fi
+
+          APP_EXEC="$(find "$APP_IN_DMG/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            echo "::error::No executable found in DMG app bundle."
+            find "$APP_IN_DMG/Contents/MacOS" -maxdepth 2 -print || true
+            exit 1
+          fi
+
+          echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
+          set +e
+          "$APP_EXEC" --f "$RESOLVED_JSON" >"$LOG_FILE" 2>&1
+          APP_STATUS=$?
+          set -e
+
+          cat "$LOG_FILE" || true
+          if [ "$APP_STATUS" -ne 0 ]; then
+            echo "::error::Runtime smoke execution exited with status $APP_STATUS"
+            exit "$APP_STATUS"
+          fi
+
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution reported errors in logs."
+            exit 1
+          fi
+
+          if ! grep -q "Process completed." "$LOG_FILE"; then
+            echo "::error::Runtime smoke execution did not reach 'Process completed.'"
             exit 1
           fi
 
