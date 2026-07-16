@@ -39,11 +39,6 @@ on:
         required: true
         type: boolean
         default: false
-      verify_hooks_macos:
-        description: 'Fail early if PyInstaller hooks did not include required macOS packages'
-        required: true
-        type: boolean
-        default: true
       runtime_smoke_test:
         description: 'Run headless runtime smoke tests (frozen app and DMG) using a process JSON'
         required: true
@@ -251,41 +246,6 @@ jobs:
           test -s fbs-pro.tar.gz
           pip install fbs-pro.tar.gz
 
-      - name: Print active source revision and mne hook (macOS x64)
-        if: ${{ inputs.verify_hooks_macos }}
-        run: |
-          echo "source_repo=${{ inputs.source_repo }}"
-          echo "source_ref=${{ inputs.source_ref }}"
-          git rev-parse HEAD
-          if [ -f src/hooks/hook-mne.py ]; then
-            echo "Active hook file: src/hooks/hook-mne.py"
-            sed -n '1,200p' src/hooks/hook-mne.py
-          else
-            echo "::warning::src/hooks/hook-mne.py not found in checked out source."
-          fi
-          python - <<'PY'
-          import importlib.util
-          import pathlib
-          import sys
-
-          print("python:", sys.version)
-          try:
-              import PyInstaller  # type: ignore
-              print("pyinstaller:", PyInstaller.__version__)
-          except Exception as exc:
-              print("pyinstaller: unavailable", repr(exc))
-
-          spec = importlib.util.find_spec("mne")
-          if spec is None or spec.origin is None:
-              print("::error::mne package not found after dependency install.")
-              raise SystemExit(1)
-
-          pkg_dir = pathlib.Path(spec.origin).parent
-          init_py = pkg_dir / "__init__.py"
-          print("mne package dir:", pkg_dir)
-          print("mne __init__.py exists:", init_py.exists(), init_py)
-          PY
-
       - name: Configure Apple signing certificate
         if: ${{ inputs.sign_macos }}
         env:
@@ -383,11 +343,6 @@ jobs:
           print(f'Prepared {count} mne stubs for runtime under {dst}')
           PY
 
-          MNE_INIT_PY="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
-          MNE_INIT_PYI="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
-          echo "mne __init__.py in frozen app: ${MNE_INIT_PY:-<not found>}"
-          echo "mne __init__.pyi in frozen app: ${MNE_INIT_PYI:-<not found>}"
-
           LOG_FILE="$(mktemp /tmp/snooz-freeze-runtime-smoke.XXXXXX.log)"
           cleanup() {
             rm -f "$LOG_FILE"
@@ -416,56 +371,6 @@ jobs:
             exit 1
           fi
 
-      - name: Ensure required mne stub exists in app bundle (macOS x64)
-        run: |
-          set -eo pipefail
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::No .app bundle found in target/."
-            ls -la target || true
-            exit 1
-          fi
-
-          MNE_PKG_SRC="$(python - <<'PY'
-          import importlib.util
-          import pathlib
-
-          spec = importlib.util.find_spec('mne')
-          if spec is None or spec.origin is None:
-              raise SystemExit(1)
-
-          print(pathlib.Path(spec.origin).parent)
-          PY
-          )"
-
-          if [ -z "$MNE_PKG_SRC" ]; then
-            echo "::error::Unable to locate mne package in site-packages."
-            exit 1
-          fi
-
-          APP_PATH="$APP_PATH" MNE_PKG_SRC="$MNE_PKG_SRC" python - <<'PY'
-          import os
-          import pathlib
-          import shutil
-
-          src = pathlib.Path(os.environ['MNE_PKG_SRC'])
-          dst = pathlib.Path(os.environ['APP_PATH']) / 'Contents' / 'Frameworks' / 'mne'
-          dst.mkdir(parents=True, exist_ok=True)
-
-          count = 0
-          for stub in src.rglob('*.pyi'):
-              rel = stub.relative_to(src)
-              out = dst / rel
-              out.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copy2(stub, out)
-              count += 1
-
-          if count == 0:
-              raise SystemExit('No mne .pyi stubs found to copy')
-
-          print(f'Copied {count} required mne stubs to {dst}')
-          PY
-
       - name: Copy PSGReader extensions (macOS x64)
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -473,62 +378,6 @@ jobs:
           mkdir -p "$APP_PATH/Contents/Resources/extension/PSGReader"
           cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
           cp -r src/main/resources/mac/mac-X64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
-
-      - name: Verify PyInstaller hook outputs (macOS)
-        if: ${{ inputs.verify_hooks_macos }}
-        run: |
-          ANALYSIS_TOC="$(find target -type f -name 'Analysis-00.toc' | head -n 1)"
-          if [ -z "$ANALYSIS_TOC" ]; then
-            echo "::error::Analysis-00.toc not found. Unable to validate hook packaging output."
-            exit 1
-          fi
-          echo "Using analysis file: $ANALYSIS_TOC"
-
-          WARN_FILE="$(find "$(dirname "$ANALYSIS_TOC")" -maxdepth 1 -type f -name 'warn-*.txt' | head -n 1)"
-          if [ -n "$WARN_FILE" ]; then
-            echo "Using warning file: $WARN_FILE"
-          else
-            echo "No warn-*.txt file found next to Analysis-00.toc"
-          fi
-
-          MISSING=()
-          for PKG in mne lazy_loader lspopt yasa; do
-            if grep -qi "'$PKG'" "$ANALYSIS_TOC"; then
-              echo "Package appears in analysis: $PKG"
-            else
-              echo "Package missing from analysis: $PKG"
-              MISSING+=("$PKG")
-            fi
-
-            if [ -n "$WARN_FILE" ] && grep -Eqi "missing module named .*${PKG}|No module named .*${PKG}" "$WARN_FILE"; then
-              echo "::warning::Potential unresolved module mention for $PKG in $WARN_FILE"
-            fi
-          done
-
-          if [ "${#MISSING[@]}" -gt 0 ]; then
-            UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
-            echo "::error::Hook validation failed for required packages: $UNIQUE_MISSING"
-            echo "Inspect hook files in src/hooks and PyInstaller analysis outputs before signing/notarization."
-            exit 1
-          fi
-
-      - name: Verify required packages inside app bundle (macOS x64)
-        run: |
-          set -eo pipefail
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::No .app bundle found in target/."
-            ls -la target || true
-            exit 1
-          fi
-
-          for PKG in mne lazy_loader lspopt yasa; do
-            if find "$APP_PATH/Contents" \( -type d -name "$PKG" -o -type f -name "$PKG.py" \) -print -quit | grep -q .; then
-              echo "Package found in app bundle: $PKG"
-            else
-              echo "::warning::Package not found as loose file in app bundle: $PKG (may be embedded in PyInstaller archive)"
-            fi
-          done
 
       - name: Smoke test app bundle launch (macOS x64)
         run: |
@@ -1132,41 +981,6 @@ jobs:
           test -s fbs-pro.tar.gz
           pip install fbs-pro.tar.gz
 
-      - name: Print active source revision and mne hook (macOS arm64)
-        if: ${{ inputs.verify_hooks_macos }}
-        run: |
-          echo "source_repo=${{ inputs.source_repo }}"
-          echo "source_ref=${{ inputs.source_ref }}"
-          git rev-parse HEAD
-          if [ -f src/hooks/hook-mne.py ]; then
-            echo "Active hook file: src/hooks/hook-mne.py"
-            sed -n '1,200p' src/hooks/hook-mne.py
-          else
-            echo "::warning::src/hooks/hook-mne.py not found in checked out source."
-          fi
-          python - <<'PY'
-          import importlib.util
-          import pathlib
-          import sys
-
-          print("python:", sys.version)
-          try:
-              import PyInstaller  # type: ignore
-              print("pyinstaller:", PyInstaller.__version__)
-          except Exception as exc:
-              print("pyinstaller: unavailable", repr(exc))
-
-          spec = importlib.util.find_spec("mne")
-          if spec is None or spec.origin is None:
-              print("::error::mne package not found after dependency install.")
-              raise SystemExit(1)
-
-          pkg_dir = pathlib.Path(spec.origin).parent
-          init_py = pkg_dir / "__init__.py"
-          print("mne package dir:", pkg_dir)
-          print("mne __init__.py exists:", init_py.exists(), init_py)
-          PY
-
       - name: Configure Apple signing certificate
         if: ${{ inputs.sign_macos }}
         env:
@@ -1268,11 +1082,6 @@ jobs:
           print(f'Prepared {count} mne stubs for runtime under {dst}')
           PY
 
-          MNE_INIT_PY="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
-          MNE_INIT_PYI="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
-          echo "mne __init__.py in frozen app: ${MNE_INIT_PY:-<not found>}"
-          echo "mne __init__.pyi in frozen app: ${MNE_INIT_PYI:-<not found>}"
-
           LOG_FILE="$(mktemp /tmp/snooz-freeze-runtime-smoke.XXXXXX.log)"
           cleanup() {
             rm -f "$LOG_FILE"
@@ -1301,56 +1110,6 @@ jobs:
             exit 1
           fi
 
-      - name: Ensure required mne stub exists in app bundle (macOS arm64)
-        run: |
-          set -eo pipefail
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::No .app bundle found in target/."
-            ls -la target || true
-            exit 1
-          fi
-
-          MNE_PKG_SRC="$(python - <<'PY'
-          import importlib.util
-          import pathlib
-
-          spec = importlib.util.find_spec('mne')
-          if spec is None or spec.origin is None:
-              raise SystemExit(1)
-
-          print(pathlib.Path(spec.origin).parent)
-          PY
-          )"
-
-          if [ -z "$MNE_PKG_SRC" ]; then
-            echo "::error::Unable to locate mne package in site-packages."
-            exit 1
-          fi
-
-          APP_PATH="$APP_PATH" MNE_PKG_SRC="$MNE_PKG_SRC" python - <<'PY'
-          import os
-          import pathlib
-          import shutil
-
-          src = pathlib.Path(os.environ['MNE_PKG_SRC'])
-          dst = pathlib.Path(os.environ['APP_PATH']) / 'Contents' / 'Frameworks' / 'mne'
-          dst.mkdir(parents=True, exist_ok=True)
-
-          count = 0
-          for stub in src.rglob('*.pyi'):
-              rel = stub.relative_to(src)
-              out = dst / rel
-              out.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copy2(stub, out)
-              count += 1
-
-          if count == 0:
-              raise SystemExit('No mne .pyi stubs found to copy')
-
-          print(f'Copied {count} required mne stubs to {dst}')
-          PY
-
       - name: Copy PSGReader extensions (macOS arm64)
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -1358,62 +1117,6 @@ jobs:
           mkdir -p "$APP_PATH/Contents/Resources/extension/PSGReader"
           cp -r src/main/resources/mac/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
           cp -r src/main/resources/mac/mac-arm64/extension/PSGReader/. "$APP_PATH/Contents/Resources/extension/PSGReader/"
-
-      - name: Verify PyInstaller hook outputs (macOS)
-        if: ${{ inputs.verify_hooks_macos }}
-        run: |
-          ANALYSIS_TOC="$(find target -type f -name 'Analysis-00.toc' | head -n 1)"
-          if [ -z "$ANALYSIS_TOC" ]; then
-            echo "::error::Analysis-00.toc not found. Unable to validate hook packaging output."
-            exit 1
-          fi
-          echo "Using analysis file: $ANALYSIS_TOC"
-
-          WARN_FILE="$(find "$(dirname "$ANALYSIS_TOC")" -maxdepth 1 -type f -name 'warn-*.txt' | head -n 1)"
-          if [ -n "$WARN_FILE" ]; then
-            echo "Using warning file: $WARN_FILE"
-          else
-            echo "No warn-*.txt file found next to Analysis-00.toc"
-          fi
-
-          MISSING=()
-          for PKG in mne lazy_loader lspopt yasa; do
-            if grep -qi "'$PKG'" "$ANALYSIS_TOC"; then
-              echo "Package appears in analysis: $PKG"
-            else
-              echo "Package missing from analysis: $PKG"
-              MISSING+=("$PKG")
-            fi
-
-            if [ -n "$WARN_FILE" ] && grep -Eqi "missing module named .*${PKG}|No module named .*${PKG}" "$WARN_FILE"; then
-              echo "::warning::Potential unresolved module mention for $PKG in $WARN_FILE"
-            fi
-          done
-
-          if [ "${#MISSING[@]}" -gt 0 ]; then
-            UNIQUE_MISSING="$(printf '%s\n' "${MISSING[@]}" | sort -u | tr '\n' ' ')"
-            echo "::error::Hook validation failed for required packages: $UNIQUE_MISSING"
-            echo "Inspect hook files in src/hooks and PyInstaller analysis outputs before signing/notarization."
-            exit 1
-          fi
-
-      - name: Verify required packages inside app bundle (macOS arm64)
-        run: |
-          set -eo pipefail
-          APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::No .app bundle found in target/."
-            ls -la target || true
-            exit 1
-          fi
-
-          for PKG in mne lazy_loader lspopt yasa; do
-            if find "$APP_PATH/Contents" \( -type d -name "$PKG" -o -type f -name "$PKG.py" \) -print -quit | grep -q .; then
-              echo "Package found in app bundle: $PKG"
-            else
-              echo "::warning::Package not found as loose file in app bundle: $PKG (may be embedded in PyInstaller archive)"
-            fi
-          done
 
       - name: Smoke test app bundle launch (macOS arm64)
         run: |
