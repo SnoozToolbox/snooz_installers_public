@@ -345,7 +345,7 @@ jobs:
             exit 1
           fi
 
-          MNE_STUB_SRC="$(python - <<'PY'
+          MNE_PKG_SRC="$(python - <<'PY'
           import importlib.util
           import pathlib
 
@@ -353,20 +353,35 @@ jobs:
           if spec is None or spec.origin is None:
               raise SystemExit(1)
 
-          stub = pathlib.Path(spec.origin).parent / '__init__.pyi'
-          if not stub.exists():
-              raise SystemExit(1)
-
-          print(stub)
+          print(pathlib.Path(spec.origin).parent)
           PY
           )"
-          if [ -z "$MNE_STUB_SRC" ]; then
-            echo "::error::Unable to locate mne/__init__.pyi in site-packages."
+          if [ -z "$MNE_PKG_SRC" ]; then
+            echo "::error::Unable to locate mne package in site-packages."
             exit 1
           fi
-          mkdir -p "$APP_PATH/Contents/Frameworks/mne"
-          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Frameworks/mne/__init__.pyi"
-          echo "Prepared mne stub for runtime: $MNE_STUB_SRC"
+          APP_PATH="$APP_PATH" MNE_PKG_SRC="$MNE_PKG_SRC" python - <<'PY'
+          import os
+          import pathlib
+          import shutil
+
+          src = pathlib.Path(os.environ['MNE_PKG_SRC'])
+          dst = pathlib.Path(os.environ['APP_PATH']) / 'Contents' / 'Frameworks' / 'mne'
+          dst.mkdir(parents=True, exist_ok=True)
+
+          count = 0
+          for stub in src.rglob('*.pyi'):
+              rel = stub.relative_to(src)
+              out = dst / rel
+              out.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(stub, out)
+              count += 1
+
+          if count == 0:
+              raise SystemExit('No mne .pyi stubs found to copy')
+
+          print(f'Prepared {count} mne stubs for runtime under {dst}')
+          PY
 
           MNE_INIT_PY="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
           MNE_INIT_PYI="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
@@ -411,7 +426,7 @@ jobs:
             exit 1
           fi
 
-          MNE_STUB_SRC="$(python - <<'PY'
+          MNE_PKG_SRC="$(python - <<'PY'
           import importlib.util
           import pathlib
 
@@ -419,22 +434,37 @@ jobs:
           if spec is None or spec.origin is None:
               raise SystemExit(1)
 
-          stub = pathlib.Path(spec.origin).parent / '__init__.pyi'
-          if not stub.exists():
-              raise SystemExit(1)
-
-          print(stub)
+          print(pathlib.Path(spec.origin).parent)
           PY
           )"
 
-          if [ -z "$MNE_STUB_SRC" ]; then
-            echo "::error::Unable to locate mne/__init__.pyi in site-packages."
+          if [ -z "$MNE_PKG_SRC" ]; then
+            echo "::error::Unable to locate mne package in site-packages."
             exit 1
           fi
 
-          mkdir -p "$APP_PATH/Contents/Frameworks/mne"
-          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Frameworks/mne/__init__.pyi"
-          echo "Copied required stub to Frameworks: $MNE_STUB_SRC"
+          APP_PATH="$APP_PATH" MNE_PKG_SRC="$MNE_PKG_SRC" python - <<'PY'
+          import os
+          import pathlib
+          import shutil
+
+          src = pathlib.Path(os.environ['MNE_PKG_SRC'])
+          dst = pathlib.Path(os.environ['APP_PATH']) / 'Contents' / 'Frameworks' / 'mne'
+          dst.mkdir(parents=True, exist_ok=True)
+
+          count = 0
+          for stub in src.rglob('*.pyi'):
+              rel = stub.relative_to(src)
+              out = dst / rel
+              out.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(stub, out)
+              count += 1
+
+          if count == 0:
+              raise SystemExit('No mne .pyi stubs found to copy')
+
+          print(f'Copied {count} required mne stubs to {dst}')
+          PY
 
       - name: Copy PSGReader extensions (macOS x64)
         run: |
@@ -1200,7 +1230,7 @@ jobs:
             exit 1
           fi
 
-          MNE_STUB_SRC="$(python - <<'PY'
+          MNE_PKG_SRC="$(python - <<'PY'
           import importlib.util
           import pathlib
 
@@ -1208,20 +1238,35 @@ jobs:
           if spec is None or spec.origin is None:
               raise SystemExit(1)
 
-          stub = pathlib.Path(spec.origin).parent / '__init__.pyi'
-          if not stub.exists():
-              raise SystemExit(1)
-
-          print(stub)
+          print(pathlib.Path(spec.origin).parent)
           PY
           )"
-          if [ -z "$MNE_STUB_SRC" ]; then
-            echo "::error::Unable to locate mne/__init__.pyi in site-packages."
+          if [ -z "$MNE_PKG_SRC" ]; then
+            echo "::error::Unable to locate mne package in site-packages."
             exit 1
           fi
-          mkdir -p "$APP_PATH/Contents/Frameworks/mne"
-          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Frameworks/mne/__init__.pyi"
-          echo "Prepared mne stub for runtime: $MNE_STUB_SRC"
+          APP_PATH="$APP_PATH" MNE_PKG_SRC="$MNE_PKG_SRC" python - <<'PY'
+          import os
+          import pathlib
+          import shutil
+
+          src = pathlib.Path(os.environ['MNE_PKG_SRC'])
+          dst = pathlib.Path(os.environ['APP_PATH']) / 'Contents' / 'Frameworks' / 'mne'
+          dst.mkdir(parents=True, exist_ok=True)
+
+          count = 0
+          for stub in src.rglob('*.pyi'):
+              rel = stub.relative_to(src)
+              out = dst / rel
+              out.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(stub, out)
+              count += 1
+
+          if count == 0:
+              raise SystemExit('No mne .pyi stubs found to copy')
+
+          print(f'Prepared {count} mne stubs for runtime under {dst}')
+          PY
 
           MNE_INIT_PY="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
           MNE_INIT_PYI="$(find "$APP_PATH/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
@@ -1266,7 +1311,7 @@ jobs:
             exit 1
           fi
 
-          MNE_STUB_SRC="$(python - <<'PY'
+          MNE_PKG_SRC="$(python - <<'PY'
           import importlib.util
           import pathlib
 
@@ -1274,22 +1319,37 @@ jobs:
           if spec is None or spec.origin is None:
               raise SystemExit(1)
 
-          stub = pathlib.Path(spec.origin).parent / '__init__.pyi'
-          if not stub.exists():
-              raise SystemExit(1)
-
-          print(stub)
+          print(pathlib.Path(spec.origin).parent)
           PY
           )"
 
-          if [ -z "$MNE_STUB_SRC" ]; then
-            echo "::error::Unable to locate mne/__init__.pyi in site-packages."
+          if [ -z "$MNE_PKG_SRC" ]; then
+            echo "::error::Unable to locate mne package in site-packages."
             exit 1
           fi
 
-          mkdir -p "$APP_PATH/Contents/Frameworks/mne"
-          cp "$MNE_STUB_SRC" "$APP_PATH/Contents/Frameworks/mne/__init__.pyi"
-          echo "Copied required stub to Frameworks: $MNE_STUB_SRC"
+          APP_PATH="$APP_PATH" MNE_PKG_SRC="$MNE_PKG_SRC" python - <<'PY'
+          import os
+          import pathlib
+          import shutil
+
+          src = pathlib.Path(os.environ['MNE_PKG_SRC'])
+          dst = pathlib.Path(os.environ['APP_PATH']) / 'Contents' / 'Frameworks' / 'mne'
+          dst.mkdir(parents=True, exist_ok=True)
+
+          count = 0
+          for stub in src.rglob('*.pyi'):
+              rel = stub.relative_to(src)
+              out = dst / rel
+              out.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copy2(stub, out)
+              count += 1
+
+          if count == 0:
+              raise SystemExit('No mne .pyi stubs found to copy')
+
+          print(f'Copied {count} required mne stubs to {dst}')
+          PY
 
       - name: Copy PSGReader extensions (macOS arm64)
         run: |
