@@ -823,6 +823,26 @@ jobs:
           if [ "$GUI_RUNNING" != "true" ]; then
             echo "::error::DMG app binary is running but no GUI application process was detected for '$APP_NAME'."
             cat "$LOG_FILE" || true
+
+            DIAG_LOG_FILE="$(mktemp /tmp/snooz-dmg-smoke-diag.XXXXXX.log)"
+            echo "Collecting foreground launch diagnostics to capture explicit runtime errors..."
+            set +e
+            "$APP_EXEC" >"$DIAG_LOG_FILE" 2>&1 &
+            DIAG_PID=$!
+            sleep 25
+            if kill -0 "$DIAG_PID" >/dev/null 2>&1; then
+              kill "$DIAG_PID" >/dev/null 2>&1 || true
+              wait "$DIAG_PID" >/dev/null 2>&1 || true
+              DIAG_STATUS=124
+            else
+              wait "$DIAG_PID"
+              DIAG_STATUS=$?
+            fi
+            set -e
+
+            echo "Foreground diagnostic exit code: $DIAG_STATUS"
+            cat "$DIAG_LOG_FILE" || true
+            rm -f "$DIAG_LOG_FILE"
             exit 1
           fi
 
@@ -1626,6 +1646,26 @@ jobs:
           if [ "$GUI_RUNNING" != "true" ]; then
             echo "::error::DMG app binary is running but no GUI application process was detected for '$APP_NAME'."
             cat "$LOG_FILE" || true
+
+            DIAG_LOG_FILE="$(mktemp /tmp/snooz-dmg-smoke-diag.XXXXXX.log)"
+            echo "Collecting foreground launch diagnostics to capture explicit runtime errors..."
+            set +e
+            "$APP_EXEC" >"$DIAG_LOG_FILE" 2>&1 &
+            DIAG_PID=$!
+            sleep 25
+            if kill -0 "$DIAG_PID" >/dev/null 2>&1; then
+              kill "$DIAG_PID" >/dev/null 2>&1 || true
+              wait "$DIAG_PID" >/dev/null 2>&1 || true
+              DIAG_STATUS=124
+            else
+              wait "$DIAG_PID"
+              DIAG_STATUS=$?
+            fi
+            set -e
+
+            echo "Foreground diagnostic exit code: $DIAG_STATUS"
+            cat "$DIAG_LOG_FILE" || true
+            rm -f "$DIAG_LOG_FILE"
             exit 1
           fi
 
