@@ -63,7 +63,7 @@ Copy the id corresponding to fbs-pro.tar.gz
 - Add another secret (e.g., FBS_ASSET_ID)
 - Paste the asset ID value
 
-## ✅ Final Setup
+### Final Setup
 
 Once both secrets are configured:
 
@@ -129,6 +129,17 @@ Use the generated base64 content as the value of the GitHub secret `APPLE_DEVELO
 - Copy the generated value.
 - Save it in the GitHub secret `APPLE_NOTARY_APP_PASSWORD`.
 
+### 5. Run macOS x64 build on the self-hosted Mac mini
+
+1. Connect to the Mac mini.
+2. Open a terminal.
+3. Start the GitHub Actions runner:
+
+```bash
+cd ~/Documents/actions-runner
+./run.sh
+```
+
 ## Full list of required secrets
 
 The workflow uses the following GitHub repository secrets:
@@ -146,7 +157,5 @@ Notes:
 
 - `GH_PAT` and `FBS_ASSET_ID` are required for all builds (Windows, macOS, Linux) because `fbs-pro` is downloaded in each job.
 - Apple-related secrets are required for macOS signing and notarization jobs.
-
-
 
 
