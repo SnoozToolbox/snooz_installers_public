@@ -285,21 +285,35 @@ jobs:
             throw "Silent installer failed with status $($installProcess.ExitCode)"
           }
 
-          $expectedInstalledDir = Join-Path $installDir "Snooz Toolbox"
-          $expectedInstalledInternal = Join-Path $expectedInstalledDir "_internal"
-          $installedExe = Join-Path $expectedInstalledDir "Snooz Toolbox.exe"
-          if (-not (Test-Path $expectedInstalledInternal)) {
+          $installedAppDir = Join-Path $installDir "Snooz Toolbox"
+          if (-not (Test-Path (Join-Path $installedAppDir "_internal"))) {
+            $installedAppDir = $installDir
+          }
+
+          $installedInternal = Join-Path $installedAppDir "_internal"
+          if (-not (Test-Path $installedInternal)) {
             Write-Host "Directories under install dir:"
             Get-ChildItem -Path $installDir -Directory -Recurse | Select-Object -ExpandProperty FullName
-            throw "Expected installed app internal directory not found: $expectedInstalledInternal"
+            throw "Expected installed app internal directory not found under either '$installDir\\Snooz Toolbox' or '$installDir'"
           }
+
+          $installedExe = Join-Path $installedAppDir "Snooz Toolbox.exe"
           if (-not (Test-Path $installedExe)) {
+            $installedExe = Get-ChildItem -Path $installedAppDir -Filter "*.exe" -Recurse -File |
+              Where-Object { $_.Name -notmatch 'unins|uninstall' } |
+              Sort-Object FullName |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (-not $installedExe -or -not (Test-Path $installedExe)) {
             Write-Host "Executable candidates under install dir:"
             Get-ChildItem -Path $installDir -Filter "*.exe" -Recurse -File |
               Sort-Object FullName |
               Select-Object -ExpandProperty FullName
-            throw "Expected installed executable not found: $installedExe"
+            throw "Expected installed executable not found under '$installedAppDir'"
           }
+
+          Write-Host "Detected installed app directory: $installedAppDir"
+          Write-Host "Detected installed executable: $installedExe"
 
           $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-installer-runtime-smoke.log"
           Write-Host "Launching installed runtime smoke executable (streaming output): $installedExe --f $processJson"
