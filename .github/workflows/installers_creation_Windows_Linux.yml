@@ -219,6 +219,7 @@ jobs:
           $appStatus = $LASTEXITCODE
 
           Get-Content $logFile
+          Write-Host "Runtime smoke log file: $logFile"
           if ($appStatus -ne 0) {
             throw "Runtime smoke execution on frozen executable exited with status $appStatus"
           }
@@ -228,6 +229,17 @@ jobs:
           }
 
           if (-not (Select-String -Path $logFile -Pattern "Process completed\." -Quiet)) {
+            Write-Host "Last 200 log lines (for diagnostics):"
+            Get-Content $logFile -Tail 200
+            Write-Host "runtime_smoke_repo content (for diagnostics):"
+            if (Test-Path "runtime_smoke_repo") {
+              Get-ChildItem -Path "runtime_smoke_repo" -Recurse -File |
+                Sort-Object FullName |
+                Select-Object -ExpandProperty FullName
+            }
+            else {
+              Write-Host "runtime_smoke_repo directory not found"
+            }
             throw "Runtime smoke execution on frozen executable did not reach 'Process completed.'"
           }
 
@@ -288,6 +300,7 @@ jobs:
           $appStatus = $LASTEXITCODE
 
           Get-Content $logFile
+          Write-Host "Runtime smoke log file: $logFile"
           if ($appStatus -ne 0) {
             throw "Runtime smoke execution from installer output exited with status $appStatus"
           }
@@ -297,6 +310,17 @@ jobs:
           }
 
           if (-not (Select-String -Path $logFile -Pattern "Process completed\." -Quiet)) {
+            Write-Host "Last 200 log lines (for diagnostics):"
+            Get-Content $logFile -Tail 200
+            Write-Host "runtime_smoke_repo content (for diagnostics):"
+            if (Test-Path "runtime_smoke_repo") {
+              Get-ChildItem -Path "runtime_smoke_repo" -Recurse -File |
+                Sort-Object FullName |
+                Select-Object -ExpandProperty FullName
+            }
+            else {
+              Write-Host "runtime_smoke_repo directory not found"
+            }
             throw "Runtime smoke execution from installer output did not reach 'Process completed.'"
           }
 
