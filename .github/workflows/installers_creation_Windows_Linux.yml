@@ -328,7 +328,7 @@ jobs:
           }
 
       - name: Upload Windows installer artifact
-        if: ${{ inputs.upload_artifacts && !inputs.freeze_only }}
+        if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup.exe
@@ -336,7 +336,7 @@ jobs:
           retention-days: 2
 
       - name: Upload target folder for debug (Windows)
-        if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
+        if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozTarget-windows
@@ -594,7 +594,7 @@ jobs:
           ls target/*.zip
 
       - name: Upload Linux installer artifact
-        if: ${{ inputs.upload_artifacts && !inputs.freeze_only }}
+        if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-linux
@@ -604,7 +604,7 @@ jobs:
           retention-days: 2
 
       - name: Upload target folder for debug (Linux)
-        if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
+        if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozTarget-linux

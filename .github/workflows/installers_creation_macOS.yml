@@ -814,7 +814,7 @@ jobs:
           xcrun stapler validate "$DMG_PATH"
 
       - name: Upload .dmg to Artifacts
-        if: ${{ inputs.upload_artifacts && !inputs.freeze_only }}
+        if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-x64.dmg
@@ -833,7 +833,7 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Upload target folder for debug
-        if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
+        if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozTarget-x64
@@ -1589,7 +1589,7 @@ jobs:
           xcrun stapler validate "$DMG_PATH"
 
       - name: Upload .dmg to Artifacts
-        if: ${{ inputs.upload_artifacts && !inputs.freeze_only }}
+        if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozSetup-arm64.dmg
@@ -1608,7 +1608,7 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Upload target folder for debug
-        if: ${{ inputs.freeze_only && inputs.upload_artifacts }}
+        if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
           name: SnoozTarget-arm64
