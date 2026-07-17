@@ -152,17 +152,23 @@ jobs:
       - name: Copy package content after freeze (Windows)
         shell: pwsh
         run: |
-          $appDir = Get-ChildItem -Path "target" -Directory |
-            Where-Object { Test-Path (Join-Path $_.FullName "_internal") } |
-            Sort-Object FullName |
-            Select-Object -First 1
-          if (-not $appDir) {
+          $expectedAppDir = Join-Path "target" "Snooz Toolbox"
+          $expectedExe = Join-Path $expectedAppDir "Snooz Toolbox.exe"
+          $internalPath = Join-Path $expectedAppDir "_internal"
+
+          if (-not (Test-Path $internalPath)) {
             Write-Host "Directories under target:"
             Get-ChildItem -Path "target" -Directory | Select-Object -ExpandProperty FullName
-            throw "No frozen app directory containing _internal found under target"
+            throw "Expected frozen app internal directory not found: $internalPath"
           }
-
-          $internalPath = Join-Path $appDir.FullName "_internal"
+          if (-not (Test-Path $expectedExe)) {
+            Write-Host "Executable candidates under target:"
+            Get-ChildItem -Path "target" -Recurse -File |
+              Where-Object { $_.Extension -eq '.exe' } |
+              Sort-Object FullName |
+              Select-Object -ExpandProperty FullName
+            throw "Expected frozen app executable not found: $expectedExe"
+          }
           $mode = "${{ inputs.package_copy_mode }}"
           if ($mode -eq "all_packages") {
             python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(r'$internalPath'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
@@ -190,25 +196,26 @@ jobs:
             throw "Runtime smoke EDF download failed: $edfLocalPath"
           }
 
-          $appExe = Get-ChildItem -Path "target" -Filter "*.exe" -Recurse -File |
-            Where-Object {
-              $_.Name -notmatch 'unins|setup|installer' -and
-              $_.FullName -notmatch '[\\/]_internal[\\/]'
-            } |
-            Sort-Object FullName |
-            Select-Object -First 1
-          if (-not $appExe) {
+          $expectedAppDir = Join-Path "target" "Snooz Toolbox"
+          $expectedInternal = Join-Path $expectedAppDir "_internal"
+          $appExe = Join-Path $expectedAppDir "Snooz Toolbox.exe"
+          if (-not (Test-Path $expectedInternal)) {
+            Write-Host "Directories under target:"
+            Get-ChildItem -Path "target" -Directory | Select-Object -ExpandProperty FullName
+            throw "Expected frozen app internal directory not found: $expectedInternal"
+          }
+          if (-not (Test-Path $appExe)) {
             Write-Host "Executable candidates under target:"
             Get-ChildItem -Path "target" -Recurse -File |
               Where-Object { $_.Extension -eq '.exe' } |
               Sort-Object FullName |
               Select-Object -ExpandProperty FullName
-            throw "No executable found under target"
+            throw "Expected frozen app executable not found: $appExe"
           }
-          Write-Host "Detected Windows frozen executable: $($appExe.FullName)"
+          Write-Host "Detected Windows frozen executable: $appExe"
 
           $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-runtime-smoke.log"
-          & $appExe.FullName --f $processJson *> $logFile
+          & $appExe --f $processJson *> $logFile
           $appStatus = $LASTEXITCODE
 
           Get-Content $logFile
@@ -260,15 +267,24 @@ jobs:
             throw "Silent installer failed with status $LASTEXITCODE"
           }
 
-          $installedExe = Get-ChildItem -Path $installDir -Filter "*.exe" -Recurse |
-            Where-Object { $_.Name -notmatch 'unins|setup|installer' } |
-            Select-Object -First 1
-          if (-not $installedExe) {
-            throw "No installed executable found under $installDir"
+          $expectedInstalledDir = Join-Path $installDir "Snooz Toolbox"
+          $expectedInstalledInternal = Join-Path $expectedInstalledDir "_internal"
+          $installedExe = Join-Path $expectedInstalledDir "Snooz Toolbox.exe"
+          if (-not (Test-Path $expectedInstalledInternal)) {
+            Write-Host "Directories under install dir:"
+            Get-ChildItem -Path $installDir -Directory -Recurse | Select-Object -ExpandProperty FullName
+            throw "Expected installed app internal directory not found: $expectedInstalledInternal"
+          }
+          if (-not (Test-Path $installedExe)) {
+            Write-Host "Executable candidates under install dir:"
+            Get-ChildItem -Path $installDir -Filter "*.exe" -Recurse -File |
+              Sort-Object FullName |
+              Select-Object -ExpandProperty FullName
+            throw "Expected installed executable not found: $installedExe"
           }
 
           $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-installer-runtime-smoke.log"
-          & $installedExe.FullName --f $processJson *> $logFile
+          & $installedExe --f $processJson *> $logFile
           $appStatus = $LASTEXITCODE
 
           Get-Content $logFile
@@ -370,16 +386,16 @@ jobs:
 
       - name: Copy package content after freeze (Linux)
         run: |
-          APP_DIR=""
-          for d in target/*; do
-            if [ -d "$d" ] && [ -d "$d/_internal" ]; then
-              APP_DIR="$d"
-              break
-            fi
-          done
-          if [ -z "$APP_DIR" ]; then
-            echo "::error::No frozen app directory containing _internal found under target"
+          APP_DIR="target/Snooz Toolbox"
+          APP_EXEC="$APP_DIR/Snooz Toolbox"
+          if [ ! -d "$APP_DIR/_internal" ]; then
+            echo "::error::Expected frozen app internal directory not found: $APP_DIR/_internal"
             find target -mindepth 1 -maxdepth 1 -type d | sort || true
+            exit 1
+          fi
+          if [ ! -x "$APP_EXEC" ]; then
+            echo "::error::Expected frozen app executable not found or not executable: $APP_EXEC"
+            find target -type f -perm -111 ! -path '*/_internal/*' | sort || true
             exit 1
           fi
 
@@ -412,13 +428,16 @@ jobs:
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
 
-          APP_EXEC="$(find target -type f -perm -111 ! -path '*/_internal/*' | sort | head -n 1)"
-          if [ -z "$APP_EXEC" ]; then
-            echo "::error::No executable found under target"
-            echo "Executable candidates (excluding _internal):"
+          APP_DIR="target/Snooz Toolbox"
+          APP_EXEC="$APP_DIR/Snooz Toolbox"
+          if [ ! -d "$APP_DIR/_internal" ]; then
+            echo "::error::Expected frozen app internal directory not found: $APP_DIR/_internal"
+            find target -mindepth 1 -maxdepth 1 -type d | sort || true
+            exit 1
+          fi
+          if [ ! -x "$APP_EXEC" ]; then
+            echo "::error::Expected frozen app executable not found or not executable: $APP_EXEC"
             find target -type f -perm -111 ! -path '*/_internal/*' | sort || true
-            echo "Top-level files (excluding _internal):"
-            find target -maxdepth 3 -type f ! -path '*/_internal/*' | sort || true
             exit 1
           fi
           echo "Detected Linux frozen executable: $APP_EXEC"
@@ -458,15 +477,9 @@ jobs:
       - name: Build Linux portable package (.zip)
         if: ${{ !inputs.freeze_only }}
         run: |
-          APP_DIR=""
-          for d in target/*; do
-            if [ -d "$d" ] && [ -d "$d/_internal" ]; then
-              APP_DIR="$d"
-              break
-            fi
-          done
-          if [ -z "$APP_DIR" ]; then
-            echo "::error::No frozen app directory containing _internal found under target"
+          APP_DIR="target/Snooz Toolbox"
+          if [ ! -d "$APP_DIR/_internal" ]; then
+            echo "::error::Expected frozen app internal directory not found: $APP_DIR/_internal"
             find target -mindepth 1 -maxdepth 1 -type d | sort || true
             exit 1
           fi
@@ -510,7 +523,10 @@ jobs:
           trap cleanup EXIT
 
           dpkg-deb -x "$DEB_PATH" "$EXTRACT_DIR"
-          APP_EXEC="$(find "$EXTRACT_DIR" -type f -perm -111 ! -path '*/_internal/*' | sort | head -n 1)"
+          APP_EXEC="$(find "$EXTRACT_DIR" -type f -path '*/Snooz Toolbox/Snooz Toolbox' | head -n 1)"
+          if [ -z "$APP_EXEC" ]; then
+            APP_EXEC="$(find "$EXTRACT_DIR" -type f -perm -111 ! -path '*/_internal/*' | sort | head -n 1)"
+          fi
           if [ -z "$APP_EXEC" ]; then
             echo "::error::No executable found in extracted .deb payload."
             echo "Executable candidates in extracted payload (excluding _internal):"
