@@ -33,10 +33,11 @@ on:
         description: Package copy strategy after freeze
         required: true
         type: choice
-        default: mne_stubs
+        default: all_packages
         options:
           - all_packages
           - mne_stubs
+          - hook_only
       source_repo:
         description: Source repository (owner/name or repo only; owner defaults to SnoozToolbox)
         required: true
@@ -152,34 +153,35 @@ jobs:
       - name: Copy package content after freeze (Windows)
         shell: pwsh
         run: |
-          Write-Host "Skipping post-freeze package copy (Windows): hook-only packaging trial."
-          # Previous logic kept for quick rollback:
-          # $expectedAppDir = Join-Path "target" "Snooz Toolbox"
-          # $expectedExe = Join-Path $expectedAppDir "Snooz Toolbox.exe"
-          # $internalPath = Join-Path $expectedAppDir "_internal"
-          # if (-not (Test-Path $internalPath)) {
-          #   Write-Host "Directories under target:"
-          #   Get-ChildItem -Path "target" -Directory | Select-Object -ExpandProperty FullName
-          #   throw "Expected frozen app internal directory not found: $internalPath"
-          # }
-          # if (-not (Test-Path $expectedExe)) {
-          #   Write-Host "Executable candidates under target:"
-          #   Get-ChildItem -Path "target" -Recurse -File |
-          #     Where-Object { $_.Extension -eq '.exe' } |
-          #     Sort-Object FullName |
-          #     Select-Object -ExpandProperty FullName
-          #   throw "Expected frozen app executable not found: $expectedExe"
-          # }
-          # $mode = "${{ inputs.package_copy_mode }}"
-          # if ($mode -eq "all_packages") {
-          #   python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(r'$internalPath'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
-          # }
-          # elseif ($mode -eq "mne_stubs") {
-          #   python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent / '__init__.pyi'; assert src.exists(), f'Missing mne stub file: {src}'; dst_dir=pathlib.Path(r'$internalPath') / 'mne'; dst_dir.mkdir(parents=True, exist_ok=True); shutil.copy2(src, dst_dir / '__init__.pyi'); print(f'Copied mne stub {src} to {dst_dir / '__init__.pyi'}')"
-          # }
-          # else {
-          #   throw "Unsupported package_copy_mode: $mode"
-          # }
+          $expectedAppDir = Join-Path "target" "Snooz Toolbox"
+          $expectedExe = Join-Path $expectedAppDir "Snooz Toolbox.exe"
+          $internalPath = Join-Path $expectedAppDir "_internal"
+          if (-not (Test-Path $internalPath)) {
+            Write-Host "Directories under target:"
+            Get-ChildItem -Path "target" -Directory | Select-Object -ExpandProperty FullName
+            throw "Expected frozen app internal directory not found: $internalPath"
+          }
+          if (-not (Test-Path $expectedExe)) {
+            Write-Host "Executable candidates under target:"
+            Get-ChildItem -Path "target" -Recurse -File |
+              Where-Object { $_.Extension -eq '.exe' } |
+              Sort-Object FullName |
+              Select-Object -ExpandProperty FullName
+            throw "Expected frozen app executable not found: $expectedExe"
+          }
+          $mode = "${{ inputs.package_copy_mode }}"
+          if ($mode -eq "all_packages") {
+            python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path(r'$internalPath'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+          }
+          elseif ($mode -eq "mne_stubs") {
+            python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent / '__init__.pyi'; assert src.exists(), f'Missing mne stub file: {src}'; dst_dir=pathlib.Path(r'$internalPath') / 'mne'; dst_dir.mkdir(parents=True, exist_ok=True); shutil.copy2(src, dst_dir / '__init__.pyi'); print(f'Copied mne stub {src} to {dst_dir / '__init__.pyi'}')"
+          }
+          elseif ($mode -eq "hook_only") {
+            Write-Host "Skipping post-freeze package copy (Windows): hook_only mode selected."
+          }
+          else {
+            throw "Unsupported package_copy_mode: $mode"
+          }
 
       - name: Runtime completion smoke test on executable (Windows)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
@@ -413,29 +415,29 @@ jobs:
 
       - name: Copy package content after freeze (Linux)
         run: |
-          echo "Skipping post-freeze package copy (Linux): hook-only packaging trial."
-          # Previous logic kept for quick rollback:
-          # APP_DIR="target/Snooz Toolbox"
-          # APP_EXEC="$APP_DIR/Snooz Toolbox"
-          # if [ ! -d "$APP_DIR/_internal" ]; then
-          #   echo "::error::Expected frozen app internal directory not found: $APP_DIR/_internal"
-          #   find target -mindepth 1 -maxdepth 1 -type d | sort || true
-          #   exit 1
-          # fi
-          # if [ ! -x "$APP_EXEC" ]; then
-          #   echo "::error::Expected frozen app executable not found or not executable: $APP_EXEC"
-          #   find target -type f -perm -111 ! -path '*/_internal/*' | sort || true
-          #   exit 1
-          # fi
-          # MODE="${{ inputs.package_copy_mode }}"
-          # if [ "$MODE" = "all_packages" ]; then
-          #   python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('$APP_DIR/_internal'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
-          # elif [ "$MODE" = "mne_stubs" ]; then
-          #   python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent / '__init__.pyi'; assert src.exists(), f'Missing mne stub file: {src}'; dst=pathlib.Path('$APP_DIR/_internal/mne'); dst.mkdir(parents=True, exist_ok=True); shutil.copy2(src, dst / '__init__.pyi'); print(f'Copied mne stub {src} to {dst / '__init__.pyi'}')"
-          # else
-          #   echo "Unsupported package_copy_mode: $MODE"
-          #   exit 1
-          # fi
+          APP_DIR="target/Snooz Toolbox"
+          APP_EXEC="$APP_DIR/Snooz Toolbox"
+          if [ ! -d "$APP_DIR/_internal" ]; then
+            echo "::error::Expected frozen app internal directory not found: $APP_DIR/_internal"
+            find target -mindepth 1 -maxdepth 1 -type d | sort || true
+            exit 1
+          fi
+          if [ ! -x "$APP_EXEC" ]; then
+            echo "::error::Expected frozen app executable not found or not executable: $APP_EXEC"
+            find target -type f -perm -111 ! -path '*/_internal/*' | sort || true
+            exit 1
+          fi
+          MODE="${{ inputs.package_copy_mode }}"
+          if [ "$MODE" = "all_packages" ]; then
+            python -c "import shutil, sysconfig; from pathlib import Path; site=Path(sysconfig.get_paths()['purelib']); dest=Path('$APP_DIR/_internal'); dest.mkdir(parents=True, exist_ok=True); pkgs=('mne','lazy_loader','lspopt','yasa'); [shutil.rmtree(dest/p, ignore_errors=True) or shutil.copytree(site/p, dest/p, dirs_exist_ok=True) for p in pkgs]"
+          elif [ "$MODE" = "mne_stubs" ]; then
+            python -c "import importlib.util, pathlib, shutil; spec=importlib.util.find_spec('mne'); assert spec and spec.origin; src=pathlib.Path(spec.origin).parent / '__init__.pyi'; assert src.exists(), f'Missing mne stub file: {src}'; dst=pathlib.Path('$APP_DIR/_internal/mne'); dst.mkdir(parents=True, exist_ok=True); shutil.copy2(src, dst / '__init__.pyi'); print(f'Copied mne stub {src} to {dst / '__init__.pyi'}')"
+          elif [ "$MODE" = "hook_only" ]; then
+            echo "Skipping post-freeze package copy (Linux): hook_only mode selected."
+          else
+            echo "Unsupported package_copy_mode: $MODE"
+            exit 1
+          fi
 
       - name: Runtime completion smoke test on executable (Linux)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
