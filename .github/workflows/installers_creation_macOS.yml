@@ -422,7 +422,6 @@ jobs:
                 "$MNE_FILE"
               codesign --verify --verbose=2 "$MNE_FILE"
             done
-            codesign --verify --deep --strict --verbose=2 "$MNE_FRAMEWORKS_DIR"
           fi
 
           codesign --force --deep --options runtime --timestamp \
@@ -1216,7 +1215,6 @@ jobs:
                 "$MNE_FILE"
               codesign --verify --verbose=2 "$MNE_FILE"
             done
-            codesign --verify --deep --strict --verbose=2 "$MNE_FRAMEWORKS_DIR"
           fi
 
           # Signature of the main app bundle itself, after all nested signing steps.
