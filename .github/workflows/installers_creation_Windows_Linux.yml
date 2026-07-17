@@ -216,10 +216,11 @@ jobs:
           Write-Host "Detected Windows frozen executable: $appExe"
 
           $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-runtime-smoke.log"
-          & $appExe --f $processJson *> $logFile
+          Write-Host "Launching runtime smoke executable (streaming output): $appExe --f $processJson"
+          & $appExe --f $processJson 2>&1 | Tee-Object -FilePath $logFile
           $appStatus = $LASTEXITCODE
 
-          Get-Content $logFile
+          Write-Host "Captured runtime smoke output lines: $((Get-Content $logFile | Measure-Object -Line).Lines)"
           Write-Host "Runtime smoke log file: $logFile"
           if ($appStatus -ne 0) {
             throw "Runtime smoke execution on frozen executable exited with status $appStatus"
@@ -297,10 +298,11 @@ jobs:
           }
 
           $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-installer-runtime-smoke.log"
-          & $installedExe --f $processJson *> $logFile
+          Write-Host "Launching installed runtime smoke executable (streaming output): $installedExe --f $processJson"
+          & $installedExe --f $processJson 2>&1 | Tee-Object -FilePath $logFile
           $appStatus = $LASTEXITCODE
 
-          Get-Content $logFile
+          Write-Host "Captured runtime smoke output lines: $((Get-Content $logFile | Measure-Object -Line).Lines)"
           Write-Host "Runtime smoke log file: $logFile"
           if ($appStatus -ne 0) {
             throw "Runtime smoke execution from installer output exited with status $appStatus"
