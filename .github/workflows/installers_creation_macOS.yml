@@ -33,7 +33,7 @@ on:
         description: 'Run headless runtime smoke tests (frozen app and DMG) using a process JSON'
         required: true
         type: boolean
-        default: false
+        default: true
       package_copy_mode:
         description: 'Package copy strategy after freeze'
         required: true
@@ -384,8 +384,9 @@ jobs:
           SIGN_LOG="$(mktemp /tmp/snooz-sign-app.XXXXXX.log)"
           VERIFY_LOG="$(mktemp /tmp/snooz-sign-verify.XXXXXX.log)"
           SPCTL_LOG="$(mktemp /tmp/snooz-sign-spctl.XXXXXX.log)"
+          ENTITLEMENTS_PATH="$(mktemp /tmp/snooz-entitlements.XXXXXX.plist)"
           cleanup() {
-            rm -f "$SIGN_LOG" "$VERIFY_LOG" "$SPCTL_LOG"
+            rm -f "$SIGN_LOG" "$VERIFY_LOG" "$SPCTL_LOG" "$ENTITLEMENTS_PATH"
           }
           trap cleanup EXIT
 
@@ -400,6 +401,18 @@ jobs:
 
           PLIST_PATH="$APP_PATH/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $APP_BUNDLE_ID" "$PLIST_PATH"
+
+          # Allow loading runtime-generated ffi libraries under Hardened Runtime.
+          cat >"$ENTITLEMENTS_PATH" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>com.apple.security.cs.disable-library-validation</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
 
           # These counts are only for the compact success summary at the end of the step.
           NESTED_APP_COUNT="$(find "$APP_PATH" -mindepth 1 -type d -name '*.app' | wc -l | tr -d ' ')"
@@ -455,6 +468,7 @@ jobs:
           # Sign the bundle last, after all nested code and files are already signed.
           run_quiet codesign --force --deep --options runtime --timestamp \
             --keychain "$KEYCHAIN_PATH" \
+            --entitlements "$ENTITLEMENTS_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
 
@@ -753,6 +767,7 @@ jobs:
 
       - name: Headless runtime completion test from signed .dmg (macOS x64)
         if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
+        timeout-minutes: 5
         run: |
           set -eo pipefail
           PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
@@ -820,7 +835,7 @@ jobs:
             exit "$APP_STATUS"
           fi
 
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library Validation failed|mapped file has no cdhash|completely unsigned\?|ffi[[:alnum:]_\-]+" "$LOG_FILE"; then
             echo "::error::Runtime smoke execution reported errors in logs."
             exit 1
           fi
@@ -880,6 +895,7 @@ jobs:
           name: SnoozSetup-x64.dmg
           path: target/*.dmg
           retention-days: 2
+          if-no-files-found: warn
 
       - name: Publish x64 .dmg to Release
         if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
@@ -899,6 +915,7 @@ jobs:
           name: SnoozTarget-x64
           path: target/**
           retention-days: 2
+          if-no-files-found: warn
 
   build_dmg_arm64:
     if: ${{ inputs.build_macos && inputs.build_macos_arm64 }}
@@ -1203,8 +1220,9 @@ jobs:
           SIGN_LOG="$(mktemp /tmp/snooz-sign-app.XXXXXX.log)"
           VERIFY_LOG="$(mktemp /tmp/snooz-sign-verify.XXXXXX.log)"
           SPCTL_LOG="$(mktemp /tmp/snooz-sign-spctl.XXXXXX.log)"
+          ENTITLEMENTS_PATH="$(mktemp /tmp/snooz-entitlements.XXXXXX.plist)"
           cleanup() {
-            rm -f "$SIGN_LOG" "$VERIFY_LOG" "$SPCTL_LOG"
+            rm -f "$SIGN_LOG" "$VERIFY_LOG" "$SPCTL_LOG" "$ENTITLEMENTS_PATH"
           }
           trap cleanup EXIT
 
@@ -1219,6 +1237,18 @@ jobs:
 
           PLIST_PATH="$APP_PATH/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $APP_BUNDLE_ID" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $APP_BUNDLE_ID" "$PLIST_PATH"
+
+          # Allow loading runtime-generated ffi libraries under Hardened Runtime.
+          cat >"$ENTITLEMENTS_PATH" <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>com.apple.security.cs.disable-library-validation</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
 
           # These counts are only for the compact success summary at the end of the step.
           NESTED_APP_COUNT="$(find "$APP_PATH" -mindepth 1 -type d -name '*.app' | wc -l | tr -d ' ')"
@@ -1278,6 +1308,7 @@ jobs:
           # Signature of the main app bundle itself, after all nested signing steps.
           run_quiet codesign --force --deep --options runtime --timestamp \
             --keychain "$KEYCHAIN_PATH" \
+            --entitlements "$ENTITLEMENTS_PATH" \
             --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
             "$APP_PATH"
 
@@ -1645,7 +1676,7 @@ jobs:
             exit "$APP_STATUS"
           fi
 
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
+          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library Validation failed|mapped file has no cdhash|completely unsigned\?|ffi[[:alnum:]_\-]+" "$LOG_FILE"; then
             echo "::error::Runtime smoke execution reported errors in logs."
             exit 1
           fi
@@ -1705,6 +1736,7 @@ jobs:
           name: SnoozSetup-arm64.dmg
           path: target/*.dmg
           retention-days: 2
+          if-no-files-found: warn
 
       - name: Publish arm64 .dmg to Release
         if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
@@ -1724,4 +1756,5 @@ jobs:
           name: SnoozTarget-arm64
           path: target/**
           retention-days: 2
+          if-no-files-found: warn
 
