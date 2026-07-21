@@ -426,19 +426,19 @@ jobs:
               "$BIN"
           done
 
-          find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
-            run_quiet codesign --force --timestamp --options runtime \
-              --keychain "$KEYCHAIN_PATH" \
-              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
-              "$BIN"
-          done
+          # find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
+          #   run_quiet codesign --force --timestamp --options runtime \
+          #     --keychain "$KEYCHAIN_PATH" \
+          #     --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+          #     "$BIN"
+          # done
 
-          find "$APP_PATH" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
-            run_quiet codesign --force --timestamp \
-              --keychain "$KEYCHAIN_PATH" \
-              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
-              "$STUB"
-          done
+          # find "$APP_PATH" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
+          #   run_quiet codesign --force --timestamp \
+          #     --keychain "$KEYCHAIN_PATH" \
+          #     --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+          #     "$STUB"
+          # done
 
           MNE_FRAMEWORKS_DIR="$APP_PATH/Contents/Frameworks/mne"
           if [ -d "$MNE_FRAMEWORKS_DIR" ]; then
@@ -1577,6 +1577,7 @@ jobs:
 
       - name: Headless runtime completion test from signed .dmg (macOS arm64)
         if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
+        timeout-minutes: 5
         run: |
           set -eo pipefail
           PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
