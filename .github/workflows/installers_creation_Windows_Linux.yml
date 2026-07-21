@@ -198,6 +198,8 @@ jobs:
           if (-not (Test-Path $edfLocalPath)) {
             throw "Runtime smoke EDF download failed: $edfLocalPath"
           }
+          $outputPdf = "runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          Remove-Item -Path $outputPdf -Force -ErrorAction SilentlyContinue
 
           $expectedAppDir = Join-Path "target" "Snooz Toolbox"
           $expectedInternal = Join-Path $expectedAppDir "_internal"
@@ -247,6 +249,19 @@ jobs:
             throw "Runtime smoke execution on frozen executable did not reach 'Process completed.'"
           }
 
+          if (-not (Test-Path $outputPdf) -or ((Get-Item $outputPdf).Length -le 0)) {
+            Write-Host "runtime_smoke_repo content (for diagnostics):"
+            if (Test-Path "runtime_smoke_repo") {
+              Get-ChildItem -Path "runtime_smoke_repo" -Recurse -File |
+                Sort-Object FullName |
+                Select-Object -ExpandProperty FullName
+            }
+            else {
+              Write-Host "runtime_smoke_repo directory not found"
+            }
+            throw "Expected runtime smoke PDF was not generated: $outputPdf"
+          }
+
       - name: Build installer with fbs (Windows)
         if: ${{ !inputs.freeze_only }}
         shell: pwsh
@@ -267,6 +282,8 @@ jobs:
             New-Item -ItemType Directory -Path (Split-Path $edfLocalPath -Parent) -Force | Out-Null
             curl.exe --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 600 -o $edfLocalPath "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           }
+          $outputPdf = "runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          Remove-Item -Path $outputPdf -Force -ErrorAction SilentlyContinue
 
           $installer = Get-ChildItem -Path target -Filter "*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $installer) {
@@ -343,6 +360,19 @@ jobs:
               Write-Host "runtime_smoke_repo directory not found"
             }
             throw "Runtime smoke execution from installer output did not reach 'Process completed.'"
+          }
+
+          if (-not (Test-Path $outputPdf) -or ((Get-Item $outputPdf).Length -le 0)) {
+            Write-Host "runtime_smoke_repo content (for diagnostics):"
+            if (Test-Path "runtime_smoke_repo") {
+              Get-ChildItem -Path "runtime_smoke_repo" -Recurse -File |
+                Sort-Object FullName |
+                Select-Object -ExpandProperty FullName
+            }
+            else {
+              Write-Host "runtime_smoke_repo directory not found"
+            }
+            throw "Expected runtime smoke PDF was not generated: $outputPdf"
           }
 
       - name: Upload Windows installer artifact
@@ -473,6 +503,8 @@ jobs:
             -o "$EDF_LOCAL_PATH" \
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
+          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          rm -f "$OUTPUT_PDF"
 
           APP_DIR="target/Snooz Toolbox"
           APP_EXEC="$APP_DIR/Snooz Toolbox"
@@ -515,6 +547,12 @@ jobs:
             exit 1
           fi
 
+          if [ ! -s "$OUTPUT_PDF" ]; then
+            echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
+            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
+            exit 1
+          fi
+
       - name: Build Linux installer (.deb)
         if: ${{ !inputs.freeze_only }}
         run: |
@@ -552,6 +590,8 @@ jobs:
               -o "$EDF_LOCAL_PATH" \
               "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           fi
+          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          rm -f "$OUTPUT_PDF"
 
           DEB_PATH="$(find target -maxdepth 1 -type f -name '*.deb' | head -n 1)"
           if [ -z "$DEB_PATH" ]; then
@@ -601,6 +641,12 @@ jobs:
 
           if ! grep -q "Process completed\." "$LOG_FILE"; then
             echo "::error::Runtime smoke execution from .deb payload did not reach 'Process completed.'"
+            exit 1
+          fi
+
+          if [ ! -s "$OUTPUT_PDF" ]; then
+            echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
+            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
 

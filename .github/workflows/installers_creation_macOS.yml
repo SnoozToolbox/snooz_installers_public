@@ -247,6 +247,8 @@ jobs:
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          rm -f "$OUTPUT_PDF"
 
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           if [ -z "$APP_PATH" ]; then
@@ -290,6 +292,12 @@ jobs:
             exit 1
           fi
 
+          if [ ! -s "$OUTPUT_PDF" ]; then
+            echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
+            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
+            exit 1
+          fi
+
       - name: Copy PSGReader extensions (macOS x64)
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -320,6 +328,8 @@ jobs:
             test -s "$EDF_LOCAL_PATH"
           fi
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          rm -f "$OUTPUT_PDF"
 
           APP_PATH="$(find target -type d -name '*.app' | head -n 1)"
           if [ -z "$APP_PATH" ]; then
@@ -363,6 +373,12 @@ jobs:
 
           if ! grep -q "Process completed." "$LOG_FILE"; then
             echo "::error::App bundle runtime smoke did not reach 'Process completed.'"
+            exit 1
+          fi
+
+          if [ ! -s "$OUTPUT_PDF" ]; then
+            echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
+            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
 
@@ -786,6 +802,8 @@ jobs:
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          rm -f "$OUTPUT_PDF"
 
           DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
           if [ -z "$DMG_PATH" ]; then
@@ -842,6 +860,12 @@ jobs:
 
           if ! grep -q "Process completed." "$LOG_FILE"; then
             echo "::error::Runtime smoke execution did not reach 'Process completed.'"
+            exit 1
+          fi
+
+          if [ ! -s "$OUTPUT_PDF" ]; then
+            echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
+            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
 
@@ -1083,6 +1107,8 @@ jobs:
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          rm -f "$OUTPUT_PDF"
 
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
           if [ -z "$APP_PATH" ]; then
@@ -1126,6 +1152,12 @@ jobs:
             exit 1
           fi
 
+          if [ ! -s "$OUTPUT_PDF" ]; then
+            echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
+            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
+            exit 1
+          fi
+
       - name: Copy PSGReader extensions (macOS arm64)
         run: |
           APP_PATH="$(find target -maxdepth 1 -type d -name '*.app' | head -n 1)"
@@ -1156,6 +1188,8 @@ jobs:
             test -s "$EDF_LOCAL_PATH"
           fi
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          rm -f "$OUTPUT_PDF"
 
           APP_PATH="$(find target -type d -name '*.app' | head -n 1)"
           if [ -z "$APP_PATH" ]; then
@@ -1199,6 +1233,12 @@ jobs:
 
           if ! grep -q "Process completed." "$LOG_FILE"; then
             echo "::error::App bundle runtime smoke did not reach 'Process completed.'"
+            exit 1
+          fi
+
+          if [ ! -s "$OUTPUT_PDF" ]; then
+            echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
+            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
 
@@ -1627,6 +1667,8 @@ jobs:
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          rm -f "$OUTPUT_PDF"
 
           DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
           if [ -z "$DMG_PATH" ]; then
@@ -1683,6 +1725,12 @@ jobs:
 
           if ! grep -q "Process completed." "$LOG_FILE"; then
             echo "::error::Runtime smoke execution did not reach 'Process completed.'"
+            exit 1
+          fi
+
+          if [ ! -s "$OUTPUT_PDF" ]; then
+            echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
+            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
 
