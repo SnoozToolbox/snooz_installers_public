@@ -426,12 +426,12 @@ jobs:
               "$BIN"
           done
 
-          # find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
-          #   run_quiet codesign --force --timestamp --options runtime \
-          #     --keychain "$KEYCHAIN_PATH" \
-          #     --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
-          #     "$BIN"
-          # done
+          find "$APP_PATH" -type f \( -name '*.so' -o -name '*.dylib' \) -print0 | while IFS= read -r -d '' BIN; do
+            run_quiet codesign --force --timestamp --options runtime \
+              --keychain "$KEYCHAIN_PATH" \
+              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+              "$BIN"
+          done
 
           # find "$APP_PATH" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
           #   run_quiet codesign --force --timestamp \
@@ -440,17 +440,17 @@ jobs:
           #     "$STUB"
           # done
 
-          MNE_FRAMEWORKS_DIR="$APP_PATH/Contents/Frameworks/mne"
-          if [ -d "$MNE_FRAMEWORKS_DIR" ]; then
-            # Sign the mne subtree explicitly because lazy_loader expects sibling stub files on disk.
-            find "$MNE_FRAMEWORKS_DIR" -type f \( -name '*.py' -o -name '*.pyi' \) -print0 | while IFS= read -r -d '' MNE_FILE; do
-              run_quiet codesign --force --timestamp \
-                --keychain "$KEYCHAIN_PATH" \
-                --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
-                "$MNE_FILE"
-              run_quiet codesign --verify --verbose=2 "$MNE_FILE"
-            done
-          fi
+          # MNE_FRAMEWORKS_DIR="$APP_PATH/Contents/Frameworks/mne"
+          # if [ -d "$MNE_FRAMEWORKS_DIR" ]; then
+          #   # Sign the mne subtree explicitly because lazy_loader expects sibling stub files on disk.
+          #   find "$MNE_FRAMEWORKS_DIR" -type f \( -name '*.py' -o -name '*.pyi' \) -print0 | while IFS= read -r -d '' MNE_FILE; do
+          #     run_quiet codesign --force --timestamp \
+          #       --keychain "$KEYCHAIN_PATH" \
+          #       --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+          #       "$MNE_FILE"
+          #     run_quiet codesign --verify --verbose=2 "$MNE_FILE"
+          #   done
+          # fi
 
           # Sign the bundle last, after all nested code and files are already signed.
           run_quiet codesign --force --deep --options runtime --timestamp \
@@ -1256,23 +1256,23 @@ jobs:
           done
 
           # Find the list of files '*.pyi' to sign and sign them.
-          find "$APP_PATH" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
-            run_quiet codesign --force --timestamp \
-              --keychain "$KEYCHAIN_PATH" \
-              --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
-              "$STUB"
-          done
+          # find "$APP_PATH" -type f -name '*.pyi' -print0 | while IFS= read -r -d '' STUB; do
+          #   run_quiet codesign --force --timestamp \
+          #     --keychain "$KEYCHAIN_PATH" \
+          #     --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+          #     "$STUB"
+          # done
 
-          if [ -d "$MNE_FRAMEWORKS_DIR" ]; then
-            # Sign the mne subtree explicitly because lazy_loader expects sibling stub files on disk.
-            find "$MNE_FRAMEWORKS_DIR" -type f \( -name '*.py' -o -name '*.pyi' \) -print0 | while IFS= read -r -d '' MNE_FILE; do
-              run_quiet codesign --force --timestamp \
-                --keychain "$KEYCHAIN_PATH" \
-                --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
-                "$MNE_FILE"
-              run_quiet codesign --verify --verbose=2 "$MNE_FILE"
-            done
-          fi
+          # if [ -d "$MNE_FRAMEWORKS_DIR" ]; then
+          #   # Sign the mne subtree explicitly because lazy_loader expects sibling stub files on disk.
+          #   find "$MNE_FRAMEWORKS_DIR" -type f \( -name '*.py' -o -name '*.pyi' \) -print0 | while IFS= read -r -d '' MNE_FILE; do
+          #     run_quiet codesign --force --timestamp \
+          #       --keychain "$KEYCHAIN_PATH" \
+          #       --sign "${{ secrets.APPLE_DEVELOPER_ID_APP_IDENTITY }}" \
+          #       "$MNE_FILE"
+          #     run_quiet codesign --verify --verbose=2 "$MNE_FILE"
+          #   done
+          # fi
 
           # Sign the bundle last, after all nested code and files are already signed.
           # Signature of the main app bundle itself, after all nested signing steps.
