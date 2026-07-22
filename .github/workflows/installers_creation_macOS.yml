@@ -209,6 +209,7 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/macos-x64-frozen-runtime-smoke.log"
           : > "$LOG_FILE"
+          rm -f runtime-smoke/snooz_runtime_smoke_*.log
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
           echo "Runtime smoke log file: $LOG_FILE"
@@ -217,10 +218,24 @@ jobs:
           APP_STATUS=$?
           set -e
 
+          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          if [ -n "$SNOOZ_PROCESS_LOG" ]; then
+            echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
+            echo "--- Snooz process log (last 200 lines) ---"
+            tail -n 200 "$SNOOZ_PROCESS_LOG" || true
+          else
+            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          fi
+
           cat "$LOG_FILE" || true
           if [ "$APP_STATUS" -ne 0 ]; then
             echo "::error::Runtime smoke execution on frozen app exited with status $APP_STATUS"
             exit "$APP_STATUS"
+          fi
+
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke input EDF is missing or empty after execution: $EDF_LOCAL_PATH"
+            exit 1
           fi
 
           if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
@@ -269,6 +284,10 @@ jobs:
             test -s "$EDF_LOCAL_PATH"
           fi
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke EDF input missing before app bundle execution: $EDF_LOCAL_PATH"
+            exit 1
+          fi
           OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
           rm -f "$OUTPUT_PDF"
 
@@ -290,6 +309,7 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/macos-x64-app-bundle-runtime-smoke.log"
           : > "$LOG_FILE"
+          rm -f runtime-smoke/snooz_runtime_smoke_*.log
 
           echo "Running app bundle runtime completion smoke with process JSON: $PROCESS_JSON_SRC"
           echo "App bundle runtime smoke log file: $LOG_FILE"
@@ -298,6 +318,15 @@ jobs:
           APP_STATUS=$?
           set -e
 
+          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          if [ -n "$SNOOZ_PROCESS_LOG" ]; then
+            echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
+            echo "--- Snooz process log (last 200 lines) ---"
+            tail -n 200 "$SNOOZ_PROCESS_LOG" || true
+          else
+            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          fi
+
           echo "--- App bundle runtime smoke log (last 200 lines) ---"
           tail -n 200 "$LOG_FILE" || true
           echo "APP_STATUS=$APP_STATUS"
@@ -305,6 +334,11 @@ jobs:
           if [ "$APP_STATUS" -ne 0 ]; then
             echo "::error::App bundle runtime smoke exited with status $APP_STATUS"
             exit "$APP_STATUS"
+          fi
+
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke input EDF is missing or empty after app bundle execution: $EDF_LOCAL_PATH"
+            exit 1
           fi
 
           if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library not loaded|dlopen\\(" "$LOG_FILE"; then
@@ -729,6 +763,7 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/macos-x64-dmg-runtime-smoke.log"
           : > "$LOG_FILE"
+          rm -f runtime-smoke/snooz_runtime_smoke_*.log
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
@@ -762,10 +797,24 @@ jobs:
           APP_STATUS=$?
           set -e
 
+          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          if [ -n "$SNOOZ_PROCESS_LOG" ]; then
+            echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
+            echo "--- Snooz process log (last 200 lines) ---"
+            tail -n 200 "$SNOOZ_PROCESS_LOG" || true
+          else
+            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          fi
+
           cat "$LOG_FILE" || true
           if [ "$APP_STATUS" -ne 0 ]; then
             echo "::error::Runtime smoke execution exited with status $APP_STATUS"
             exit "$APP_STATUS"
+          fi
+
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke input EDF is missing or empty after DMG execution: $EDF_LOCAL_PATH"
+            exit 1
           fi
 
           if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library Validation failed|mapped file has no cdhash|completely unsigned\?|ffi[[:alnum:]_\-]+" "$LOG_FILE"; then
@@ -993,6 +1042,7 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/macos-arm64-frozen-runtime-smoke.log"
           : > "$LOG_FILE"
+          rm -f runtime-smoke/snooz_runtime_smoke_*.log
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
           echo "Runtime smoke log file: $LOG_FILE"
@@ -1001,10 +1051,24 @@ jobs:
           APP_STATUS=$?
           set -e
 
+          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          if [ -n "$SNOOZ_PROCESS_LOG" ]; then
+            echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
+            echo "--- Snooz process log (last 200 lines) ---"
+            tail -n 200 "$SNOOZ_PROCESS_LOG" || true
+          else
+            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          fi
+
           cat "$LOG_FILE" || true
           if [ "$APP_STATUS" -ne 0 ]; then
             echo "::error::Runtime smoke execution on frozen app exited with status $APP_STATUS"
             exit "$APP_STATUS"
+          fi
+
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke input EDF is missing or empty after execution: $EDF_LOCAL_PATH"
+            exit 1
           fi
 
           if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
@@ -1053,6 +1117,10 @@ jobs:
             test -s "$EDF_LOCAL_PATH"
           fi
           echo "Runtime smoke EDF ready at path for JSON: $EDF_LOCAL_PATH"
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke EDF input missing before app bundle execution: $EDF_LOCAL_PATH"
+            exit 1
+          fi
           OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
           rm -f "$OUTPUT_PDF"
 
@@ -1074,6 +1142,7 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/macos-arm64-app-bundle-runtime-smoke.log"
           : > "$LOG_FILE"
+          rm -f runtime-smoke/snooz_runtime_smoke_*.log
 
           echo "Running app bundle runtime completion smoke with process JSON: $PROCESS_JSON_SRC"
           echo "App bundle runtime smoke log file: $LOG_FILE"
@@ -1082,6 +1151,15 @@ jobs:
           APP_STATUS=$?
           set -e
 
+          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          if [ -n "$SNOOZ_PROCESS_LOG" ]; then
+            echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
+            echo "--- Snooz process log (last 200 lines) ---"
+            tail -n 200 "$SNOOZ_PROCESS_LOG" || true
+          else
+            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          fi
+
           echo "--- App bundle runtime smoke log (last 200 lines) ---"
           tail -n 200 "$LOG_FILE" || true
           echo "APP_STATUS=$APP_STATUS"
@@ -1089,6 +1167,11 @@ jobs:
           if [ "$APP_STATUS" -ne 0 ]; then
             echo "::error::App bundle runtime smoke exited with status $APP_STATUS"
             exit "$APP_STATUS"
+          fi
+
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke input EDF is missing or empty after app bundle execution: $EDF_LOCAL_PATH"
+            exit 1
           fi
 
           if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library not loaded|dlopen\\(" "$LOG_FILE"; then
@@ -1518,6 +1601,7 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/macos-arm64-dmg-runtime-smoke.log"
           : > "$LOG_FILE"
+          rm -f runtime-smoke/snooz_runtime_smoke_*.log
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
@@ -1551,10 +1635,24 @@ jobs:
           APP_STATUS=$?
           set -e
 
+          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          if [ -n "$SNOOZ_PROCESS_LOG" ]; then
+            echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
+            echo "--- Snooz process log (last 200 lines) ---"
+            tail -n 200 "$SNOOZ_PROCESS_LOG" || true
+          else
+            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          fi
+
           cat "$LOG_FILE" || true
           if [ "$APP_STATUS" -ne 0 ]; then
             echo "::error::Runtime smoke execution exited with status $APP_STATUS"
             exit "$APP_STATUS"
+          fi
+
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke input EDF is missing or empty after DMG execution: $EDF_LOCAL_PATH"
+            exit 1
           fi
 
           if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library Validation failed|mapped file has no cdhash|completely unsigned\?|ffi[[:alnum:]_\-]+" "$LOG_FILE"; then

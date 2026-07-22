@@ -153,7 +153,7 @@ jobs:
           $edfLocalPath = "runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
           New-Item -ItemType Directory -Path (Split-Path $edfLocalPath -Parent) -Force | Out-Null
           curl.exe --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 600 -o $edfLocalPath "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
-          if (-not (Test-Path $edfLocalPath)) {
+          if (-not (Test-Path $edfLocalPath) -or ((Get-Item $edfLocalPath).Length -le 0)) {
             throw "Runtime smoke EDF download failed: $edfLocalPath"
           }
           $outputPdf = "runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
@@ -181,14 +181,31 @@ jobs:
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null
           $logFile = Join-Path $logDir "windows-frozen-runtime-smoke.log"
           Set-Content -Path $logFile -Value $null
+          Remove-Item -Path "runtime-smoke/snooz_runtime_smoke_*.log" -Force -ErrorAction SilentlyContinue
           Write-Host "Launching runtime smoke executable (streaming output): $appExe --f $processJson"
           & $appExe --f $processJson 2>&1 | Tee-Object -FilePath $logFile
           $appStatus = $LASTEXITCODE
+
+          $snoozProcessLog = Get-ChildItem -Path "runtime-smoke" -Filter "snooz_runtime_smoke_*.log" -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if ($null -ne $snoozProcessLog) {
+            Write-Host "Detected Snooz process log: $($snoozProcessLog.FullName)"
+            Write-Host "--- Snooz process log (last 200 lines) ---"
+            Get-Content -Path $snoozProcessLog.FullName -Tail 200
+          }
+          else {
+            Write-Host "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          }
 
           Write-Host "Captured runtime smoke output lines: $((Get-Content $logFile | Measure-Object -Line).Lines)"
           Write-Host "Runtime smoke log file: $logFile"
           if ($appStatus -ne 0) {
             throw "Runtime smoke execution on frozen executable exited with status $appStatus"
+          }
+
+          if (-not (Test-Path $edfLocalPath) -or ((Get-Item $edfLocalPath).Length -le 0)) {
+            throw "Runtime smoke input EDF is missing or empty after execution: $edfLocalPath"
           }
 
           if (Select-String -Path $logFile -Pattern "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" -Quiet) {
@@ -242,6 +259,9 @@ jobs:
           if (-not (Test-Path $edfLocalPath)) {
             New-Item -ItemType Directory -Path (Split-Path $edfLocalPath -Parent) -Force | Out-Null
             curl.exe --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 600 -o $edfLocalPath "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
+          }
+          if (-not (Test-Path $edfLocalPath) -or ((Get-Item $edfLocalPath).Length -le 0)) {
+            throw "Runtime smoke EDF input missing before installer execution: $edfLocalPath"
           }
           $outputPdf = "runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
           Remove-Item -Path $outputPdf -Force -ErrorAction SilentlyContinue
@@ -297,14 +317,31 @@ jobs:
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null
           $logFile = Join-Path $logDir "windows-installer-runtime-smoke.log"
           Set-Content -Path $logFile -Value $null
+          Remove-Item -Path "runtime-smoke/snooz_runtime_smoke_*.log" -Force -ErrorAction SilentlyContinue
           Write-Host "Launching installed runtime smoke executable (streaming output): $installedExe --f $processJson"
           & $installedExe --f $processJson 2>&1 | Tee-Object -FilePath $logFile
           $appStatus = $LASTEXITCODE
+
+          $snoozProcessLog = Get-ChildItem -Path "runtime-smoke" -Filter "snooz_runtime_smoke_*.log" -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if ($null -ne $snoozProcessLog) {
+            Write-Host "Detected Snooz process log: $($snoozProcessLog.FullName)"
+            Write-Host "--- Snooz process log (last 200 lines) ---"
+            Get-Content -Path $snoozProcessLog.FullName -Tail 200
+          }
+          else {
+            Write-Host "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          }
 
           Write-Host "Captured runtime smoke output lines: $((Get-Content $logFile | Measure-Object -Line).Lines)"
           Write-Host "Runtime smoke log file: $logFile"
           if ($appStatus -ne 0) {
             throw "Runtime smoke execution from installer output exited with status $appStatus"
+          }
+
+          if (-not (Test-Path $edfLocalPath) -or ((Get-Item $edfLocalPath).Length -le 0)) {
+            throw "Runtime smoke input EDF is missing or empty after installer execution: $edfLocalPath"
           }
 
           if (Select-String -Path $logFile -Pattern "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" -Quiet) {
@@ -471,16 +508,31 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/linux-frozen-runtime-smoke.log"
           : > "$LOG_FILE"
+          rm -f runtime-smoke/snooz_runtime_smoke_*.log
 
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
           set -e
 
+          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          if [ -n "$SNOOZ_PROCESS_LOG" ]; then
+            echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
+            echo "--- Snooz process log (last 200 lines) ---"
+            tail -n 200 "$SNOOZ_PROCESS_LOG" || true
+          else
+            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          fi
+
           cat "$LOG_FILE" || true
           if [ "$APP_STATUS" -ne 0 ]; then
             echo "::error::Runtime smoke execution on frozen executable exited with status $APP_STATUS"
             exit "$APP_STATUS"
+          fi
+
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke input EDF is missing or empty after execution: $EDF_LOCAL_PATH"
+            exit 1
           fi
 
           if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
@@ -536,6 +588,10 @@ jobs:
               -o "$EDF_LOCAL_PATH" \
               "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           fi
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke EDF input missing before installer execution: $EDF_LOCAL_PATH"
+            exit 1
+          fi
           OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
           rm -f "$OUTPUT_PDF"
 
@@ -551,6 +607,7 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/linux-installer-runtime-smoke.log"
           : > "$LOG_FILE"
+          rm -f runtime-smoke/snooz_runtime_smoke_*.log
           cleanup() {
             rm -rf "$EXTRACT_DIR"
           }
@@ -576,10 +633,24 @@ jobs:
           APP_STATUS=$?
           set -e
 
+          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          if [ -n "$SNOOZ_PROCESS_LOG" ]; then
+            echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
+            echo "--- Snooz process log (last 200 lines) ---"
+            tail -n 200 "$SNOOZ_PROCESS_LOG" || true
+          else
+            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+          fi
+
           cat "$LOG_FILE" || true
           if [ "$APP_STATUS" -ne 0 ]; then
             echo "::error::Runtime smoke execution from .deb payload exited with status $APP_STATUS"
             exit "$APP_STATUS"
+          fi
+
+          if [ ! -s "$EDF_LOCAL_PATH" ]; then
+            echo "::error::Runtime smoke input EDF is missing or empty after .deb payload execution: $EDF_LOCAL_PATH"
+            exit 1
           fi
 
           if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
