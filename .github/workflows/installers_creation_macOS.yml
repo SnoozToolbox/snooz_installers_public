@@ -253,6 +253,8 @@ jobs:
             find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
+          OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
+          echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
       - name: Copy PSGReader extensions (macOS x64)
         run: |
@@ -356,6 +358,8 @@ jobs:
             find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
+          OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
+          echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
           echo "App bundle runtime smoke verdict: PASS_COMPLETED"
 
@@ -832,6 +836,8 @@ jobs:
             find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
+          OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
+          echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
       - name: Sign, notarize and staple .dmg
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}
@@ -1086,6 +1092,8 @@ jobs:
             find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
+          OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
+          echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
       - name: Copy PSGReader extensions (macOS arm64)
         run: |
@@ -1189,6 +1197,8 @@ jobs:
             find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
+          OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
+          echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
           echo "App bundle runtime smoke verdict: PASS_COMPLETED"
 
@@ -1670,6 +1680,8 @@ jobs:
             find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
+          OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
+          echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
       - name: Sign, notarize and staple .dmg
         if: ${{ inputs.sign_macos && !inputs.freeze_only }}

@@ -239,6 +239,8 @@ jobs:
             }
             throw "Expected runtime smoke PDF was not generated: $outputPdf"
           }
+          $outputPdfSize = (Get-Item $outputPdf).Length
+          Write-Host "Verified runtime smoke PDF: $outputPdf (size: $outputPdfSize bytes)"
 
       - name: Build installer with fbs (Windows)
         if: ${{ !inputs.freeze_only }}
@@ -375,6 +377,8 @@ jobs:
             }
             throw "Expected runtime smoke PDF was not generated: $outputPdf"
           }
+          $outputPdfSize = (Get-Item $outputPdf).Length
+          Write-Host "Verified runtime smoke PDF: $outputPdf (size: $outputPdfSize bytes)"
 
       - name: Upload Windows installer artifact
         if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
@@ -550,6 +554,8 @@ jobs:
             find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
+          OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
+          echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
       - name: Build Linux installer (.deb)
         if: ${{ !inputs.freeze_only }}
@@ -668,6 +674,8 @@ jobs:
             find runtime_smoke_repo -maxdepth 3 -type f | sort || true
             exit 1
           fi
+          OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
+          echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
       - name: Validate Linux package outputs
         if: ${{ !inputs.freeze_only }}
