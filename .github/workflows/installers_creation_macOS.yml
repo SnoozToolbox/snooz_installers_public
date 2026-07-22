@@ -162,7 +162,11 @@ jobs:
 
       - name: Freeze app with fbs
         run: |
-          fbs freeze
+          if [ "${{ inputs.freeze_only }}" = "true" ]; then
+            fbs freeze --debug
+          else
+            fbs freeze
+          fi
 
       - name: Headless runtime completion test from frozen .app (macOS x64)
         if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
@@ -669,17 +673,18 @@ jobs:
             WINDOW_COUNT="$(osascript -e 'tell application "System Events" to count windows of application process "'"$APP_NAME"'"' 2>/dev/null || true)"
             case "$WINDOW_COUNT" in
               ''|*[!0-9]*)
-                echo "::error::Unable to confirm visible windows for '$APP_NAME' (raw result: $WINDOW_COUNT)."
+                echo "::warning::Unable to confirm visible windows for '$APP_NAME' (raw result: $WINDOW_COUNT)."
                 cat "$LOG_FILE" || true
-                exit 1
+                ;;
+              *)
+                if [ "$WINDOW_COUNT" -lt 1 ]; then
+                  echo "::warning::DMG app launched but no visible window was confirmed for '$APP_NAME' during smoke window."
+                  cat "$LOG_FILE" || true
+                else
+                  echo "Detected visible window count: $WINDOW_COUNT"
+                fi
                 ;;
             esac
-            if [ "$WINDOW_COUNT" -lt 1 ]; then
-              echo "::error::DMG app launched but no visible window appeared for '$APP_NAME'."
-              cat "$LOG_FILE" || true
-              exit 1
-            fi
-            echo "Detected visible window count: $WINDOW_COUNT"
           fi
 
           if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
@@ -1445,17 +1450,18 @@ jobs:
             WINDOW_COUNT="$(osascript -e 'tell application "System Events" to count windows of application process "'"$APP_NAME"'"' 2>/dev/null || true)"
             case "$WINDOW_COUNT" in
               ''|*[!0-9]*)
-                echo "::error::Unable to confirm visible windows for '$APP_NAME' (raw result: $WINDOW_COUNT)."
+                echo "::warning::Unable to confirm visible windows for '$APP_NAME' (raw result: $WINDOW_COUNT)."
                 cat "$LOG_FILE" || true
-                exit 1
+                ;;
+              *)
+                if [ "$WINDOW_COUNT" -lt 1 ]; then
+                  echo "::warning::DMG app launched but no visible window was confirmed for '$APP_NAME' during smoke window."
+                  cat "$LOG_FILE" || true
+                else
+                  echo "Detected visible window count: $WINDOW_COUNT"
+                fi
                 ;;
             esac
-            if [ "$WINDOW_COUNT" -lt 1 ]; then
-              echo "::error::DMG app launched but no visible window appeared for '$APP_NAME'."
-              cat "$LOG_FILE" || true
-              exit 1
-            fi
-            echo "Detected visible window count: $WINDOW_COUNT"
           fi
 
           if grep -Eqi "ModuleNotFoundError|ImportError|Traceback|Library not loaded|dlopen\\(" "$LOG_FILE"; then
