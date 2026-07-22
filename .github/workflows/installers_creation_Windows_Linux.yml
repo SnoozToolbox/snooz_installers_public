@@ -177,7 +177,10 @@ jobs:
           }
           Write-Host "Detected Windows frozen executable: $appExe"
 
-          $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-runtime-smoke.log"
+          $logDir = Join-Path "target" "smoke-logs"
+          New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+          $logFile = Join-Path $logDir "windows-frozen-runtime-smoke.log"
+          Set-Content -Path $logFile -Value $null
           Write-Host "Launching runtime smoke executable (streaming output): $appExe --f $processJson"
           & $appExe --f $processJson 2>&1 | Tee-Object -FilePath $logFile
           $appStatus = $LASTEXITCODE
@@ -290,7 +293,10 @@ jobs:
           Write-Host "Detected installed app directory: $installedAppDir"
           Write-Host "Detected installed executable: $installedExe"
 
-          $logFile = Join-Path $env:RUNNER_TEMP "snooz-win-installer-runtime-smoke.log"
+          $logDir = Join-Path "target" "smoke-logs"
+          New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+          $logFile = Join-Path $logDir "windows-installer-runtime-smoke.log"
+          Set-Content -Path $logFile -Value $null
           Write-Host "Launching installed runtime smoke executable (streaming output): $installedExe --f $processJson"
           & $installedExe --f $processJson 2>&1 | Tee-Object -FilePath $logFile
           $appStatus = $LASTEXITCODE
@@ -348,6 +354,15 @@ jobs:
           name: SnoozTarget-windows
           path: target/**
           retention-days: 2
+
+      - name: Upload Windows smoke logs on failure
+        if: ${{ failure() && inputs.runtime_smoke_test }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozSmokeLogs-windows
+          path: target/smoke-logs/**
+          retention-days: 2
+          if-no-files-found: warn
 
       - name: Publish Windows installer to Release
         if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
@@ -452,11 +467,10 @@ jobs:
           fi
           echo "Detected Linux frozen executable: $APP_EXEC"
 
-          LOG_FILE="$(mktemp /tmp/snooz-linux-runtime-smoke.XXXXXX.log)"
-          cleanup() {
-            rm -f "$LOG_FILE"
-          }
-          trap cleanup EXIT
+          LOG_DIR="target/smoke-logs"
+          mkdir -p "$LOG_DIR"
+          LOG_FILE="$LOG_DIR/linux-frozen-runtime-smoke.log"
+          : > "$LOG_FILE"
 
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
@@ -533,10 +547,12 @@ jobs:
           fi
 
           EXTRACT_DIR="$(mktemp -d /tmp/snooz-deb-runtime-smoke.XXXXXX)"
-          LOG_FILE="$(mktemp /tmp/snooz-linux-installer-runtime-smoke.XXXXXX.log)"
+          LOG_DIR="target/smoke-logs"
+          mkdir -p "$LOG_DIR"
+          LOG_FILE="$LOG_DIR/linux-installer-runtime-smoke.log"
+          : > "$LOG_FILE"
           cleanup() {
             rm -rf "$EXTRACT_DIR"
-            rm -f "$LOG_FILE"
           }
           trap cleanup EXIT
 
@@ -606,6 +622,15 @@ jobs:
           name: SnoozTarget-linux
           path: target/**
           retention-days: 2
+
+      - name: Upload Linux smoke logs on failure
+        if: ${{ failure() && inputs.runtime_smoke_test }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozSmokeLogs-linux
+          path: target/smoke-logs/**
+          retention-days: 2
+          if-no-files-found: warn
 
       - name: Publish Linux installers to Release
         if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}

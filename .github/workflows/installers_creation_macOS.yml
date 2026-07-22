@@ -205,13 +205,13 @@ jobs:
             exit 1
           fi
 
-          LOG_FILE="$(mktemp /tmp/snooz-freeze-runtime-smoke.XXXXXX.log)"
-          cleanup() {
-            rm -f "$LOG_FILE"
-          }
-          trap cleanup EXIT
+          LOG_DIR="target/smoke-logs"
+          mkdir -p "$LOG_DIR"
+          LOG_FILE="$LOG_DIR/macos-x64-frozen-runtime-smoke.log"
+          : > "$LOG_FILE"
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
+          echo "Runtime smoke log file: $LOG_FILE"
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
@@ -286,13 +286,13 @@ jobs:
             exit 1
           fi
 
-          LOG_FILE="$(mktemp /tmp/snooz-app-runtime-smoke.XXXXXX.log)"
-          cleanup() {
-            rm -f "$LOG_FILE"
-          }
-          trap cleanup EXIT
+          LOG_DIR="target/smoke-logs"
+          mkdir -p "$LOG_DIR"
+          LOG_FILE="$LOG_DIR/macos-x64-app-bundle-runtime-smoke.log"
+          : > "$LOG_FILE"
 
           echo "Running app bundle runtime completion smoke with process JSON: $PROCESS_JSON_SRC"
+          echo "App bundle runtime smoke log file: $LOG_FILE"
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
@@ -725,11 +725,13 @@ jobs:
           fi
 
           MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
-          LOG_FILE="$(mktemp /tmp/snooz-dmg-runtime-smoke.XXXXXX.log)"
+          LOG_DIR="target/smoke-logs"
+          mkdir -p "$LOG_DIR"
+          LOG_FILE="$LOG_DIR/macos-x64-dmg-runtime-smoke.log"
+          : > "$LOG_FILE"
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
-            rm -f "$LOG_FILE"
           }
           trap cleanup EXIT
 
@@ -754,6 +756,7 @@ jobs:
           echo "mne __init__.pyi in DMG app: ${MNE_INIT_PYI:-<not found>}"
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
+          echo "Runtime smoke log file: $LOG_FILE"
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
@@ -850,6 +853,15 @@ jobs:
         with:
           name: SnoozTarget-x64
           path: target/**
+          retention-days: 2
+          if-no-files-found: warn
+
+      - name: Upload x64 smoke logs on failure
+        if: ${{ failure() && inputs.runtime_smoke_test }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozSmokeLogs-x64
+          path: target/smoke-logs/**
           retention-days: 2
           if-no-files-found: warn
 
@@ -977,13 +989,13 @@ jobs:
             exit 1
           fi
 
-          LOG_FILE="$(mktemp /tmp/snooz-freeze-runtime-smoke.XXXXXX.log)"
-          cleanup() {
-            rm -f "$LOG_FILE"
-          }
-          trap cleanup EXIT
+          LOG_DIR="target/smoke-logs"
+          mkdir -p "$LOG_DIR"
+          LOG_FILE="$LOG_DIR/macos-arm64-frozen-runtime-smoke.log"
+          : > "$LOG_FILE"
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
+          echo "Runtime smoke log file: $LOG_FILE"
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
@@ -1058,13 +1070,13 @@ jobs:
             exit 1
           fi
 
-          LOG_FILE="$(mktemp /tmp/snooz-app-runtime-smoke.XXXXXX.log)"
-          cleanup() {
-            rm -f "$LOG_FILE"
-          }
-          trap cleanup EXIT
+          LOG_DIR="target/smoke-logs"
+          mkdir -p "$LOG_DIR"
+          LOG_FILE="$LOG_DIR/macos-arm64-app-bundle-runtime-smoke.log"
+          : > "$LOG_FILE"
 
           echo "Running app bundle runtime completion smoke with process JSON: $PROCESS_JSON_SRC"
+          echo "App bundle runtime smoke log file: $LOG_FILE"
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
@@ -1502,11 +1514,13 @@ jobs:
           fi
 
           MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
-          LOG_FILE="$(mktemp /tmp/snooz-dmg-runtime-smoke.XXXXXX.log)"
+          LOG_DIR="target/smoke-logs"
+          mkdir -p "$LOG_DIR"
+          LOG_FILE="$LOG_DIR/macos-arm64-dmg-runtime-smoke.log"
+          : > "$LOG_FILE"
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
-            rm -f "$LOG_FILE"
           }
           trap cleanup EXIT
 
@@ -1531,6 +1545,7 @@ jobs:
           echo "mne __init__.pyi in DMG app: ${MNE_INIT_PYI:-<not found>}"
 
           echo "Running runtime smoke test with process JSON: $PROCESS_JSON_SRC"
+          echo "Runtime smoke log file: $LOG_FILE"
           set +e
           "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
           APP_STATUS=$?
@@ -1627,6 +1642,15 @@ jobs:
         with:
           name: SnoozTarget-arm64
           path: target/**
+          retention-days: 2
+          if-no-files-found: warn
+
+      - name: Upload arm64 smoke logs on failure
+        if: ${{ failure() && inputs.runtime_smoke_test }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnoozSmokeLogs-arm64
+          path: target/smoke-logs/**
           retention-days: 2
           if-no-files-found: warn
 
