@@ -34,6 +34,11 @@ on:
         required: true
         type: boolean
         default: true
+      gui_launch_smoke_test:
+        description: 'Run GUI launch smoke tests from signed DMG'
+        required: true
+        type: boolean
+        default: true
       package_copy_mode:
         description: 'Package copy strategy after freeze'
         required: true
@@ -664,7 +669,7 @@ jobs:
           done
 
       - name: GUI launch smoke test from signed .dmg (macOS x64)
-        if: ${{ !inputs.freeze_only }}
+        if: ${{ !inputs.freeze_only && inputs.gui_launch_smoke_test }}
         run: |
           set -eo pipefail
           DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
@@ -1533,7 +1538,7 @@ jobs:
           done
 
       - name: GUI launch smoke test from signed .dmg (macOS arm64)
-        if: ${{ !inputs.freeze_only }}
+        if: ${{ !inputs.freeze_only && inputs.gui_launch_smoke_test }}
         run: |
           set -eo pipefail
           DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
