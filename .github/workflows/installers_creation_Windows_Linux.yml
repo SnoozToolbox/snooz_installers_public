@@ -575,6 +575,58 @@ jobs:
           cd target
           zip -r SnoozSetup-portable-linux.zip "$(basename "$APP_DIR")"
 
+      - name: Validate Linux .deb install integration
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          DEB_PATH="$(find target -maxdepth 1 -type f -name '*.deb' | head -n 1)"
+          if [ -z "$DEB_PATH" ]; then
+            echo "::error::No .deb installer found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          sudo dpkg -i "$DEB_PATH"
+
+          PKG_NAME="snooz-toolbox"
+          DESKTOP_FILE="$(dpkg -L "$PKG_NAME" | grep -E '/applications/.*\.desktop$' | head -n 1 || true)"
+          if [ -z "$DESKTOP_FILE" ]; then
+            echo "::error::No desktop entry installed by package $PKG_NAME"
+            dpkg -L "$PKG_NAME" | sort || true
+            exit 1
+          fi
+
+          echo "Detected desktop file: $DESKTOP_FILE"
+          desktop-file-validate "$DESKTOP_FILE"
+
+          if grep -q '^NoDisplay=true' "$DESKTOP_FILE"; then
+            echo "::error::Desktop entry is hidden (NoDisplay=true): $DESKTOP_FILE"
+            cat "$DESKTOP_FILE"
+            exit 1
+          fi
+
+          EXEC_LINE="$(awk -F= '/^Exec=/{print $2; exit}' "$DESKTOP_FILE")"
+          if [ -z "$EXEC_LINE" ]; then
+            echo "::error::Desktop file has no Exec entry: $DESKTOP_FILE"
+            cat "$DESKTOP_FILE"
+            exit 1
+          fi
+
+          EXEC_BIN="$(python3 -c 'import shlex,sys; line=sys.argv[1]; print((shlex.split(line) or [""])[0])' "$EXEC_LINE")"
+          if [ -z "$EXEC_BIN" ]; then
+            echo "::error::Unable to parse executable from desktop Exec line: $EXEC_LINE"
+            cat "$DESKTOP_FILE"
+            exit 1
+          fi
+
+          if [ ! -x "$EXEC_BIN" ]; then
+            echo "::error::Desktop Exec binary not found or not executable: $EXEC_BIN"
+            cat "$DESKTOP_FILE"
+            exit 1
+          fi
+
+          echo "Desktop Exec binary resolved to: $EXEC_BIN"
+
       - name: Runtime completion smoke test on installer (Linux)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
         run: |
