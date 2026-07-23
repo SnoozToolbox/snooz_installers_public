@@ -636,7 +636,16 @@ jobs:
             exit 1
           fi
 
+          set +e
           sudo dpkg -i "$DEB_PATH"
+          DPKG_STATUS=$?
+          set -e
+          if [ "$DPKG_STATUS" -ne 0 ]; then
+            echo "dpkg reported missing dependencies; applying CI fallback with apt --fix-broken install"
+            sudo apt-get update
+            sudo apt-get install -f -y
+            sudo dpkg -i "$DEB_PATH"
+          fi
 
           PKG_NAME="snooz-toolbox"
           DESKTOP_FILE="$(dpkg -L "$PKG_NAME" | grep -E '/applications/.*\.desktop$' | head -n 1 || true)"
