@@ -592,11 +592,15 @@ jobs:
             echo "::error::Missing Debian control file in payload: $CONTROL_FILE"
             exit 1
           fi
-          if ! grep -q 'libxcb-cursor0' "$CONTROL_FILE"; then
-            sed -i '/^Depends:/ s/$/, libxcb-cursor0/' "$CONTROL_FILE"
+          if grep -q '^Depends:' "$CONTROL_FILE"; then
+            if ! grep -q 'libxcb-cursor0' "$CONTROL_FILE"; then
+              sed -i '/^Depends:/ s/$/, libxcb-cursor0/' "$CONTROL_FILE"
+            fi
+          else
+            echo 'Depends: libxcb-cursor0' >> "$CONTROL_FILE"
           fi
           echo "Debian package dependencies line:"
-          grep '^Depends:' "$CONTROL_FILE"
+          grep '^Depends:' "$CONTROL_FILE" || true
 
             python3 -c "from pathlib import Path; import re; p=Path('$DESKTOP_FILE'); text=p.read_text(encoding='utf-8'); replacement='Exec=/opt/Snooz\\\\ Toolbox/Snooz\\\\ Toolbox'; patched,count=re.subn(r'^Exec=.*$', replacement, text, flags=re.MULTILINE); p.write_text(patched, encoding='utf-8'); print('Patched desktop file:', p); print(replacement); raise SystemExit(0 if count else 1)"
 
