@@ -579,6 +579,11 @@ jobs:
         if: ${{ !inputs.freeze_only }}
         run: |
           set -eo pipefail
+          if ! command -v desktop-file-validate >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y desktop-file-utils
+          fi
+
           DEB_PATH="$(find target -maxdepth 1 -type f -name '*.deb' | head -n 1)"
           if [ -z "$DEB_PATH" ]; then
             echo "::error::No .deb installer found in target/."
