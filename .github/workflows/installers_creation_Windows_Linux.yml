@@ -562,6 +562,36 @@ jobs:
         run: |
           fbs installer
 
+      - name: Patch Linux .deb desktop Exec path
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          DEB_PATH="$(find target -maxdepth 1 -type f -name '*.deb' | head -n 1)"
+          if [ -z "$DEB_PATH" ]; then
+            echo "::error::No .deb installer found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          WORK_DIR="$(mktemp -d /tmp/snooz-deb-patch.XXXXXX)"
+          cleanup() {
+            rm -rf "$WORK_DIR"
+          }
+          trap cleanup EXIT
+
+          dpkg-deb -R "$DEB_PATH" "$WORK_DIR"
+          DESKTOP_FILE="$(find "$WORK_DIR/usr/share/applications" -maxdepth 1 -type f -name '*.desktop' | head -n 1 || true)"
+          if [ -z "$DESKTOP_FILE" ]; then
+            echo "::error::No desktop file found inside .deb payload"
+            find "$WORK_DIR" -maxdepth 4 -type f | sort || true
+            exit 1
+          fi
+
+            python3 -c "from pathlib import Path; import re; p=Path('$DESKTOP_FILE'); text=p.read_text(encoding='utf-8'); replacement='Exec=/opt/Snooz\\\\ Toolbox/Snooz\\\\ Toolbox'; patched,count=re.subn(r'^Exec=.*$', replacement, text, flags=re.MULTILINE); p.write_text(patched, encoding='utf-8'); print('Patched desktop file:', p); print(replacement); raise SystemExit(0 if count else 1)"
+
+          dpkg-deb -b "$WORK_DIR" "$DEB_PATH"
+          echo "Rebuilt patched .deb: $DEB_PATH"
+
       - name: Build Linux portable package (.zip)
         if: ${{ !inputs.freeze_only }}
         run: |
@@ -617,7 +647,7 @@ jobs:
             exit 1
           fi
 
-          EXEC_BIN="$(python3 -c 'import shlex,sys; line=sys.argv[1]; print((shlex.split(line) or [""])[0])' "$EXEC_LINE")"
+          EXEC_BIN="$(EXEC_LINE="$EXEC_LINE" python3 -c "import os, shlex; line=os.environ['EXEC_LINE'].strip(); tokens=[token for token in shlex.split(line) if not token.startswith('%')]; candidate=line if line and os.path.isfile(line) and os.access(line, os.X_OK) else next((' '.join(tokens[:index]) for index in range(len(tokens), 0, -1) if os.path.isfile(' '.join(tokens[:index])) and os.access(' '.join(tokens[:index]), os.X_OK)), tokens[0] if tokens else ''); print(candidate)")"
           if [ -z "$EXEC_BIN" ]; then
             echo "::error::Unable to parse executable from desktop Exec line: $EXEC_LINE"
             cat "$DESKTOP_FILE"
