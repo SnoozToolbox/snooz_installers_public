@@ -882,11 +882,34 @@ jobs:
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
 
+      - name: Rename x64 DMG with architecture suffix
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "::error::No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          DMG_DIR="$(dirname "$DMG_PATH")"
+          DMG_FILE="$(basename "$DMG_PATH")"
+          DMG_NAME="${DMG_FILE%.dmg}"
+          RENAMED_DMG_PATH="$DMG_DIR/${DMG_NAME}-x64.dmg"
+
+          if [ "$DMG_PATH" != "$RENAMED_DMG_PATH" ]; then
+            mv -f "$DMG_PATH" "$RENAMED_DMG_PATH"
+          fi
+
+          echo "Final x64 DMG path: $RENAMED_DMG_PATH"
+          ls -la "$RENAMED_DMG_PATH"
+
       - name: Upload .dmg to Artifacts
         if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
-          name: SnoozSetup-x64.dmg
+          name: Snooz-macOS-x64
           path: target/*.dmg
           retention-days: 2
           if-no-files-found: warn
@@ -1726,11 +1749,34 @@ jobs:
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
 
+      - name: Rename arm64 DMG with architecture suffix
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          DMG_PATH="$(find target -maxdepth 1 -type f -name '*.dmg' ! -name 'rw.*' | head -n 1)"
+          if [ -z "$DMG_PATH" ]; then
+            echo "::error::No final DMG found in target/."
+            ls -la target || true
+            exit 1
+          fi
+
+          DMG_DIR="$(dirname "$DMG_PATH")"
+          DMG_FILE="$(basename "$DMG_PATH")"
+          DMG_NAME="${DMG_FILE%.dmg}"
+          RENAMED_DMG_PATH="$DMG_DIR/${DMG_NAME}-arm64.dmg"
+
+          if [ "$DMG_PATH" != "$RENAMED_DMG_PATH" ]; then
+            mv -f "$DMG_PATH" "$RENAMED_DMG_PATH"
+          fi
+
+          echo "Final arm64 DMG path: $RENAMED_DMG_PATH"
+          ls -la "$RENAMED_DMG_PATH"
+
       - name: Upload .dmg to Artifacts
         if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
-          name: SnoozSetup-arm64.dmg
+          name: Snooz-macOS-ARM64
           path: target/*.dmg
           retention-days: 2
           if-no-files-found: warn
