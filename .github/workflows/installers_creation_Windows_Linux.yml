@@ -55,6 +55,10 @@ on:
         description: Release name (optional)
         required: false
         default: ''
+      release_repo:
+        description: Target release repository (owner/name). Leave empty to publish in this repository.
+        required: false
+        default: ''
       release_draft:
         description: Create/update release as draft
         required: true
@@ -76,6 +80,7 @@ jobs:
         with:
           repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
           ref: ${{ inputs.source_ref }}
+          
           token: ${{ secrets.GH_PAT }}
 
       - name: Patch is_dev for release
@@ -409,6 +414,7 @@ jobs:
         if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ inputs.release_repo != '' && inputs.release_repo || github.repository }}
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
           draft: ${{ inputs.release_draft }}
@@ -861,6 +867,7 @@ jobs:
         if: ${{ inputs.publish_to_release && !inputs.freeze_only && inputs.release_tag != '' }}
         uses: softprops/action-gh-release@v2
         with:
+          repository: ${{ inputs.release_repo != '' && inputs.release_repo || github.repository }}
           tag_name: ${{ inputs.release_tag }}
           name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
           draft: ${{ inputs.release_draft }}
