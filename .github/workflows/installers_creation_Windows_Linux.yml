@@ -673,6 +673,10 @@ jobs:
             fi
           done < <(find "$WORK_DIR/usr/share/icons" -type f \( -name '*Snooz*Toolbox*.png' -o -name '*Snooz*Toolbox*.svg' \) 2>/dev/null | sort || true)
 
+          DESKTOP_DIR="$WORK_DIR/usr/share/applications"
+          CANONICAL_DESKTOP_FILE="$DESKTOP_DIR/snooz-toolbox.desktop"
+          rm -f "$DESKTOP_DIR"/[sS]nooz*.desktop
+
           printf '%s\n' \
             '[Desktop Entry]' \
             'Version=1.2' \
@@ -685,10 +689,10 @@ jobs:
             'Terminal=false' \
             'Categories=Utility;' \
             'NoDisplay=false' \
-            > "$DESKTOP_FILE"
+            > "$CANONICAL_DESKTOP_FILE"
 
-          echo "Patched desktop file: $DESKTOP_FILE"
-          cat "$DESKTOP_FILE"
+          echo "Patched desktop file: $CANONICAL_DESKTOP_FILE"
+          cat "$CANONICAL_DESKTOP_FILE"
 
           dpkg-deb -b "$WORK_DIR" "$DEB_PATH"
           echo "Rebuilt patched .deb: $DEB_PATH"
@@ -734,7 +738,10 @@ jobs:
           fi
 
           PKG_NAME="snooz-toolbox"
-          DESKTOP_FILE="$(dpkg -L "$PKG_NAME" | grep -E '/applications/.*\.desktop$' | head -n 1 || true)"
+          DESKTOP_FILE="$(dpkg -L "$PKG_NAME" | grep -E '/applications/snooz-toolbox\.desktop$' | head -n 1 || true)"
+          if [ -z "$DESKTOP_FILE" ]; then
+            DESKTOP_FILE="$(dpkg -L "$PKG_NAME" | grep -E '/applications/.*\.desktop$' | head -n 1 || true)"
+          fi
           if [ -z "$DESKTOP_FILE" ]; then
             echo "::error::No desktop entry installed by package $PKG_NAME"
             dpkg -L "$PKG_NAME" | sort || true
