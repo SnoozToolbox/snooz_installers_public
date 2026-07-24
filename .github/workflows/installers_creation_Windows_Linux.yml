@@ -473,6 +473,42 @@ jobs:
         run: |
           fbs freeze
 
+      - name: Bundle Linux xcb runtime libraries
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          set -eo pipefail
+          APP_DIR="target/Snooz Toolbox"
+          BUNDLE_DIR="$APP_DIR/_internal"
+          QXCB_PLUGIN="$BUNDLE_DIR/PySide6/Qt/plugins/platforms/libqxcb.so"
+
+          if [ ! -f "$QXCB_PLUGIN" ]; then
+            echo "::error::Qt xcb platform plugin not found: $QXCB_PLUGIN"
+            find "$APP_DIR" -maxdepth 6 -type f -name 'libqxcb.so' | sort || true
+            exit 1
+          fi
+
+          resolve_lib() {
+            local soname="$1"
+            ldconfig -p | awk -v name="$soname" '$1 == name { print $NF; exit }'
+          }
+
+          # Bundle xcb libraries often missing on minimal/VM Linux desktops.
+          for soname in libxcb-cursor.so.0 libxcb-image.so.0 libxcb-render-util.so.0 libxcb-util.so.1; do
+            src="$(resolve_lib "$soname")"
+            if [ -z "$src" ] || [ ! -f "$src" ]; then
+              echo "::error::Required system library not found on builder: $soname"
+              exit 1
+            fi
+            cp -L "$src" "$BUNDLE_DIR/$soname"
+            echo "Bundled $soname from $src"
+          done
+
+          if LD_LIBRARY_PATH="$BUNDLE_DIR:${LD_LIBRARY_PATH:-}" ldd "$QXCB_PLUGIN" | grep -q 'libxcb-cursor.so.0 => not found'; then
+            echo "::error::libxcb-cursor.so.0 is still unresolved for libqxcb.so after bundling"
+            LD_LIBRARY_PATH="$BUNDLE_DIR:${LD_LIBRARY_PATH:-}" ldd "$QXCB_PLUGIN" || true
+            exit 1
+          fi
+
       - name: Runtime completion smoke test on executable (Linux)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
         run: |
@@ -587,22 +623,7 @@ jobs:
             exit 1
           fi
 
-          CONTROL_FILE="$WORK_DIR/DEBIAN/control"
-          if [ ! -f "$CONTROL_FILE" ]; then
-            echo "::error::Missing Debian control file in payload: $CONTROL_FILE"
-            exit 1
-          fi
-          if grep -q '^Depends:' "$CONTROL_FILE"; then
-            if ! grep -q 'libxcb-cursor0' "$CONTROL_FILE"; then
-              sed -i '/^Depends:/ s/$/, libxcb-cursor0/' "$CONTROL_FILE"
-            fi
-          else
-            echo 'Depends: libxcb-cursor0' >> "$CONTROL_FILE"
-          fi
-          echo "Debian package dependencies line:"
-          grep '^Depends:' "$CONTROL_FILE" || true
-
-            python3 -c "from pathlib import Path; import re; p=Path('$DESKTOP_FILE'); text=p.read_text(encoding='utf-8'); replacement='Exec=/opt/Snooz\\\\ Toolbox/Snooz\\\\ Toolbox'; patched,count=re.subn(r'^Exec=.*$', replacement, text, flags=re.MULTILINE); p.write_text(patched, encoding='utf-8'); print('Patched desktop file:', p); print(replacement); raise SystemExit(0 if count else 1)"
+          python3 -c "from pathlib import Path; import re; p=Path('$DESKTOP_FILE'); text=p.read_text(encoding='utf-8'); replacement='Exec=/opt/Snooz\\ Toolbox/Snooz\\ Toolbox'; patched,count=re.subn(r'^Exec=.*$', replacement, text, flags=re.MULTILINE); p.write_text(patched, encoding='utf-8'); print('Patched desktop file:', p); print(replacement); raise SystemExit(0 if count else 1)"
 
           dpkg-deb -b "$WORK_DIR" "$DEB_PATH"
           echo "Rebuilt patched .deb: $DEB_PATH"
