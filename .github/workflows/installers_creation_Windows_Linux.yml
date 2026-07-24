@@ -643,7 +643,52 @@ jobs:
             exit 1
           fi
 
-          python3 -c "from pathlib import Path; import re; p=Path('$DESKTOP_FILE'); text=p.read_text(encoding='utf-8'); replacement='Exec=/opt/Snooz\\ Toolbox/Snooz\\ Toolbox'; patched,count=re.subn(r'^Exec=.*$', replacement, text, flags=re.MULTILINE); p.write_text(patched, encoding='utf-8'); print('Patched desktop file:', p); print(replacement); raise SystemExit(0 if count else 1)"
+          # Create a stable launcher path without spaces for desktop environments.
+          LAUNCHER_PATH="$WORK_DIR/usr/bin/snooz-toolbox"
+          mkdir -p "$(dirname "$LAUNCHER_PATH")"
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'APP_DIR="/opt/Snooz Toolbox"' \
+            'BUNDLE_DIR="$APP_DIR/_internal"' \
+            '' \
+            '# Desktop launchers run with a reduced environment compared to interactive shells.' \
+            '# Force bundled runtime paths so Qt/xcb dependencies resolve consistently.' \
+            'export LD_LIBRARY_PATH="$BUNDLE_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"' \
+            'export QT_PLUGIN_PATH="$BUNDLE_DIR/PySide6/Qt/plugins"' \
+            'export QT_QPA_PLATFORM_PLUGIN_PATH="$BUNDLE_DIR/PySide6/Qt/plugins/platforms"' \
+            '' \
+            'exec "$APP_DIR/Snooz Toolbox" "$@"' \
+            > "$LAUNCHER_PATH"
+          chmod 755 "$LAUNCHER_PATH"
+
+          # Normalize desktop entry for reliable app-menu launch behavior.
+          # Normalize icon filenames for icon theme cache compatibility.
+          while IFS= read -r icon_file; do
+            icon_dir="$(dirname "$icon_file")"
+            icon_ext="${icon_file##*.}"
+            normalized_icon="$icon_dir/snooz-toolbox.${icon_ext}"
+            if [ "$icon_file" != "$normalized_icon" ]; then
+              mv -f "$icon_file" "$normalized_icon"
+              echo "Renamed icon: $icon_file -> $normalized_icon"
+            fi
+          done < <(find "$WORK_DIR/usr/share/icons" -type f \( -name '*Snooz*Toolbox*.png' -o -name '*Snooz*Toolbox*.svg' \) 2>/dev/null | sort || true)
+
+          printf '%s\n' \
+            '[Desktop Entry]' \
+            'Version=1.2' \
+            'Type=Application' \
+            'Name=Snooz Toolbox' \
+            'Comment=Snooz Toolbox' \
+            'Exec=/usr/bin/snooz-toolbox' \
+            'TryExec=/usr/bin/snooz-toolbox' \
+            'Icon=snooz-toolbox' \
+            'Terminal=false' \
+            'Categories=Utility;' \
+            'NoDisplay=false' \
+            > "$DESKTOP_FILE"
+
+          echo "Patched desktop file: $DESKTOP_FILE"
+          cat "$DESKTOP_FILE"
 
           dpkg-deb -b "$WORK_DIR" "$DEB_PATH"
           echo "Rebuilt patched .deb: $DEB_PATH"
