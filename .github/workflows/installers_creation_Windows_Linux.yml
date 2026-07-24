@@ -492,12 +492,26 @@ jobs:
             ldconfig -p | awk -v name="$soname" '$1 == name { print $NF; exit }'
           }
 
+          install_xcb_runtime_packages() {
+            sudo apt-get update
+            sudo apt-get install -y libxcb-cursor0 libxcb-image0 libxcb-render-util0 libxcb-util1
+          }
+
           # Bundle xcb libraries often missing on minimal/VM Linux desktops.
+          installed_runtime_packages="false"
           for soname in libxcb-cursor.so.0 libxcb-image.so.0 libxcb-render-util.so.0 libxcb-util.so.1; do
             src="$(resolve_lib "$soname")"
             if [ -z "$src" ] || [ ! -f "$src" ]; then
-              echo "::error::Required system library not found on builder: $soname"
-              exit 1
+              if [ "$installed_runtime_packages" = "false" ]; then
+                echo "Missing $soname on builder; installing xcb runtime packages and retrying resolution."
+                install_xcb_runtime_packages
+                installed_runtime_packages="true"
+                src="$(resolve_lib "$soname")"
+              fi
+              if [ -z "$src" ] || [ ! -f "$src" ]; then
+                echo "::error::Required system library not found on builder: $soname"
+                exit 1
+              fi
             fi
             cp -L "$src" "$BUNDLE_DIR/$soname"
             echo "Bundled $soname from $src"
