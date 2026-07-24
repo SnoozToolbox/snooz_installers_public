@@ -148,6 +148,7 @@ jobs:
 
       - name: Runtime completion smoke test on executable (Windows)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
+        timeout-minutes: 5
         shell: pwsh
         run: |
           $processJson = "runtime-smoke/snooz_runtime_smoke.json"
@@ -255,6 +256,7 @@ jobs:
 
       - name: Runtime completion smoke test on installer (Windows)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
+        timeout-minutes: 5
         shell: pwsh
         run: |
           $processJson = "runtime-smoke/snooz_runtime_smoke.json"
@@ -531,6 +533,7 @@ jobs:
 
       - name: Runtime completion smoke test on executable (Linux)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
+        timeout-minutes: 5
         run: |
           set -eo pipefail
           PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
@@ -781,6 +784,7 @@ jobs:
 
       - name: Runtime completion smoke test on installer (Linux)
         if: ${{ inputs.runtime_smoke_test && !inputs.freeze_only }}
+        timeout-minutes: 5
         run: |
           set -eo pipefail
           PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
