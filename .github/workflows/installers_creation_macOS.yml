@@ -5,6 +5,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FBS_PRO_VERSION: "1.2.7"
 
 on:
   workflow_dispatch:
@@ -130,9 +131,10 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "$RELEASE_API")"
 
-          ASSET_ID="$(python -c "import json,sys; d=json.load(sys.stdin); print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')=='fbs-pro.tar.gz'), ''))" <<< "$RELEASE_JSON")"
+          ASSET_NAME="fbs_pro-${{ env.FBS_PRO_VERSION }}.tar.gz"
+          ASSET_ID="$(python -c "import json,os,sys; d=json.load(sys.stdin); n=os.environ['ASSET_NAME']; print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')==n), ''))" <<< "$RELEASE_JSON")"
           if [ -z "$ASSET_ID" ]; then
-            echo "Could not find asset named fbs-pro.tar.gz in latest fbs-pro-version release"
+            echo "Could not find asset named ${ASSET_NAME} in latest fbs-pro-version release"
             exit 1
           fi
           FBS_ASSET_URL="https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/$ASSET_ID"
@@ -1008,9 +1010,10 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "$RELEASE_API")"
 
-          ASSET_ID="$(python -c "import json,sys; d=json.load(sys.stdin); print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')=='fbs-pro.tar.gz'), ''))" <<< "$RELEASE_JSON")"
+          ASSET_NAME="fbs_pro-${{ env.FBS_PRO_VERSION }}.tar.gz"
+          ASSET_ID="$(python -c "import json,os,sys; d=json.load(sys.stdin); n=os.environ['ASSET_NAME']; print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')==n), ''))" <<< "$RELEASE_JSON")"
           if [ -z "$ASSET_ID" ]; then
-            echo "Could not find asset named fbs-pro.tar.gz in latest fbs-pro-version release"
+            echo "Could not find asset named ${ASSET_NAME} in latest fbs-pro-version release"
             exit 1
           fi
           FBS_ASSET_URL="https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/assets/$ASSET_ID"

@@ -14,9 +14,9 @@ The workflow that contains the installer jobs is located at `.github/workflows/i
   - Define the source repository (default: SnoozToolbox/snooz-toolbox).
   - Define the branch (default: main).
 
-## 🔐 API Token and Asset ID Setup
+## 🔐 API Token Setup
 
-To enable GitHub Actions to build installers using this repository, you need to configure two secrets: a **GitHub API token** and the **Asset ID** of the latest `fbs-pro` release.
+To enable GitHub Actions to build installers using this repository, configure the GitHub API token secret used by the workflow: `GH_PAT`.
 
 ---
 
@@ -37,38 +37,11 @@ Generate a GitHub Personal Access Token and add it to your repository secrets:
 
 ---
 
-### 2. Retrieve the Asset ID
-
-You need the **Asset ID** of the latest `fbs-pro` release.
-
-Run the following command locally (replace `NEW_TOKEN` with your PAT):
-
-```bash
-curl -H "Authorization: token NEW_TOKEN" \
-https://api.github.com/repos/SnoozToolbox/fbs-pro-version/releases/latest
-```
-This will return a JSON response. Look for the assets section:
-```
-"assets": [
-  {
-    "id": 123456789,
-    "name": "fbs-pro.tar.gz"
-  }
-]
-```
-Copy the id corresponding to fbs-pro.tar.gz
-
-### 3. Add the Asset ID as a Secret
-- Go back to **Settings → Secrets and variables → Actions**
-- Add another secret (e.g., FBS_ASSET_ID)
-- Paste the asset ID value
-
 ### Final Setup
 
-Once both secrets are configured:
+Once the secret is configured:
 
 - **GH_PAT** → your GitHub token
-- **FBS_ASSET_ID** → the release asset ID
 
 GitHub Actions will be able to download the `fbs-pro` package and build installers successfully.
 
@@ -145,7 +118,6 @@ cd ~/Documents/actions-runner
 The workflow uses the following GitHub repository secrets:
 
 - `GH_PAT`: GitHub token used to check out private repositories and download release assets.
-- `FBS_ASSET_ID`: Asset ID of `fbs-pro.tar.gz` from the latest `SnoozToolbox/fbs-pro-version` release.
 - `APPLE_DEVELOPER_ID_APP_CERT_P12_BASE64`: Base64 content of your exported `.p12` certificate file.
 - `APPLE_DEVELOPER_ID_APP_CERT_P12_PASSWORD`: Password used when exporting the `.p12` file.
 - `APPLE_KEYCHAIN_PASSWORD`: Password used by GitHub Actions to create/unlock the temporary macOS keychain.
@@ -155,7 +127,7 @@ The workflow uses the following GitHub repository secrets:
 
 Notes:
 
-- `GH_PAT` and `FBS_ASSET_ID` are required for all builds (Windows, macOS, Linux) because `fbs-pro` is downloaded in each job.
+- `GH_PAT` is required for all builds (Windows, macOS, Linux): it is used to check out the source repository, download `fbs-pro` release assets, and publish installers to a release when release publishing is enabled.
 - Apple-related secrets are required for macOS signing and notarization jobs.
 
 
