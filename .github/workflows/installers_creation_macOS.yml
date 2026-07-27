@@ -132,7 +132,7 @@ jobs:
             "$RELEASE_API")"
 
           ASSET_NAME="fbs_pro-${{ env.FBS_PRO_VERSION }}.tar.gz"
-          ASSET_ID="$(python -c "import json,os,sys; d=json.load(sys.stdin); n=os.environ['ASSET_NAME']; print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')==n), ''))" <<< "$RELEASE_JSON")"
+          ASSET_ID="$(ASSET_NAME="$ASSET_NAME" python -c "import json,os,sys; d=json.load(sys.stdin); n=os.environ['ASSET_NAME']; print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')==n), ''))" <<< "$RELEASE_JSON")"
           if [ -z "$ASSET_ID" ]; then
             echo "Could not find asset named ${ASSET_NAME} in latest fbs-pro-version release"
             exit 1
@@ -1011,7 +1011,7 @@ jobs:
             "$RELEASE_API")"
 
           ASSET_NAME="fbs_pro-${{ env.FBS_PRO_VERSION }}.tar.gz"
-          ASSET_ID="$(python -c "import json,os,sys; d=json.load(sys.stdin); n=os.environ['ASSET_NAME']; print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')==n), ''))" <<< "$RELEASE_JSON")"
+          ASSET_ID="$(ASSET_NAME="$ASSET_NAME" python -c "import json,os,sys; d=json.load(sys.stdin); n=os.environ['ASSET_NAME']; print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')==n), ''))" <<< "$RELEASE_JSON")"
           if [ -z "$ASSET_ID" ]; then
             echo "Could not find asset named ${ASSET_NAME} in latest fbs-pro-version release"
             exit 1
