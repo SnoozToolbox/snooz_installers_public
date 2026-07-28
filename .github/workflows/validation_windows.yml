@@ -9,7 +9,7 @@ on:
       installer_repo:
         description: Installer release repository (owner/name)
         required: true
-        default: SnoozToolbox/snooz-installers-public
+        default: SnoozToolbox/snooz-toolbox-ceams
       installer_tag:
         description: Installer release tag to validate
         required: true
@@ -17,7 +17,7 @@ on:
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
-        default: "*windows*.exe"
+        default: "Snooz*.exe"
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -48,9 +48,12 @@ jobs:
             throw "Missing secret GH_PAT"
           }
           New-Item -ItemType Directory -Force -Path runtime_smoke_repo/_runtime_data | Out-Null
-          gh release download "latest" `
-            --repo "SnoozToolbox/snooz-datasets" `
-            --dir runtime_smoke_repo/_runtime_data
+          $ghArgs = @(
+            "release", "download", "latest",
+            "--repo", "SnoozToolbox/snooz-datasets",
+            "--dir", "runtime_smoke_repo/_runtime_data"
+          )
+          & gh @ghArgs
 
       - name: Download dataset release assets (private)
         shell: pwsh
@@ -61,9 +64,14 @@ jobs:
             throw "Missing secret GH_PAT_VALIDATION"
           }
           New-Item -ItemType Directory -Force -Path datasets | Out-Null
-          gh release download "${{ inputs.dataset_tag }}" `
-            --repo "${{ inputs.dataset_repo }}" `
-            --dir datasets
+          $tag = "${{ inputs.dataset_tag }}".Trim().Trim('"')
+          $repo = "${{ inputs.dataset_repo }}".Trim().Trim('"')
+          $ghArgs = @(
+            "release", "download", $tag,
+            "--repo", $repo,
+            "--dir", "datasets"
+          )
+          & gh @ghArgs
 
       - name: Download Windows installer release asset
         shell: pwsh
@@ -74,10 +82,16 @@ jobs:
             throw "Missing secret GH_PAT"
           }
           New-Item -ItemType Directory -Force -Path installer | Out-Null
-          gh release download "${{ inputs.installer_tag }}" `
-            --repo "${{ inputs.installer_repo }}" `
-            --pattern "${{ inputs.installer_asset_pattern }}" `
-            --dir installer
+          $tag = "${{ inputs.installer_tag }}".Trim().Trim('"')
+          $repo = "${{ inputs.installer_repo }}".Trim().Trim('"')
+          $pattern = "${{ inputs.installer_asset_pattern }}".Trim().Trim('"')
+          $ghArgs = @(
+            "release", "download", $tag,
+            "--repo", $repo,
+            "--pattern", $pattern,
+            "--dir", "installer"
+          )
+          & gh @ghArgs
 
       - name: Show downloaded files
         shell: pwsh
