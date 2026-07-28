@@ -1,0 +1,165 @@
+name: Validate installer (Windows)
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      installer_repo:
+        description: Installer release repository (owner/name)
+        required: true
+        default: SnoozToolbox/snooz-installers-public
+      installer_tag:
+        description: Installer release tag to validate
+        required: true
+        default: v1.0.0
+      installer_asset_pattern:
+        description: Installer asset name pattern
+        required: true
+        default: "*windows*.exe"
+      package_version:
+        description: "CEAMS package version to validate (ex: 7.4.0)"
+        required: true
+        default: "7.4.0"
+      dataset_repo:
+        description: Private dataset repository (owner/name)
+        required: true
+        default: SnoozToolbox/snooz-datasets-private
+      dataset_tag:
+        description: Dataset release tag
+        required: true
+        default: v1.0.0
+
+jobs:
+  validate_windows:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout workflow repository
+        uses: actions/checkout@v5
+
+      - name: Download dataset release assets (public)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace("${env:GH_TOKEN}")) {
+            throw "Missing secret GH_PAT"
+          }
+          New-Item -ItemType Directory -Force -Path runtime_smoke_repo/_runtime_data | Out-Null
+          gh release download "latest" `
+            --repo "SnoozToolbox/snooz-datasets" `
+            --dir runtime_smoke_repo/_runtime_data
+
+      - name: Download dataset release assets (private)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_VALIDATION }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace("${env:GH_TOKEN}")) {
+            throw "Missing secret GH_PAT_VALIDATION"
+          }
+          New-Item -ItemType Directory -Force -Path datasets | Out-Null
+          gh release download "${{ inputs.dataset_tag }}" `
+            --repo "${{ inputs.dataset_repo }}" `
+            --dir datasets
+
+      - name: Download Windows installer release asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace("${env:GH_TOKEN}")) {
+            throw "Missing secret GH_PAT"
+          }
+          New-Item -ItemType Directory -Force -Path installer | Out-Null
+          gh release download "${{ inputs.installer_tag }}" `
+            --repo "${{ inputs.installer_repo }}" `
+            --pattern "${{ inputs.installer_asset_pattern }}" `
+            --dir installer
+
+      - name: Show downloaded files
+        shell: pwsh
+        run: |
+          Write-Host "Private dataset release files:"
+          Get-ChildItem -Path datasets -Recurse -File | Select-Object -ExpandProperty FullName
+          Write-Host "Public dataset release files:"
+          Get-ChildItem -Path runtime_smoke_repo -Recurse -File | Select-Object -ExpandProperty FullName
+          Write-Host "Installer files:"
+          Get-ChildItem -Path installer -Recurse -File | Select-Object -ExpandProperty FullName
+
+      - name: Install Snooz and extract JSON files
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -Path installer -Filter "*.exe" -Recurse |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+          if ($null -eq $installer) {
+            throw "No installer executable found under installer directory"
+          }
+
+          $installDir = "C:\snooz_ci_install"
+          if (Test-Path $installDir) {
+            Remove-Item -Path $installDir -Recurse -Force
+          }
+
+          $installerArgs = @('/S', "/D=$installDir")
+          Write-Host "Installing: $($installer.FullName) $($installerArgs -join ' ')"
+          $installProcess = Start-Process -FilePath $installer.FullName -ArgumentList $installerArgs -Wait -PassThru
+          if ($installProcess.ExitCode -ne 0) {
+            throw "Silent installer failed with status $($installProcess.ExitCode)"
+          }
+
+          $versionUnderscore = "${{ inputs.package_version }}".Replace('.', '_')
+          $ceamsToolsDir = Join-Path $env:LOCALAPPDATA "Snooz Toolbox\packages\CEAMSTools_$versionUnderscore"
+          if (-not (Test-Path $ceamsToolsDir)) {
+            $packageRoot = Join-Path $env:LOCALAPPDATA "Snooz Toolbox\packages"
+            if (Test-Path $packageRoot) {
+              Write-Host "Available package directories:"
+              Get-ChildItem -Path $packageRoot -Directory | Select-Object -ExpandProperty FullName
+            }
+            throw "Expected CEAMSTools directory not found: $ceamsToolsDir"
+          }
+
+          $jsonOutputDir = "validation-json"
+          if (Test-Path $jsonOutputDir) {
+            Remove-Item -Path $jsonOutputDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $jsonOutputDir -Force | Out-Null
+
+          $jsonFiles = Get-ChildItem -Path $ceamsToolsDir -Recurse -File -Filter "*.json"
+          if ($jsonFiles.Count -eq 0) {
+            throw "No JSON files found under $ceamsToolsDir"
+          }
+
+          foreach ($file in $jsonFiles) {
+            $relativePath = $file.FullName.Substring($ceamsToolsDir.Length).TrimStart('\\')
+            $targetPath = Join-Path $jsonOutputDir $relativePath
+            $targetDir = Split-Path $targetPath -Parent
+            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+            Copy-Item -Path $file.FullName -Destination $targetPath -Force
+          }
+
+          Write-Host "Extracted JSON files from installed package: $($jsonFiles.Count)"
+          Write-Host "JSON files found (relative to CEAMSTools package):"
+          $jsonFiles |
+            ForEach-Object { $_.FullName.Substring($ceamsToolsDir.Length).TrimStart('\\') } |
+            Sort-Object |
+            ForEach-Object { Write-Host " - $_" }
+
+      - name: Upload extracted JSON as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-validation-json
+          if-no-files-found: error
+          path: |
+            validation-json/**
+
+      - name: Upload validation logs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-validation-logs
+          if-no-files-found: warn
+          path: |
+            **/*.log
