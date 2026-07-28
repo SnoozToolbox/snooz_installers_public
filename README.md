@@ -14,6 +14,18 @@ The workflow that contains the installer jobs is located at `.github/workflows/i
   - Define the source repository (default: SnoozToolbox/snooz-toolbox).
   - Define the branch (default: main).
 
+## Validation flow strategy
+
+The long-term plan is to keep installer creation and installer validation in separate workflows.
+
+- The build workflow produces versioned installer artifacts.
+- The validation workflow downloads a completed release candidate and runs the real Snooz Toolbox tools in headless mode.
+- Validation scenarios are described in JSON files, with expected outputs stored as private gold standards when needed.
+- A private dataset repository can be used for sensitive test inputs, including PSG recordings.
+- Each validation run should write a full report with the tool name, tool version, JSON scenario used, execution status, and output comparison result.
+
+The goal is to validate the shipped installer exactly as users will run it, not to rebuild the application during the validation step.
+
 ## 🔐 API Token Setup
 
 To enable GitHub Actions to build installers using this repository, configure the GitHub API token secret used by the workflow: `GH_PAT`.
@@ -24,6 +36,11 @@ To enable GitHub Actions to build installers using this repository, configure th
 
 Generate a GitHub Personal Access Token and add it to your repository secrets:
 
+- Go to: https://github.com/settings/personal-access-tokens
+- Select **Fine-grained tokens**
+- Ensure access is granted to the `SnoozToolbox` organization (and SSO is authorized if required)
+- Click **Generate new token**
+
 1. Go to: **Settings → Secrets and variables → Actions → Repository secrets**
 2. Click **New repository secret**
 3. Name it: `GH_PAT`
@@ -33,7 +50,13 @@ Generate a GitHub Personal Access Token and add it to your repository secrets:
 - **Repository access**: Select the target repository (or all repositories if needed)
 - **Permissions**:
   - `Contents: Read`
-  - `Releases: Read`
+  - `Metadata (Required): Read`
+
+#### Organization access (important)
+
+If the target repositories are in the `SnoozToolbox` organization, the token owner must be allowed to access that organization and its repositories (including SSO authorization if your organization requires it). Otherwise, GitHub Actions will fail to read private repositories or release assets.
+
+You do **not** need one token per team member for workflow runs. A single repository secret (for example `GH_PAT` or `GH_PAT_VALIDATION`) is enough for all runs in that repository. Each member only needs their own token if they must create or rotate secrets themselves.
 
 ---
 
