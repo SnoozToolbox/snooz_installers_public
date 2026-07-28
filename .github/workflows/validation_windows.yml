@@ -125,15 +125,48 @@ jobs:
             throw "Silent installer failed with status $($installProcess.ExitCode)"
           }
 
+          Write-Host "Installed package roots under LOCALAPPDATA:" 
+          if (Test-Path $env:LOCALAPPDATA) {
+            Get-ChildItem -Path $env:LOCALAPPDATA -Force | Select-Object Name,FullName,Mode | Format-Table -AutoSize | Out-String | Write-Host
+          }
+          Write-Host "Installed package roots under APPDATA:"
+          if (Test-Path $env:APPDATA) {
+            Get-ChildItem -Path $env:APPDATA -Force | Select-Object Name,FullName,Mode | Format-Table -AutoSize | Out-String | Write-Host
+          }
+
           $versionUnderscore = "${{ inputs.package_version }}".Replace('.', '_')
-          $ceamsToolsDir = Join-Path $env:LOCALAPPDATA "Snooz Toolbox\packages\CEAMSTools_$versionUnderscore"
-          if (-not (Test-Path $ceamsToolsDir)) {
-            $packageRoot = Join-Path $env:LOCALAPPDATA "Snooz Toolbox\packages"
-            if (Test-Path $packageRoot) {
-              Write-Host "Available package directories:"
-              Get-ChildItem -Path $packageRoot -Directory | Select-Object -ExpandProperty FullName
+          $ceamsToolsDir = $null
+          $searchRoots = @(
+            (Join-Path $env:LOCALAPPDATA "Snooz Toolbox"),
+            (Join-Path $env:LOCALAPPDATA "Snooz Toolbox\packages"),
+            (Join-Path $env:APPDATA "Snooz Toolbox"),
+            (Join-Path $env:LOCALAPPDATA "Snooz"),
+            "C:\snooz_ci_install"
+          )
+
+          foreach ($root in $searchRoots) {
+            if (-not (Test-Path $root)) {
+              continue
             }
-            throw "Expected CEAMSTools directory not found: $ceamsToolsDir"
+
+            $candidate = Get-ChildItem -Path $root -Recurse -Directory -Filter "CEAMSTools_$versionUnderscore" -ErrorAction SilentlyContinue |
+              Sort-Object FullName |
+              Select-Object -First 1
+
+            if ($null -ne $candidate) {
+              $ceamsToolsDir = $candidate.FullName
+              break
+            }
+          }
+
+          if (-not $ceamsToolsDir) {
+            Write-Host "Searched roots:"
+            foreach ($root in $searchRoots) {
+              if (Test-Path $root) {
+                Write-Host " - $root"
+              }
+            }
+            throw "Expected CEAMSTools directory not found for version $versionUnderscore"
           }
 
           $jsonOutputDir = "validation-json"
