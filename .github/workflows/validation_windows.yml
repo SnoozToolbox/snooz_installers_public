@@ -13,7 +13,7 @@ on:
       installer_tag:
         description: Installer release tag to validate
         required: true
-        default: v1.0.1-rc1-Windows
+        default: v1.0.1-rc2-Windows
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
@@ -34,6 +34,14 @@ on:
         description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool)"
         required: false
         default: "ConvertDOMINO"
+      gold_standard_repo:
+        description: Gold-standard repository (owner/name)
+        required: false
+        default: SnoozToolbox/snooz-gold-standards
+      gold_standard_tag:
+        description: Gold-standard release tag (optional; enables output comparison)
+        required: false
+        default: ""
 
 jobs:
   validate_windows:
@@ -76,6 +84,109 @@ jobs:
             "--dir", "datasets"
           )
           & gh @ghArgs
+
+      - name: Download gold standards release assets (optional)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_VALIDATION }}
+        run: |
+          $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
+          $toolsToProcess = @()
+          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
+            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+          }
+
+          if ($toolsToProcess.Count -eq 0) {
+            Write-Host "No tool requested; skipping gold standards download."
+            exit 0
+          }
+
+          $tag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            Write-Host "No gold_standard_tag provided; output comparison will be skipped."
+            exit 0
+          }
+
+          if ([string]::IsNullOrWhiteSpace("${env:GH_TOKEN}")) {
+            throw "Missing secret GH_PAT_VALIDATION"
+          }
+
+          $repo = "${{ inputs.gold_standard_repo }}".Trim().Trim('"')
+          $goldDir = "gold-standards"
+          if (Test-Path $goldDir) {
+            Remove-Item -Path $goldDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path $goldDir | Out-Null
+
+          Write-Host "Downloading gold standards from $repo@$tag"
+          $ghArgs = @(
+            "release", "download", $tag,
+            "--repo", $repo,
+            "--dir", $goldDir
+          )
+          & gh @ghArgs
+
+          Write-Host "Gold-standard files downloaded:"
+          Get-ChildItem -Path $goldDir -Recurse -File | Select-Object -ExpandProperty FullName
+
+      - name: Extract gold standards assets for requested tools (optional)
+        shell: pwsh
+        run: |
+          $goldTag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
+          if ([string]::IsNullOrWhiteSpace($goldTag)) {
+            Write-Host "No gold_standard_tag provided; skipping gold standards extraction."
+            exit 0
+          }
+
+          $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
+          $toolsToProcess = @()
+          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
+            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+          }
+
+          if ($toolsToProcess.Count -eq 0) {
+            Write-Host "No tool requested; skipping gold standards extraction."
+            exit 0
+          }
+
+          $goldDir = "gold-standards"
+          if (-not (Test-Path $goldDir)) {
+            throw "Gold standards directory not found: $goldDir"
+          }
+
+          $zipFiles = Get-ChildItem -Path $goldDir -File -Filter "*.zip" -ErrorAction SilentlyContinue
+          if ($zipFiles.Count -eq 0) {
+            Write-Host "No zip asset found in gold standards. Direct files (if any) will be used as-is."
+            exit 0
+          }
+
+          $extractRoot = Join-Path $goldDir "extracted"
+          if (Test-Path $extractRoot) {
+            Remove-Item -Path $extractRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+
+          foreach ($toolName in $toolsToProcess) {
+            $toolZipCandidates = $zipFiles | Where-Object {
+              $_.BaseName -ieq $toolName -or $_.Name -imatch [regex]::Escape($toolName)
+            }
+
+            if ($toolZipCandidates.Count -eq 0) {
+              Write-Host "No gold-standard zip matched tool '$toolName'."
+              continue
+            }
+
+            $toolExtractDir = Join-Path $extractRoot $toolName
+            New-Item -ItemType Directory -Path $toolExtractDir -Force | Out-Null
+
+            foreach ($zipFile in $toolZipCandidates) {
+              Write-Host "Extracting $($zipFile.Name) for tool $toolName"
+              Expand-Archive -Path $zipFile.FullName -DestinationPath $toolExtractDir -Force
+            }
+          }
+
+          Write-Host "Gold-standard extracted files:"
+          Get-ChildItem -Path $goldDir -Recurse -File | Select-Object -ExpandProperty FullName
 
       - name: Extract private dataset archives and list folders
         shell: pwsh
@@ -294,7 +405,7 @@ jobs:
             New-Item -ItemType Directory -Path $dominoLogsDir -Force | Out-Null
 
             $dominoFoldersPath = Convert-ToJsonPath -PathValue $dominoSubjectDir.FullName
-            $dominoLogPath = Convert-ToJsonPath -PathValue (Join-Path (Resolve-Path $dominoLogsDir).Path "01-DOMINO_log.tsv")
+            $dominoLogPath = Convert-ToJsonPath -PathValue (Join-Path (Resolve-Path $dominoLogsDir).Path "DOMINO_log.tsv")
 
             $dominoFoldersValue = "['$dominoFoldersPath']"
             $dominoLogValue = $dominoLogPath
@@ -419,6 +530,13 @@ jobs:
       - name: Run adapted headless scenarios and print failure logs
         shell: pwsh
         run: |
+          function Get-NormalizedLines {
+            param([string]$Path)
+            $raw = Get-Content -Path $Path -Raw
+            $normalized = $raw -replace "`r`n", "`n"
+            return $normalized -split "`n"
+          }
+
           $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
           $toolsToProcess = @()
           if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
@@ -459,6 +577,7 @@ jobs:
           $logDir = (Resolve-Path $logDir).Path
           $failedScenarios = @()
           $succeededCount = 0
+          $goldTag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
 
           foreach ($scenarioEntry in $scenariosToRun) {
             $toolName = $scenarioEntry.ToolName
@@ -501,6 +620,68 @@ jobs:
               }
               Write-Host "::error::Headless execution failed for ${toolName} with status $appStatus. Continuing to next scenario."
               continue
+            }
+
+            # Tool-specific validation of output artifacts.
+            if ($toolName -eq "ConvertDOMINO") {
+              $generatedLogsRoot = Join-Path (Resolve-Path "validation-workspaces").Path "logs"
+              $generatedLogCandidates = @(
+                (Join-Path $generatedLogsRoot "DOMINO_log.tsv")
+              )
+              $generatedLogPath = $generatedLogCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+              if ([string]::IsNullOrWhiteSpace($generatedLogPath)) {
+                $failedScenarios += [PSCustomObject]@{
+                  ToolName = $toolName
+                  Status = "validation_failed"
+                  ExecutionLog = $executionLogPath
+                }
+                Write-Host "::error::ConvertDOMINO output file not found. Expected one of:"
+                foreach ($candidate in $generatedLogCandidates) {
+                  Write-Host " - $candidate"
+                }
+                continue
+              }
+
+              if ([string]::IsNullOrWhiteSpace($goldTag)) {
+                Write-Host "No gold_standard_tag provided; skipping ConvertDOMINO output comparison."
+              }
+              else {
+                $goldReference = Get-ChildItem -Path "gold-standards" -Recurse -File -Filter "DOMINO_log.tsv" -ErrorAction SilentlyContinue |
+                  Sort-Object FullName |
+                  Select-Object -First 1
+
+                if ($null -eq $goldReference) {
+                  $failedScenarios += [PSCustomObject]@{
+                    ToolName = $toolName
+                    Status = "validation_failed"
+                    ExecutionLog = $executionLogPath
+                  }
+                  Write-Host "::error::Could not find DOMINO_log.tsv in downloaded gold standards."
+                  continue
+                }
+
+                $generatedLines = Get-NormalizedLines -Path $generatedLogPath
+                $referenceLines = Get-NormalizedLines -Path $goldReference.FullName
+                $diff = Compare-Object -ReferenceObject $referenceLines -DifferenceObject $generatedLines -SyncWindow 0
+
+                if ($null -ne $diff) {
+                  Write-Host "::error::ConvertDOMINO output mismatch against gold standard."
+                  Write-Host "Generated log: $generatedLogPath"
+                  Write-Host "Gold standard: $($goldReference.FullName)"
+                  Write-Host "First differences (up to 50 lines):"
+                  $diff | Select-Object -First 50 | ForEach-Object { Write-Host $_ }
+
+                  $failedScenarios += [PSCustomObject]@{
+                    ToolName = $toolName
+                    Status = "validation_failed"
+                    ExecutionLog = $executionLogPath
+                  }
+                  continue
+                }
+
+                Write-Host "ConvertDOMINO output matches gold standard: $($goldReference.FullName)"
+              }
             }
 
             Write-Host "Headless execution succeeded for ${toolName}."
