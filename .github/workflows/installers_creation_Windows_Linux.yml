@@ -219,6 +219,7 @@ jobs:
 
           $logDir = Join-Path "target" "smoke-logs"
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+          $logDir = (Resolve-Path $logDir).Path
           $logFile = Join-Path $logDir "windows-frozen-runtime-smoke.log"
           Set-Content -Path $logFile -Value $null
           Remove-Item -Path (Join-Path $runtimeTestRoot "runtime-smoke/snooz_runtime_smoke_*.log") -Force -ErrorAction SilentlyContinue
@@ -370,6 +371,7 @@ jobs:
 
           $logDir = Join-Path "target" "smoke-logs"
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+          $logDir = (Resolve-Path $logDir).Path
           $logFile = Join-Path $logDir "windows-installer-runtime-smoke.log"
           Set-Content -Path $logFile -Value $null
           Remove-Item -Path (Join-Path $runtimeTestRoot "runtime-smoke/snooz_runtime_smoke_*.log") -Force -ErrorAction SilentlyContinue
@@ -644,6 +646,7 @@ jobs:
 
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
+          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
           LOG_FILE="$LOG_DIR/linux-frozen-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
@@ -903,6 +906,7 @@ jobs:
           EXTRACT_DIR="$(mktemp -d /tmp/snooz-deb-runtime-smoke.XXXXXX)"
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
+          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
           LOG_FILE="$LOG_DIR/linux-installer-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
