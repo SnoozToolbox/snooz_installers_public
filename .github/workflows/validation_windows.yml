@@ -416,7 +416,7 @@ jobs:
             Sort-Object |
             ForEach-Object { Write-Host " - $_" }
 
-      - name: Run adapted ConvertDOMINO and print output log
+      - name: Run adapted headless scenarios and print failure logs
         shell: pwsh
         run: |
           $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
@@ -425,8 +425,8 @@ jobs:
             $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
           }
 
-          if (-not ($toolsToProcess -contains "ConvertDOMINO")) {
-            Write-Host "ConvertDOMINO not requested; skipping execution step."
+          if ($toolsToProcess.Count -eq 0) {
+            Write-Host "No tools requested; skipping execution step."
             exit 0
           }
 
@@ -434,40 +434,87 @@ jobs:
             throw "Installed executable path is missing or invalid: '$env:SNOOZ_INSTALLED_EXE'"
           }
 
-          $scenarioPath = Get-ChildItem -Path "validation-workspaces" -Recurse -File -Filter "ConvertDOMINO.json" -ErrorAction SilentlyContinue |
-            Sort-Object FullName |
-            Select-Object -First 1
-          if ($null -eq $scenarioPath) {
-            throw "Could not find adapted ConvertDOMINO.json under validation-workspaces"
+          $workspaceRoot = "validation-workspaces"
+          if (-not (Test-Path $workspaceRoot)) {
+            throw "Validation workspace directory not found: $workspaceRoot"
           }
 
-          Write-Host "Using adapted scenario JSON: $($scenarioPath.FullName)"
-          Write-Host "Launching headless scenario: $env:SNOOZ_INSTALLED_EXE --f $($scenarioPath.FullName)"
-          & "$env:SNOOZ_INSTALLED_EXE" --f "$($scenarioPath.FullName)"
-          $appStatus = $LASTEXITCODE
-          if ($appStatus -ne 0) {
-            throw "ConvertDOMINO execution failed with status $appStatus"
+          $scenariosToRun = @()
+          foreach ($toolName in $toolsToProcess) {
+            $scenarioPath = Get-ChildItem -Path $workspaceRoot -Recurse -File -Filter "$toolName.json" -ErrorAction SilentlyContinue |
+              Sort-Object FullName |
+              Select-Object -First 1
+            if ($null -eq $scenarioPath) {
+              throw "Could not find adapted $toolName.json under $workspaceRoot"
+            }
+
+            $scenariosToRun += [PSCustomObject]@{
+              ToolName = $toolName
+              ScenarioPath = $scenarioPath.FullName
+            }
           }
 
-          $dominoNodeIdentifier = "f2492f99-7965-4c48-9aec-7970891415f1"
-          $scenario = Get-Content -Path $scenarioPath.FullName -Raw | ConvertFrom-Json -AsHashtable
-          $node = $scenario.process_params.nodes | Where-Object { $_.identifier -eq $dominoNodeIdentifier } | Select-Object -First 1
-          if ($null -eq $node) {
-            throw "Node '$dominoNodeIdentifier' not found in adapted ConvertDOMINO scenario"
+          $logDir = Join-Path "target" "validation-logs"
+          New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+          $logDir = (Resolve-Path $logDir).Path
+          $failedScenarios = @()
+          $succeededCount = 0
+
+          foreach ($scenarioEntry in $scenariosToRun) {
+            $toolName = $scenarioEntry.ToolName
+            $scenarioPath = $scenarioEntry.ScenarioPath
+
+            Write-Host "Using adapted scenario JSON for ${toolName}: $scenarioPath"
+            Write-Host "Launching headless scenario: $env:SNOOZ_INSTALLED_EXE --f $scenarioPath"
+
+            $executionLogPath = Join-Path $logDir ("{0}-headless-exec.log" -f $toolName.ToLowerInvariant())
+            Set-Content -Path $executionLogPath -Value $null
+
+            & "$env:SNOOZ_INSTALLED_EXE" --f "$scenarioPath" 2>&1 | Tee-Object -FilePath $executionLogPath
+            $appStatus = $LASTEXITCODE
+            if ($null -eq $appStatus) {
+              $appStatus = 0
+            }
+
+            if ($appStatus -ne 0) {
+              $scenarioDir = Split-Path $scenarioPath -Parent
+              $snoozProcessLog = Get-ChildItem -Path $scenarioDir -Filter "*.log" -File -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -First 1
+              if ($null -ne $snoozProcessLog) {
+                Write-Host "Detected Snooz process log: $($snoozProcessLog.FullName)"
+                Write-Host "--- Snooz process log (last 200 lines) ---"
+                Get-Content -Path $snoozProcessLog.FullName -Tail 200 | ForEach-Object { Write-Host $_ }
+              }
+              else {
+                Write-Host "::warning::No Snooz process log found next to adapted scenario JSON (pattern: $scenarioDir/*.log)"
+              }
+
+              Write-Host "Headless execution log file: $executionLogPath"
+              Write-Host "--- Headless execution log (last 200 lines) ---"
+              Get-Content -Path $executionLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
+
+              $failedScenarios += [PSCustomObject]@{
+                ToolName = $toolName
+                Status = $appStatus
+                ExecutionLog = $executionLogPath
+              }
+              Write-Host "::error::Headless execution failed for ${toolName} with status $appStatus. Continuing to next scenario."
+              continue
+            }
+
+            Write-Host "Headless execution succeeded for ${toolName}."
+            $succeededCount++
           }
 
-          $logPath = "$($node.inputs.log_filename.value)"
-          if ([string]::IsNullOrWhiteSpace($logPath)) {
-            throw "log_filename is empty in adapted ConvertDOMINO scenario"
+          Write-Host "Headless execution summary: success=$succeededCount failed=$($failedScenarios.Count) total=$($scenariosToRun.Count)"
+          if ($failedScenarios.Count -gt 0) {
+            Write-Host "Failed scenarios:"
+            foreach ($failure in $failedScenarios) {
+              Write-Host " - $($failure.ToolName): status=$($failure.Status), log=$($failure.ExecutionLog)"
+            }
+            throw "$($failedScenarios.Count) headless scenario(s) failed. See summary above."
           }
-
-          Write-Host "ConvertDOMINO output log path: $logPath"
-          if (-not (Test-Path $logPath)) {
-            throw "Expected output log not found: $logPath"
-          }
-
-          Write-Host "ConvertDOMINO output log content (first 200 lines):"
-          Get-Content -Path $logPath -TotalCount 200 | ForEach-Object { Write-Host $_ }
 
       - name: Upload extracted JSON as artifact
         uses: actions/upload-artifact@v4
