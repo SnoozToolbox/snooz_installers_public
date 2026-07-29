@@ -233,7 +233,7 @@ jobs:
 
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
-          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
+          LOG_DIR="$(cd "$LOG_DIR" && pwd)"
           LOG_FILE="$LOG_DIR/macos-x64-frozen-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
@@ -345,7 +345,7 @@ jobs:
 
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
-          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
+          LOG_DIR="$(cd "$LOG_DIR" && pwd)"
           LOG_FILE="$LOG_DIR/macos-x64-app-bundle-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
@@ -810,7 +810,7 @@ jobs:
           MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
-          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
+          LOG_DIR="$(cd "$LOG_DIR" && pwd)"
           LOG_FILE="$LOG_DIR/macos-x64-dmg-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
@@ -1142,7 +1142,7 @@ jobs:
 
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
-          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
+          LOG_DIR="$(cd "$LOG_DIR" && pwd)"
           LOG_FILE="$LOG_DIR/macos-arm64-frozen-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
@@ -1254,7 +1254,7 @@ jobs:
 
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
-          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
+          LOG_DIR="$(cd "$LOG_DIR" && pwd)"
           LOG_FILE="$LOG_DIR/macos-arm64-app-bundle-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
@@ -1724,7 +1724,7 @@ jobs:
           MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
-          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
+          LOG_DIR="$(cd "$LOG_DIR" && pwd)"
           LOG_FILE="$LOG_DIR/macos-arm64-dmg-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
