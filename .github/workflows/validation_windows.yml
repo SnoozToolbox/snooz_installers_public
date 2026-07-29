@@ -96,7 +96,8 @@ jobs:
           Write-Host "Folders under datasets after extraction:"
           Get-ChildItem -Path $datasetRoot -Recurse -Directory |
             Sort-Object FullName |
-            Select-Object -ExpandProperty FullName
+            Select-Object -ExpandProperty FullName |
+            ForEach-Object { $_ -replace '\\', '/' }
 
       - name: Download Windows installer release asset
         shell: pwsh
@@ -231,7 +232,7 @@ jobs:
           }
 
           foreach ($file in $jsonFiles) {
-            $relativePath = $file.FullName.Substring($ceamsToolsDir.Length).TrimStart('\\')
+            $relativePath = $file.FullName.Substring($ceamsToolsDir.Length).TrimStart('\')
             $targetPath = Join-Path $jsonOutputDir $relativePath
             $targetDir = Split-Path $targetPath -Parent
             New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
@@ -241,7 +242,7 @@ jobs:
           Write-Host "Extracted JSON files from installed package: $($jsonFiles.Count)"
           Write-Host "JSON files found (relative to CEAMSTools package):"
           $jsonFiles |
-            ForEach-Object { $_.FullName.Substring($ceamsToolsDir.Length).TrimStart('\\') } |
+            ForEach-Object { $_.FullName.Substring($ceamsToolsDir.Length).TrimStart('\') } |
             Sort-Object |
             ForEach-Object { Write-Host " - $_" }
 
@@ -259,6 +260,11 @@ jobs:
           $toolsToProcess = @()
           if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
             $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+          }
+
+          function Convert-ToJsonPath {
+            param([string]$PathValue)
+            return ($PathValue -replace '\\', '/')
           }
 
           Write-Host "Tools configured for this run:"
@@ -287,8 +293,11 @@ jobs:
             $dominoLogsDir = Join-Path $workspaceDir "logs"
             New-Item -ItemType Directory -Path $dominoLogsDir -Force | Out-Null
 
-            $dominoFoldersValue = "['$($dominoSubjectDir.FullName -replace '\\', '/')']"
-            $dominoLogValue = (Join-Path (Resolve-Path $dominoLogsDir).Path "01-DOMINO_log.tsv") -replace '\\', '/'
+            $dominoFoldersPath = Convert-ToJsonPath -PathValue $dominoSubjectDir.FullName
+            $dominoLogPath = Convert-ToJsonPath -PathValue (Join-Path (Resolve-Path $dominoLogsDir).Path "01-DOMINO_log.tsv")
+
+            $dominoFoldersValue = "['$dominoFoldersPath']"
+            $dominoLogValue = $dominoLogPath
 
             Write-Host "ConvertDOMINO input folder: $($dominoSubjectDir.FullName)"
             Write-Host "ConvertDOMINO output log: $dominoLogValue"
@@ -385,7 +394,7 @@ jobs:
 
           $sourceRoot = (Resolve-Path $sourceDir).Path
           Get-ChildItem -Path $sourceDir -Recurse -File -Filter "*.json" | ForEach-Object {
-            $relativePath = $_.FullName.Substring($sourceRoot.Length).TrimStart('\\', '/')
+            $relativePath = $_.FullName.Substring($sourceRoot.Length).TrimStart('\', '/')
             $jsonFileName = [System.IO.Path]::GetFileNameWithoutExtension($_.Name)
             if ($jsonFileName -eq "CEAMSTools") {
               Write-Host "Catalog file kept for logging: $relativePath"
@@ -403,7 +412,7 @@ jobs:
 
           Write-Host "Generated adaptive workspace JSON files:"
           Get-ChildItem -Path $workspaceDir -Recurse -File -Filter "*.json" |
-            ForEach-Object { $_.FullName.Substring((Resolve-Path $workspaceDir).Path.Length).TrimStart('\\', '/') } |
+            ForEach-Object { $_.FullName.Substring((Resolve-Path $workspaceDir).Path.Length).TrimStart('\', '/') } |
             Sort-Object |
             ForEach-Object { Write-Host " - $_" }
 
