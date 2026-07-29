@@ -647,7 +647,7 @@ jobs:
 
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
-          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
+          LOG_DIR="$(cd "$LOG_DIR" && pwd)"
           LOG_FILE="$LOG_DIR/linux-frozen-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
@@ -907,7 +907,7 @@ jobs:
           EXTRACT_DIR="$(mktemp -d /tmp/snooz-deb-runtime-smoke.XXXXXX)"
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
-          LOG_DIR="$(cd \"$LOG_DIR\" && pwd)"
+          LOG_DIR="$(cd "$LOG_DIR" && pwd)"
           LOG_FILE="$LOG_DIR/linux-installer-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
