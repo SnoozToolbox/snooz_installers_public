@@ -419,6 +419,10 @@ jobs:
               targetToolName = "AnalyzeEEGConnectivity"
               processingMode = "adapted"
             }
+            "ConvertEDFbrowser" = @{
+              targetToolName = "ConvertEDFbrowser"
+              processingMode = "adapted"
+            }
             "ConvertDOMINO" = @{
               targetToolName = "ConvertDOMINO"
               processingMode = "adapted"
@@ -661,16 +665,30 @@ jobs:
                   continue
                 }
 
-                $generatedLines = Get-NormalizedLines -Path $generatedLogPath
-                $referenceLines = Get-NormalizedLines -Path $goldReference.FullName
-                $diff = Compare-Object -ReferenceObject $referenceLines -DifferenceObject $generatedLines -SyncWindow 0
+                $compareScript = Join-Path (Resolve-Path ".").Path "ci/validation_tools/compare_outputs.py"
+                if (-not (Test-Path $compareScript)) {
+                  $failedScenarios += [PSCustomObject]@{
+                    ToolName = $toolName
+                    Status = "validation_failed"
+                    ExecutionLog = $executionLogPath
+                  }
+                  Write-Host "::error::Comparison script not found: $compareScript"
+                  continue
+                }
 
-                if ($null -ne $diff) {
+                & python "$compareScript" `
+                  --tool-name "ConvertDOMINO" `
+                  --generated-file "$generatedLogPath" `
+                  --reference-file "$($goldReference.FullName)" `
+                  --file-type "annotation" `
+                  --precision 0.0 `
+                  --max-diff-lines 50
+                $compareStatus = $LASTEXITCODE
+
+                if ($compareStatus -ne 0) {
                   Write-Host "::error::ConvertDOMINO output mismatch against gold standard."
                   Write-Host "Generated log: $generatedLogPath"
                   Write-Host "Gold standard: $($goldReference.FullName)"
-                  Write-Host "First differences (up to 50 lines):"
-                  $diff | Select-Object -First 50 | ForEach-Object { Write-Host $_ }
 
                   $failedScenarios += [PSCustomObject]@{
                     ToolName = $toolName
