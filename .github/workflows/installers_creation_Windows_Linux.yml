@@ -174,18 +174,28 @@ jobs:
         timeout-minutes: 5
         shell: pwsh
         run: |
-          $processJson = "runtime-smoke/snooz_runtime_smoke.json"
-          if (-not (Test-Path $processJson)) {
-            throw "Runtime smoke process JSON not found: $processJson"
+          $processJsonSource = "runtime-smoke/snooz_runtime_smoke.json"
+          if (-not (Test-Path $processJsonSource)) {
+            throw "Runtime smoke process JSON not found: $processJsonSource"
           }
 
-          $edfLocalPath = "runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          $runtimeTestRoot = Join-Path $env:RUNNER_TEMP "snooz_frozen_runtime_smoke"
+          if (Test-Path $runtimeTestRoot) {
+            Remove-Item -Path $runtimeTestRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path (Join-Path $runtimeTestRoot "runtime-smoke") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $runtimeTestRoot "runtime_smoke_repo/_runtime_data") -Force | Out-Null
+
+          $processJson = Join-Path $runtimeTestRoot "runtime-smoke/snooz_runtime_smoke.json"
+          Copy-Item -Path $processJsonSource -Destination $processJson -Force
+
+          $edfLocalPath = Join-Path $runtimeTestRoot "runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
           New-Item -ItemType Directory -Path (Split-Path $edfLocalPath -Parent) -Force | Out-Null
           curl.exe --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 600 -o $edfLocalPath "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           if (-not (Test-Path $edfLocalPath) -or ((Get-Item $edfLocalPath).Length -le 0)) {
             throw "Runtime smoke EDF download failed: $edfLocalPath"
           }
-          $outputPdf = "runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          $outputPdf = Join-Path $runtimeTestRoot "runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
           Remove-Item -Path $outputPdf -Force -ErrorAction SilentlyContinue
 
           $expectedAppDir = Join-Path "target" "Snooz Toolbox"
@@ -210,12 +220,14 @@ jobs:
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null
           $logFile = Join-Path $logDir "windows-frozen-runtime-smoke.log"
           Set-Content -Path $logFile -Value $null
-          Remove-Item -Path "runtime-smoke/snooz_runtime_smoke_*.log" -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path (Join-Path $runtimeTestRoot "runtime-smoke/snooz_runtime_smoke_*.log") -Force -ErrorAction SilentlyContinue
           Write-Host "Launching runtime smoke executable (streaming output): $appExe --f $processJson"
+          Push-Location $runtimeTestRoot
           & $appExe --f $processJson 2>&1 | Tee-Object -FilePath $logFile
+          Pop-Location
           $appStatus = $LASTEXITCODE
 
-          $snoozProcessLog = Get-ChildItem -Path "runtime-smoke" -Filter "snooz_runtime_smoke_*.log" -File -ErrorAction SilentlyContinue |
+          $snoozProcessLog = Get-ChildItem -Path (Join-Path $runtimeTestRoot "runtime-smoke") -Filter "snooz_runtime_smoke_*.log" -File -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
           if ($null -ne $snoozProcessLog) {
@@ -224,7 +236,7 @@ jobs:
             Get-Content -Path $snoozProcessLog.FullName -Tail 200
           }
           else {
-            Write-Host "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+            Write-Host "::warning::No Snooz process log found next to process JSON (pattern: $runtimeTestRoot/runtime-smoke/snooz_runtime_smoke_*.log)"
           }
 
           Write-Host "Captured runtime smoke output lines: $((Get-Content $logFile | Measure-Object -Line).Lines)"
@@ -245,26 +257,26 @@ jobs:
             Write-Host "Last 200 log lines (for diagnostics):"
             Get-Content $logFile -Tail 200
             Write-Host "runtime_smoke_repo content (for diagnostics):"
-            if (Test-Path "runtime_smoke_repo") {
-              Get-ChildItem -Path "runtime_smoke_repo" -Recurse -File |
+            if (Test-Path (Join-Path $runtimeTestRoot "runtime_smoke_repo")) {
+              Get-ChildItem -Path (Join-Path $runtimeTestRoot "runtime_smoke_repo") -Recurse -File |
                 Sort-Object FullName |
                 Select-Object -ExpandProperty FullName
             }
             else {
-              Write-Host "runtime_smoke_repo directory not found"
+              Write-Host "runtime_smoke_repo directory not found under $runtimeTestRoot"
             }
             throw "Runtime smoke execution on frozen executable did not reach 'Process completed.'"
           }
 
           if (-not (Test-Path $outputPdf) -or ((Get-Item $outputPdf).Length -le 0)) {
             Write-Host "runtime_smoke_repo content (for diagnostics):"
-            if (Test-Path "runtime_smoke_repo") {
-              Get-ChildItem -Path "runtime_smoke_repo" -Recurse -File |
+            if (Test-Path (Join-Path $runtimeTestRoot "runtime_smoke_repo")) {
+              Get-ChildItem -Path (Join-Path $runtimeTestRoot "runtime_smoke_repo") -Recurse -File |
                 Sort-Object FullName |
                 Select-Object -ExpandProperty FullName
             }
             else {
-              Write-Host "runtime_smoke_repo directory not found"
+              Write-Host "runtime_smoke_repo directory not found under $runtimeTestRoot"
             }
             throw "Expected runtime smoke PDF was not generated: $outputPdf"
           }
@@ -282,12 +294,22 @@ jobs:
         timeout-minutes: 5
         shell: pwsh
         run: |
-          $processJson = "runtime-smoke/snooz_runtime_smoke.json"
-          if (-not (Test-Path $processJson)) {
-            throw "Runtime smoke process JSON not found: $processJson"
+          $processJsonSource = "runtime-smoke/snooz_runtime_smoke.json"
+          if (-not (Test-Path $processJsonSource)) {
+            throw "Runtime smoke process JSON not found: $processJsonSource"
           }
 
-          $edfLocalPath = "runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          $runtimeTestRoot = Join-Path $env:RUNNER_TEMP "snooz_installer_runtime_smoke"
+          if (Test-Path $runtimeTestRoot) {
+            Remove-Item -Path $runtimeTestRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path (Join-Path $runtimeTestRoot "runtime-smoke") -Force | Out-Null
+          New-Item -ItemType Directory -Path (Join-Path $runtimeTestRoot "runtime_smoke_repo/_runtime_data") -Force | Out-Null
+
+          $processJson = Join-Path $runtimeTestRoot "runtime-smoke/snooz_runtime_smoke.json"
+          Copy-Item -Path $processJsonSource -Destination $processJson -Force
+
+          $edfLocalPath = Join-Path $runtimeTestRoot "runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
           if (-not (Test-Path $edfLocalPath)) {
             New-Item -ItemType Directory -Path (Split-Path $edfLocalPath -Parent) -Force | Out-Null
             curl.exe --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 --connect-timeout 20 --max-time 600 -o $edfLocalPath "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
@@ -295,7 +317,7 @@ jobs:
           if (-not (Test-Path $edfLocalPath) -or ((Get-Item $edfLocalPath).Length -le 0)) {
             throw "Runtime smoke EDF input missing before installer execution: $edfLocalPath"
           }
-          $outputPdf = "runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          $outputPdf = Join-Path $runtimeTestRoot "runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
           Remove-Item -Path $outputPdf -Force -ErrorAction SilentlyContinue
 
           $installer = Get-ChildItem -Path target -Filter "*.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -349,12 +371,14 @@ jobs:
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null
           $logFile = Join-Path $logDir "windows-installer-runtime-smoke.log"
           Set-Content -Path $logFile -Value $null
-          Remove-Item -Path "runtime-smoke/snooz_runtime_smoke_*.log" -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path (Join-Path $runtimeTestRoot "runtime-smoke/snooz_runtime_smoke_*.log") -Force -ErrorAction SilentlyContinue
           Write-Host "Launching installed runtime smoke executable (streaming output): $installedExe --f $processJson"
+          Push-Location $runtimeTestRoot
           & $installedExe --f $processJson 2>&1 | Tee-Object -FilePath $logFile
+          Pop-Location
           $appStatus = $LASTEXITCODE
 
-          $snoozProcessLog = Get-ChildItem -Path "runtime-smoke" -Filter "snooz_runtime_smoke_*.log" -File -ErrorAction SilentlyContinue |
+          $snoozProcessLog = Get-ChildItem -Path (Join-Path $runtimeTestRoot "runtime-smoke") -Filter "snooz_runtime_smoke_*.log" -File -ErrorAction SilentlyContinue |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
           if ($null -ne $snoozProcessLog) {
@@ -363,7 +387,7 @@ jobs:
             Get-Content -Path $snoozProcessLog.FullName -Tail 200
           }
           else {
-            Write-Host "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+            Write-Host "::warning::No Snooz process log found next to process JSON (pattern: $runtimeTestRoot/runtime-smoke/snooz_runtime_smoke_*.log)"
           }
 
           Write-Host "Captured runtime smoke output lines: $((Get-Content $logFile | Measure-Object -Line).Lines)"
@@ -384,26 +408,26 @@ jobs:
             Write-Host "Last 200 log lines (for diagnostics):"
             Get-Content $logFile -Tail 200
             Write-Host "runtime_smoke_repo content (for diagnostics):"
-            if (Test-Path "runtime_smoke_repo") {
-              Get-ChildItem -Path "runtime_smoke_repo" -Recurse -File |
+            if (Test-Path (Join-Path $runtimeTestRoot "runtime_smoke_repo")) {
+              Get-ChildItem -Path (Join-Path $runtimeTestRoot "runtime_smoke_repo") -Recurse -File |
                 Sort-Object FullName |
                 Select-Object -ExpandProperty FullName
             }
             else {
-              Write-Host "runtime_smoke_repo directory not found"
+              Write-Host "runtime_smoke_repo directory not found under $runtimeTestRoot"
             }
             throw "Runtime smoke execution from installer output did not reach 'Process completed.'"
           }
 
           if (-not (Test-Path $outputPdf) -or ((Get-Item $outputPdf).Length -le 0)) {
             Write-Host "runtime_smoke_repo content (for diagnostics):"
-            if (Test-Path "runtime_smoke_repo") {
-              Get-ChildItem -Path "runtime_smoke_repo" -Recurse -File |
+            if (Test-Path (Join-Path $runtimeTestRoot "runtime_smoke_repo")) {
+              Get-ChildItem -Path (Join-Path $runtimeTestRoot "runtime_smoke_repo") -Recurse -File |
                 Sort-Object FullName |
                 Select-Object -ExpandProperty FullName
             }
             else {
-              Write-Host "runtime_smoke_repo directory not found"
+              Write-Host "runtime_smoke_repo directory not found under $runtimeTestRoot"
             }
             throw "Expected runtime smoke PDF was not generated: $outputPdf"
           }

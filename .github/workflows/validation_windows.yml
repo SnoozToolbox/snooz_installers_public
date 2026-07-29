@@ -441,6 +441,7 @@ jobs:
             throw "Could not find adapted ConvertDOMINO.json under validation-workspaces"
           }
 
+          Write-Host "Using adapted scenario JSON: $($scenarioPath.FullName)"
           Write-Host "Launching headless scenario: $env:SNOOZ_INSTALLED_EXE --f $($scenarioPath.FullName)"
           & "$env:SNOOZ_INSTALLED_EXE" --f "$($scenarioPath.FullName)"
           $appStatus = $LASTEXITCODE
