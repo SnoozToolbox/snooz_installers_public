@@ -611,14 +611,20 @@ jobs:
             exit 1
           fi
 
-          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          RUNTIME_TEST_ROOT="${RUNNER_TEMP}/snooz_linux_frozen_runtime_smoke"
+          rm -rf "$RUNTIME_TEST_ROOT"
+          mkdir -p "$RUNTIME_TEST_ROOT/runtime-smoke" "$RUNTIME_TEST_ROOT/runtime_smoke_repo/_runtime_data"
+          PROCESS_JSON="$RUNTIME_TEST_ROOT/runtime-smoke/snooz_runtime_smoke.json"
+          cp "$PROCESS_JSON_SRC" "$PROCESS_JSON"
+
+          EDF_LOCAL_PATH="$RUNTIME_TEST_ROOT/runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
           mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
           curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
             --connect-timeout 20 --max-time 600 \
             -o "$EDF_LOCAL_PATH" \
             "https://github.com/SnoozToolbox/snooz-datasets/releases/download/latest/learn-nsrr01.edf"
           test -s "$EDF_LOCAL_PATH"
-          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          OUTPUT_PDF="$RUNTIME_TEST_ROOT/runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
           rm -f "$OUTPUT_PDF"
 
           APP_DIR="target/Snooz Toolbox"
@@ -633,26 +639,30 @@ jobs:
             find target -type f -perm -111 ! -path '*/_internal/*' | sort || true
             exit 1
           fi
+          APP_EXEC="$(realpath "$APP_EXEC")"
           echo "Detected Linux frozen executable: $APP_EXEC"
 
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/linux-frozen-runtime-smoke.log"
           : > "$LOG_FILE"
-          rm -f runtime-smoke/snooz_runtime_smoke_*.log
+          rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
 
           set +e
-          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
+          (
+            cd "$RUNTIME_TEST_ROOT"
+            "$APP_EXEC" --f "$PROCESS_JSON" >"$LOG_FILE" 2>&1
+          )
           APP_STATUS=$?
           set -e
 
-          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          SNOOZ_PROCESS_LOG="$(ls -1t "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
           if [ -n "$SNOOZ_PROCESS_LOG" ]; then
             echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
             echo "--- Snooz process log (last 200 lines) ---"
             tail -n 200 "$SNOOZ_PROCESS_LOG" || true
           else
-            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+            echo "::warning::No Snooz process log found next to process JSON (pattern: $RUNTIME_TEST_ROOT/runtime-smoke/snooz_runtime_smoke_*.log)"
           fi
 
           cat "$LOG_FILE" || true
@@ -678,7 +688,7 @@ jobs:
 
           if [ ! -s "$OUTPUT_PDF" ]; then
             echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
-            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
+            find "$RUNTIME_TEST_ROOT/runtime_smoke_repo" -maxdepth 3 -type f | sort || true
             exit 1
           fi
           OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
@@ -862,7 +872,13 @@ jobs:
             exit 1
           fi
 
-          EDF_LOCAL_PATH="runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
+          RUNTIME_TEST_ROOT="${RUNNER_TEMP}/snooz_linux_installer_runtime_smoke"
+          rm -rf "$RUNTIME_TEST_ROOT"
+          mkdir -p "$RUNTIME_TEST_ROOT/runtime-smoke" "$RUNTIME_TEST_ROOT/runtime_smoke_repo/_runtime_data"
+          PROCESS_JSON="$RUNTIME_TEST_ROOT/runtime-smoke/snooz_runtime_smoke.json"
+          cp "$PROCESS_JSON_SRC" "$PROCESS_JSON"
+
+          EDF_LOCAL_PATH="$RUNTIME_TEST_ROOT/runtime_smoke_repo/_runtime_data/learn-nsrr01.edf"
           mkdir -p "$(dirname "$EDF_LOCAL_PATH")"
           if [ ! -s "$EDF_LOCAL_PATH" ]; then
             curl --fail --silent --show-error --location --retry 5 --retry-all-errors --retry-delay 3 \
@@ -874,7 +890,7 @@ jobs:
             echo "::error::Runtime smoke EDF input missing before installer execution: $EDF_LOCAL_PATH"
             exit 1
           fi
-          OUTPUT_PDF="runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
+          OUTPUT_PDF="$RUNTIME_TEST_ROOT/runtime_smoke_repo/_runtime_data/learn-nsrr01_hypnodensity_plot.pdf"
           rm -f "$OUTPUT_PDF"
 
           DEB_PATH="$(find target -maxdepth 1 -type f -name '*.deb' | head -n 1)"
@@ -889,7 +905,7 @@ jobs:
           mkdir -p "$LOG_DIR"
           LOG_FILE="$LOG_DIR/linux-installer-runtime-smoke.log"
           : > "$LOG_FILE"
-          rm -f runtime-smoke/snooz_runtime_smoke_*.log
+          rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
           cleanup() {
             rm -rf "$EXTRACT_DIR"
           }
@@ -908,20 +924,24 @@ jobs:
             find "$EXTRACT_DIR" -maxdepth 5 -type f ! -path '*/_internal/*' | sort || true
             exit 1
           fi
+          APP_EXEC="$(realpath "$APP_EXEC")"
           echo "Detected Linux installed executable: $APP_EXEC"
 
           set +e
-          "$APP_EXEC" --f "$PROCESS_JSON_SRC" >"$LOG_FILE" 2>&1
+          (
+            cd "$RUNTIME_TEST_ROOT"
+            "$APP_EXEC" --f "$PROCESS_JSON" >"$LOG_FILE" 2>&1
+          )
           APP_STATUS=$?
           set -e
 
-          SNOOZ_PROCESS_LOG="$(ls -1t runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
+          SNOOZ_PROCESS_LOG="$(ls -1t "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
           if [ -n "$SNOOZ_PROCESS_LOG" ]; then
             echo "Detected Snooz process log: $SNOOZ_PROCESS_LOG"
             echo "--- Snooz process log (last 200 lines) ---"
             tail -n 200 "$SNOOZ_PROCESS_LOG" || true
           else
-            echo "::warning::No Snooz process log found next to process JSON (pattern: runtime-smoke/snooz_runtime_smoke_*.log)"
+            echo "::warning::No Snooz process log found next to process JSON (pattern: $RUNTIME_TEST_ROOT/runtime-smoke/snooz_runtime_smoke_*.log)"
           fi
 
           cat "$LOG_FILE" || true
@@ -947,7 +967,7 @@ jobs:
 
           if [ ! -s "$OUTPUT_PDF" ]; then
             echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
-            find runtime_smoke_repo -maxdepth 3 -type f | sort || true
+            find "$RUNTIME_TEST_ROOT/runtime_smoke_repo" -maxdepth 3 -type f | sort || true
             exit 1
           fi
           OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
