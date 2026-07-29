@@ -508,6 +508,7 @@ jobs:
             "$RELEASE_API")"
 
           ASSET_NAME="fbs_pro-${{ env.FBS_PRO_VERSION }}.tar.gz"
+          export ASSET_NAME
           ASSET_ID="$(python -c "import json,os,sys; d=json.load(sys.stdin); n=os.environ['ASSET_NAME']; print(next((str(a.get('id')) for a in d.get('assets', []) if a.get('name')==n), ''))" <<< "$RELEASE_JSON")"
           if [ -z "$ASSET_ID" ]; then
             RELEASE_TAG="$(python -c "import json,sys; d=json.load(sys.stdin); print(d.get('tag_name',''))" <<< "$RELEASE_JSON")"
