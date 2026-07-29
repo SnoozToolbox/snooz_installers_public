@@ -214,6 +214,7 @@ jobs:
               Select-Object -ExpandProperty FullName
             throw "Expected frozen app executable not found: $appExe"
           }
+          $appExe = (Resolve-Path $appExe).Path
           Write-Host "Detected Windows frozen executable: $appExe"
 
           $logDir = Join-Path "target" "smoke-logs"
