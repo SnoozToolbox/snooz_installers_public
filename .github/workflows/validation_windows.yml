@@ -77,6 +77,27 @@ jobs:
           )
           & gh @ghArgs
 
+      - name: Extract private dataset archives and list folders
+        shell: pwsh
+        run: |
+          $datasetRoot = (Resolve-Path "datasets").Path
+          $zipFiles = Get-ChildItem -Path $datasetRoot -Recurse -File -Filter "*.zip" -ErrorAction SilentlyContinue
+
+          if ($zipFiles.Count -eq 0) {
+            Write-Host "No zip archive found under datasets."
+          } else {
+            foreach ($zipFile in $zipFiles) {
+              $destinationDir = Split-Path -Path $zipFile.FullName -Parent
+              Write-Host "Extracting archive: $($zipFile.FullName)"
+              Expand-Archive -Path $zipFile.FullName -DestinationPath $destinationDir -Force
+            }
+          }
+
+          Write-Host "Folders under datasets after extraction:"
+          Get-ChildItem -Path $datasetRoot -Recurse -Directory |
+            Sort-Object FullName |
+            Select-Object -ExpandProperty FullName
+
       - name: Download Windows installer release asset
         shell: pwsh
         env:
