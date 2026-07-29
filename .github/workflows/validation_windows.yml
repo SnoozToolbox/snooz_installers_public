@@ -13,7 +13,7 @@ on:
       installer_tag:
         description: Installer release tag to validate
         required: true
-        default: v1.0.0
+        default: v1.0.1-rc1-Windows
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
@@ -30,6 +30,10 @@ on:
         description: Dataset release tag
         required: true
         default: v1.0.0
+      tools_to_process:
+        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool)"
+        required: false
+        default: "ConvertDOMINO"
 
 jobs:
   validate_windows:
@@ -125,14 +129,39 @@ jobs:
             throw "Silent installer failed with status $($installProcess.ExitCode)"
           }
 
-          Write-Host "Installed package roots under LOCALAPPDATA:" 
-          if (Test-Path $env:LOCALAPPDATA) {
-            Get-ChildItem -Path $env:LOCALAPPDATA -Force | Select-Object Name,FullName,Mode | Format-Table -AutoSize | Out-String | Write-Host
+          $installedAppDir = Join-Path $installDir "Snooz Toolbox"
+          if (-not (Test-Path (Join-Path $installedAppDir "_internal"))) {
+            $installedAppDir = $installDir
           }
-          Write-Host "Installed package roots under APPDATA:"
-          if (Test-Path $env:APPDATA) {
-            Get-ChildItem -Path $env:APPDATA -Force | Select-Object Name,FullName,Mode | Format-Table -AutoSize | Out-String | Write-Host
+
+          $installedExe = Join-Path $installedAppDir "Snooz Toolbox.exe"
+          if (-not (Test-Path $installedExe)) {
+            $installedExe = Get-ChildItem -Path $installedAppDir -Filter "*.exe" -Recurse -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -notmatch 'unins|uninstall' } |
+              Sort-Object FullName |
+              Select-Object -First 1 -ExpandProperty FullName
           }
+
+          if (-not $installedExe -or -not (Test-Path $installedExe)) {
+            Write-Host "Executable candidates under install dir:"
+            Get-ChildItem -Path $installDir -Filter "*.exe" -Recurse -File |
+              Sort-Object FullName |
+              Select-Object -ExpandProperty FullName
+            throw "Expected installed executable not found under '$installedAppDir'"
+          }
+
+          Write-Host "Detected installed executable: $installedExe"
+          "SNOOZ_INSTALLED_EXE=$installedExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          # Debug helper for future Windows/Linux/macOS workflows:
+          # Write-Host "Installed package roots under LOCALAPPDATA:"
+          # if (Test-Path $env:LOCALAPPDATA) {
+          #   Get-ChildItem -Path $env:LOCALAPPDATA -Force | Select-Object Name,FullName,Mode | Format-Table -AutoSize | Out-String | Write-Host
+          # }
+          # Write-Host "Installed package roots under APPDATA:"
+          # if (Test-Path $env:APPDATA) {
+          #   Get-ChildItem -Path $env:APPDATA -Force | Select-Object Name,FullName,Mode | Format-Table -AutoSize | Out-String | Write-Host
+          # }
 
           $versionUnderscore = "${{ inputs.package_version }}".Replace('.', '_')
           $ceamsToolsDir = $null
@@ -195,6 +224,220 @@ jobs:
             Sort-Object |
             ForEach-Object { Write-Host " - $_" }
 
+      - name: Adapt extracted JSON files for validation workspaces
+        shell: pwsh
+        run: |
+          $sourceDir = "validation-json"
+          $workspaceDir = "validation-workspaces"
+          if (Test-Path $workspaceDir) {
+            Remove-Item -Path $workspaceDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $workspaceDir -Force | Out-Null
+
+          $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
+          $toolsToProcess = @()
+          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
+            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+          }
+
+          Write-Host "Tools configured for this run:"
+          if ($toolsToProcess.Count -eq 0) {
+            Write-Host " - none (all others will be skipped)"
+          } else {
+            foreach ($toolName in $toolsToProcess) {
+              Write-Host " - $toolName"
+            }
+          }
+
+          $dominoNodeIdentifier = "f2492f99-7965-4c48-9aec-7970891415f1"
+          $dominoFoldersValue = $null
+          $dominoLogValue = $null
+          if ($toolsToProcess -contains "ConvertDOMINO") {
+            $datasetRoot = (Resolve-Path "datasets").Path
+            $dominoSubjectDir = Get-ChildItem -Path $datasetRoot -Recurse -Directory -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match '[\\/]DOMINO_FILES[\\/]subject_3$' } |
+              Sort-Object FullName |
+              Select-Object -First 1
+
+            if ($null -eq $dominoSubjectDir) {
+              throw "Unable to find DOMINO input folder under datasets (expected .../DOMINO_FILES/subject_3)"
+            }
+
+            $dominoLogsDir = Join-Path $workspaceDir "logs"
+            New-Item -ItemType Directory -Path $dominoLogsDir -Force | Out-Null
+
+            $dominoFoldersValue = "['$($dominoSubjectDir.FullName -replace '\\', '/')']"
+            $dominoLogValue = (Join-Path (Resolve-Path $dominoLogsDir).Path "01-DOMINO_log.tsv") -replace '\\', '/'
+
+            Write-Host "ConvertDOMINO input folder: $($dominoSubjectDir.FullName)"
+            Write-Host "ConvertDOMINO output log: $dominoLogValue"
+          }
+
+          $toolTransformations = @{
+            "AnalyzeEEGConnectivity" = @{
+              targetToolName = "AnalyzeEEGConnectivity"
+              processingMode = "adapted"
+            }
+            "ConvertDOMINO" = @{
+              targetToolName = "ConvertDOMINO"
+              processingMode = "adapted"
+            }
+          }
+
+          function Convert-ExtractedJson {
+            param(
+              [string]$SourcePath,
+              [string]$DestinationPath,
+              [string]$ToolName,
+              [string[]]$ToolsToProcess
+            )
+
+            function Update-NodeInputsByIdentifier {
+              param(
+                [hashtable]$JsonObject,
+                [string]$Identifier,
+                [hashtable]$InputValues
+              )
+
+              if (-not $JsonObject.ContainsKey("process_params") -or -not $JsonObject.process_params.ContainsKey("nodes")) {
+                return $false
+              }
+
+              $updated = $false
+              foreach ($node in $JsonObject.process_params.nodes) {
+                if ($node.identifier -ne $Identifier) {
+                  continue
+                }
+                foreach ($inputName in $InputValues.Keys) {
+                  if ($node.inputs.ContainsKey($inputName)) {
+                    $node.inputs[$inputName].value = $InputValues[$inputName]
+                    $updated = $true
+                  }
+                }
+              }
+
+              return $updated
+            }
+
+            $json = Get-Content -Path $SourcePath -Raw | ConvertFrom-Json -AsHashtable
+            if (-not $json.ContainsKey("metadata")) {
+              $json.metadata = @{}
+            }
+
+            # Use the JSON file basename as the stable identifier for step-by-step processing.
+            $shouldTransform = $false
+            if ($ToolsToProcess.Count -gt 0) {
+              $shouldTransform = $ToolsToProcess -contains $ToolName
+            }
+
+            if (-not $shouldTransform) {
+              return $false
+            }
+
+            $toolDefinition = $null
+            if ($toolTransformations.ContainsKey($ToolName)) {
+              $toolDefinition = $toolTransformations[$ToolName]
+            }
+
+            $json.metadata.validationSource = "installed-package"
+            $json.metadata.validationTarget = "validation-workspaces"
+            $json.metadata.toolName = if ($toolDefinition) { $toolDefinition.targetToolName } else { $ToolName }
+            $json.metadata.processingMode = if ($toolDefinition) { $toolDefinition.processingMode } else { "adapted" }
+
+            if ($ToolName -eq "ConvertDOMINO") {
+              $inputValues = @{
+                "folders" = $dominoFoldersValue
+                "log_filename" = $dominoLogValue
+              }
+              $didUpdate = Update-NodeInputsByIdentifier -JsonObject $json -Identifier $dominoNodeIdentifier -InputValues $inputValues
+              if (-not $didUpdate) {
+                throw "Unable to update node '$dominoNodeIdentifier' in $SourcePath"
+              }
+            }
+
+            $destinationDir = Split-Path -Path $DestinationPath -Parent
+            New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
+
+            $json | ConvertTo-Json -Depth 20 | Set-Content -Path $DestinationPath -Encoding UTF8
+            return $true
+          }
+
+          $sourceRoot = (Resolve-Path $sourceDir).Path
+          Get-ChildItem -Path $sourceDir -Recurse -File -Filter "*.json" | ForEach-Object {
+            $relativePath = $_.FullName.Substring($sourceRoot.Length).TrimStart('\\', '/')
+            $jsonFileName = [System.IO.Path]::GetFileNameWithoutExtension($_.Name)
+            if ($jsonFileName -eq "CEAMSTools") {
+              Write-Host "Catalog file kept for logging: $relativePath"
+              return
+            }
+
+            $shouldTransform = Convert-ExtractedJson -SourcePath $_.FullName -DestinationPath (Join-Path $workspaceDir $relativePath) -ToolName $jsonFileName -ToolsToProcess $toolsToProcess
+
+            if ($shouldTransform) {
+              Write-Host "Adapted: $relativePath"
+            } else {
+              Write-Host "Skipped: $relativePath"
+            }
+          }
+
+          Write-Host "Generated adaptive workspace JSON files:"
+          Get-ChildItem -Path $workspaceDir -Recurse -File -Filter "*.json" |
+            ForEach-Object { $_.FullName.Substring((Resolve-Path $workspaceDir).Path.Length).TrimStart('\\', '/') } |
+            Sort-Object |
+            ForEach-Object { Write-Host " - $_" }
+
+      - name: Run adapted ConvertDOMINO and print output log
+        shell: pwsh
+        run: |
+          $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
+          $toolsToProcess = @()
+          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
+            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+          }
+
+          if (-not ($toolsToProcess -contains "ConvertDOMINO")) {
+            Write-Host "ConvertDOMINO not requested; skipping execution step."
+            exit 0
+          }
+
+          if ([string]::IsNullOrWhiteSpace("$env:SNOOZ_INSTALLED_EXE") -or -not (Test-Path "$env:SNOOZ_INSTALLED_EXE")) {
+            throw "Installed executable path is missing or invalid: '$env:SNOOZ_INSTALLED_EXE'"
+          }
+
+          $scenarioPath = Get-ChildItem -Path "validation-workspaces" -Recurse -File -Filter "ConvertDOMINO.json" -ErrorAction SilentlyContinue |
+            Sort-Object FullName |
+            Select-Object -First 1
+          if ($null -eq $scenarioPath) {
+            throw "Could not find adapted ConvertDOMINO.json under validation-workspaces"
+          }
+
+          Write-Host "Launching headless scenario: $env:SNOOZ_INSTALLED_EXE --f $($scenarioPath.FullName)"
+          & "$env:SNOOZ_INSTALLED_EXE" --f "$($scenarioPath.FullName)"
+          $appStatus = $LASTEXITCODE
+          if ($appStatus -ne 0) {
+            throw "ConvertDOMINO execution failed with status $appStatus"
+          }
+
+          $dominoNodeIdentifier = "f2492f99-7965-4c48-9aec-7970891415f1"
+          $scenario = Get-Content -Path $scenarioPath.FullName -Raw | ConvertFrom-Json -AsHashtable
+          $node = $scenario.process_params.nodes | Where-Object { $_.identifier -eq $dominoNodeIdentifier } | Select-Object -First 1
+          if ($null -eq $node) {
+            throw "Node '$dominoNodeIdentifier' not found in adapted ConvertDOMINO scenario"
+          }
+
+          $logPath = "$($node.inputs.log_filename.value)"
+          if ([string]::IsNullOrWhiteSpace($logPath)) {
+            throw "log_filename is empty in adapted ConvertDOMINO scenario"
+          }
+
+          Write-Host "ConvertDOMINO output log path: $logPath"
+          if (-not (Test-Path $logPath)) {
+            throw "Expected output log not found: $logPath"
+          }
+
+          Write-Host "ConvertDOMINO output log content (first 200 lines):"
+          Get-Content -Path $logPath -TotalCount 200 | ForEach-Object { Write-Host $_ }
+
       - name: Upload extracted JSON as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -202,6 +445,14 @@ jobs:
           if-no-files-found: error
           path: |
             validation-json/**
+
+      - name: Upload adapted workspace JSON as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-validation-workspaces
+          if-no-files-found: warn
+          path: |
+            validation-workspaces/**
 
       - name: Upload validation logs as artifact
         uses: actions/upload-artifact@v4
