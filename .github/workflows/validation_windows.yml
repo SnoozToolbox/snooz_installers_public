@@ -487,7 +487,7 @@ jobs:
                 $selectedPaths = @($pathMatches[0].FullName)
               }
 
-              $selectedPaths = @($selectedPaths | ForEach-Object { Convert-ToJsonPath -PathValue [string]$_ })
+              $selectedPaths = @($selectedPaths | ForEach-Object { Convert-ToJsonPath -PathValue ([string]$_) })
               if ($output -eq "pythonListSingleQuoted") {
                 $quoted = $selectedPaths | ForEach-Object { "'$_'" }
                 return "[$($quoted -join ',')]"
