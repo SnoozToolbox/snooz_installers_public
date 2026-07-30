@@ -31,6 +31,13 @@
         "generatedSearchRoots": [
           "validation-workspaces/logs"
         ]
+      },
+      {
+        "fileName": "patient-CEJUDO_(1).tsv",
+        "fileType": "annotation",
+        "generatedSearchRoots": [
+          "private-dataset/inputs/DOMINO_FILES/subject_3"
+        ]
       }
     ]
   },
