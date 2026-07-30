@@ -605,6 +605,24 @@ jobs:
             throw "Unsupported value specification kind: $kind"
           }
 
+          function Format-ValueForLog {
+            param([object]$Value)
+
+            if ($null -eq $Value) {
+              return "null"
+            }
+
+            if ($Value -is [string]) {
+              return [string]$Value
+            }
+
+            if ($Value -is [System.Collections.IEnumerable]) {
+              return (ConvertTo-Json -InputObject $Value -Depth 10 -Compress)
+            }
+
+            return [string]$Value
+          }
+
           function Convert-ExtractedJson {
             param(
               [string]$SourcePath,
@@ -699,7 +717,7 @@ jobs:
                 }
 
                 $resolvedInputValue = Resolve-ConfiguredValue -Spec $update.value -WorkspaceDir $workspaceDir
-                Write-Host "$ToolName update '$identifier.$inputName': $resolvedInputValue"
+                Write-Host "$ToolName update '$identifier.$inputName': $(Format-ValueForLog -Value $resolvedInputValue)"
 
                 $didUpdate = Update-NodeInputsByIdentifier -JsonObject $json -Identifier $identifier -InputName $inputName -InputValue $resolvedInputValue
                 if (-not $didUpdate -and $required) {
