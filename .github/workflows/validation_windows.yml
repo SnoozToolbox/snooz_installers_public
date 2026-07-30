@@ -451,7 +451,7 @@ jobs:
               $pick = if ($Spec.ContainsKey("pick")) { [string]$Spec.pick } else { "first" }
               $output = if ($Spec.ContainsKey("output")) { [string]$Spec.output } else { "path" }
 
-              $matches = @()
+              $pathMatches = @()
               foreach ($root in $roots) {
                 if (-not (Test-Path $root)) {
                   continue
@@ -468,11 +468,11 @@ jobs:
                   $found = $found | Where-Object { $_.FullName -match $matchRegex }
                 }
 
-                $matches += @($found)
+                $pathMatches += @($found)
               }
 
-              $matches = $matches | Sort-Object FullName
-              if ($matches.Count -eq 0) {
+              $pathMatches = $pathMatches | Sort-Object FullName
+              if ($pathMatches.Count -eq 0) {
                 if ($required) {
                   throw "No path matched for findPath roots=[$($roots -join ',')] regex='$matchRegex'"
                 }
@@ -481,10 +481,10 @@ jobs:
 
               $selectedPaths = @()
               if ($pick -eq "all") {
-                $selectedPaths = @($matches | Select-Object -ExpandProperty FullName)
+                $selectedPaths = @($pathMatches | Select-Object -ExpandProperty FullName)
               }
               else {
-                $selectedPaths = @($matches[0].FullName)
+                $selectedPaths = @($pathMatches[0].FullName)
               }
 
               $selectedPaths = @($selectedPaths | ForEach-Object { Convert-ToJsonPath -PathValue [string]$_ })
