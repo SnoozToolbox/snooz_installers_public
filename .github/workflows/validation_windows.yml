@@ -631,6 +631,15 @@ jobs:
                   continue
                 }
                 if ($node.inputs.ContainsKey($InputName)) {
+                  # Preserve array-ness: if the existing JSON input value is an array,
+                  # ensure we assign an array (wrap scalars) so ConvertTo-Json emits a JSON array.
+                  $existingVal = $node.inputs[$InputName].value
+                  if ($existingVal -is [System.Collections.IEnumerable] -and -not ($existingVal -is [string])) {
+                    if (-not ($InputValue -is [System.Collections.IEnumerable]) -or ($InputValue -is [string])) {
+                      $InputValue = @($InputValue)
+                    }
+                  }
+
                   $node.inputs[$InputName].value = $InputValue
                   $updated = $true
                 }
