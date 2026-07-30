@@ -854,14 +854,16 @@ jobs:
           }
 
       - name: Upload extracted JSON as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-validation-json
-          if-no-files-found: error
+          if-no-files-found: warn
           path: |
             validation-json/**
 
       - name: Upload adapted workspace JSON as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-validation-workspaces
@@ -870,6 +872,7 @@ jobs:
             validation-workspaces/**
 
       - name: Upload validation logs as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-validation-logs
