@@ -760,6 +760,26 @@ jobs:
       - name: Run adapted headless scenarios and print failure logs
         shell: pwsh
         run: |
+          function Get-ToolVersionFromJson {
+            param([string]$ScenarioPath)
+
+            if (-not (Test-Path $ScenarioPath)) {
+              return "unknown"
+            }
+
+            try {
+              $scenarioJson = Get-Content -Path $ScenarioPath -Raw | ConvertFrom-Json
+              if ($null -ne $scenarioJson.tool_params -and -not [string]::IsNullOrWhiteSpace([string]$scenarioJson.tool_params.tool_version)) {
+                return [string]$scenarioJson.tool_params.tool_version
+              }
+            }
+            catch {
+              Write-Host "::warning::Unable to parse tool_version from $ScenarioPath"
+            }
+
+            return "unknown"
+          }
+
           function Get-NormalizedLines {
             param([string]$Path)
             $raw = Get-Content -Path $Path -Raw
@@ -828,6 +848,7 @@ jobs:
           $logDir = Join-Path "target" "validation-logs"
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null
           $logDir = (Resolve-Path $logDir).Path
+          $toolRunSummary = @()
           $failedScenarios = @()
           $succeededCount = 0
           $goldTag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
@@ -840,6 +861,10 @@ jobs:
           foreach ($scenarioEntry in $scenariosToRun) {
             $toolName = $scenarioEntry.ToolName
             $scenarioPath = $scenarioEntry.ScenarioPath
+            $toolVersion = Get-ToolVersionFromJson -ScenarioPath $scenarioPath
+            $toolStatus = "fail"
+            $comparisonStatus = "not-configured"
+            $validatedFilesForTool = @()
 
             Write-Host "Using adapted scenario JSON for ${toolName}: $scenarioPath"
             Write-Host "Launching headless scenario: $env:SNOOZ_INSTALLED_EXE --f $scenarioPath"
@@ -854,6 +879,7 @@ jobs:
             }
 
             if ($appStatus -ne 0) {
+              $comparisonStatus = "not-run-headless-failed"
               $scenarioDir = Split-Path $scenarioPath -Parent
               $snoozProcessLog = Get-ChildItem -Path $scenarioDir -Filter "*.log" -File -ErrorAction SilentlyContinue |
                 Sort-Object LastWriteTime -Descending |
@@ -876,6 +902,13 @@ jobs:
                 Status = $appStatus
                 ExecutionLog = $executionLogPath
               }
+              $toolRunSummary += [PSCustomObject]@{
+                tool_name = $toolName
+                tool_version = $toolVersion
+                status = $toolStatus
+                comparison_status = $comparisonStatus
+                validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
+              }
               Write-Host "::error::Headless execution failed for ${toolName} with status $appStatus. Continuing to next scenario."
               continue
             }
@@ -883,15 +916,24 @@ jobs:
             # Config-driven validation of output artifacts per tool.
             if ($toolValidationConfig.ContainsKey($toolName)) {
               if ([string]::IsNullOrWhiteSpace($goldTag)) {
+                $comparisonStatus = "skipped-no-gold-standard-tag"
                 Write-Host "No gold_standard_tag provided; skipping $toolName output comparison."
               }
               else {
                 $compareScript = Join-Path (Resolve-Path ".").Path "ci/validation_tools/compare_outputs.py"
                 if (-not (Test-Path $compareScript)) {
+                  $comparisonStatus = "failed-missing-compare-script"
                   $failedScenarios += [PSCustomObject]@{
                     ToolName = $toolName
                     Status = "validation_failed"
                     ExecutionLog = $executionLogPath
+                  }
+                  $toolRunSummary += [PSCustomObject]@{
+                    tool_name = $toolName
+                    tool_version = $toolVersion
+                    status = $toolStatus
+                    comparison_status = $comparisonStatus
+                    validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
                   }
                   Write-Host "::error::Comparison script not found: $compareScript"
                   continue
@@ -899,9 +941,11 @@ jobs:
 
                 $toolDefinition = $toolValidationConfig[$toolName]
                 if (-not $toolDefinition.ContainsKey("comparisons") -or $toolDefinition.comparisons.Count -eq 0) {
+                  $comparisonStatus = "skipped-no-comparisons-configured"
                   Write-Host "::warning::No comparisons configured for $toolName in tool_validations.json"
                 }
                 else {
+                  $comparisonStatus = "running"
                   $toolValidationFailed = $false
                   foreach ($comparison in $toolDefinition.comparisons) {
                     $fileName = if ($comparison.ContainsKey("fileName") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.fileName)) { [string]$comparison.fileName } else { "" }
@@ -972,11 +1016,19 @@ jobs:
                     & python @compareArgs
                     $compareStatus = $LASTEXITCODE
                     if ($compareStatus -ne 0) {
+                      $comparisonStatus = "failed"
                       Write-Host "::error::$toolName output mismatch for $generatedFileName"
                       Write-Host "Generated file: $generatedFile"
                       Write-Host "Gold standard: $($goldReference.FullName)"
                       $toolValidationFailed = $true
                       break
+                    }
+
+                    if ($generatedFileName -ieq $goldFileName) {
+                      $validatedFilesForTool += $generatedFileName
+                    }
+                    else {
+                      $validatedFilesForTool += ("{0} (ref: {1})" -f $generatedFileName, $goldFileName)
                     }
                   }
 
@@ -986,17 +1038,42 @@ jobs:
                       Status = "validation_failed"
                       ExecutionLog = $executionLogPath
                     }
+                    $toolRunSummary += [PSCustomObject]@{
+                      tool_name = $toolName
+                      tool_version = $toolVersion
+                      status = $toolStatus
+                      comparison_status = $comparisonStatus
+                      validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
+                    }
                     continue
                   }
 
+                  $comparisonStatus = "passed"
                   Write-Host "$toolName outputs match configured gold standards."
                 }
               }
             }
+            else {
+              $comparisonStatus = "not-configured"
+            }
 
             Write-Host "Headless execution succeeded for ${toolName}."
+            $toolStatus = "pass"
+            $toolRunSummary += [PSCustomObject]@{
+              tool_name = $toolName
+              tool_version = $toolVersion
+              status = $toolStatus
+              comparison_status = $comparisonStatus
+              validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
+            }
             $succeededCount++
           }
+
+          $runSummaryCsvPath = Join-Path $logDir "tool-run-summary.csv"
+          $toolRunSummary |
+            Select-Object tool_name, tool_version, status, comparison_status, validated_files |
+            Export-Csv -Path $runSummaryCsvPath -NoTypeInformation -Encoding UTF8
+          Write-Host "Tool run summary CSV written to: $runSummaryCsvPath"
 
           Write-Host "Headless execution summary: success=$succeededCount failed=$($failedScenarios.Count) total=$($scenariosToRun.Count)"
           if ($failedScenarios.Count -gt 0) {
@@ -1017,3 +1094,4 @@ jobs:
             validation-workspaces/**/*.json
             validation-workspaces/**/*.log
             target/validation-logs/**/*.log
+            target/validation-logs/tool-run-summary.csv
