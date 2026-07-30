@@ -29,7 +29,7 @@
   #   - itemType: Directory or File (default Directory)
   #   - matchRegex: regex matched against full path
   #   - pick: first or all (default first)
-  #   - output: path or pythonListSingleQuoted (default path)
+  #   - output: path, list, or pythonListSingleQuoted (default path)
   # - required: true/false (default true)
   #   - true: fail fast if value/path cannot be resolved
   #   - false: allow missing value and continue (empty substitution)
@@ -84,6 +84,7 @@
           itemType = 'File'
           matchRegex = '[\\/]learn-nsrr01_annotations\.txt$'
           pick = 'first'
+          output = 'list'
           required = $true
         }
       }

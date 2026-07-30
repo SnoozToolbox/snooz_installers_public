@@ -488,6 +488,9 @@ jobs:
               }
 
               $selectedPaths = @($selectedPaths | ForEach-Object { Convert-ToJsonPath -PathValue ([string]$_) })
+              if ($output -eq "list") {
+                return @($selectedPaths)
+              }
               if ($output -eq "pythonListSingleQuoted") {
                 $quoted = $selectedPaths | ForEach-Object { "'$_'" }
                 return "[$($quoted -join ',')]"
@@ -512,7 +515,7 @@ jobs:
                 [hashtable]$JsonObject,
                 [string]$Identifier,
                 [string]$InputName,
-                [string]$InputValue
+                [object]$InputValue
               )
 
               if (-not $JsonObject.ContainsKey("process_params") -or -not $JsonObject.process_params.ContainsKey("nodes")) {
