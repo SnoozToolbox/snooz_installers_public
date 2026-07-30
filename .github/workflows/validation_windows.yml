@@ -41,7 +41,7 @@ on:
       gold_standard_tag:
         description: Gold-standard release tag (optional; enables output comparison)
         required: false
-        default: ""
+        default: v1.0.0
 
 jobs:
   validate_windows:
@@ -573,14 +573,14 @@ jobs:
                 }
 
                 if ([string]::IsNullOrWhiteSpace($identifier)) {
-                  throw "Invalid updates entry in $ToolName: missing identifier"
+                  throw "Invalid updates entry in ${ToolName}: missing identifier"
                 }
                 if ([string]::IsNullOrWhiteSpace($inputName)) {
-                  throw "Invalid updates entry in $ToolName: missing inputName"
+                  throw "Invalid updates entry in ${ToolName}: missing inputName"
                 }
 
                 if (-not $update.ContainsKey("value")) {
-                  throw "Invalid updates entry in $ToolName: missing value specification"
+                  throw "Invalid updates entry in ${ToolName}: missing value specification"
                 }
 
                 $resolvedInputValue = Resolve-ConfiguredValue -Spec $update.value -WorkspaceDir $workspaceDir
