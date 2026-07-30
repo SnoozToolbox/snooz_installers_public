@@ -44,18 +44,9 @@
   "ConvertEDFbrowser": {
     "comparisons": [
       {
-        "fileName": "learn-nsrr01-profusion.tsv",
+        "fileName": "learn-nsrr01_annotations.tsv",
         "fileType": "annotation",
         "generatedSearchRoots": [
-          "validation-workspaces",
-          "private-dataset"
-        ]
-      },
-      {
-        "fileName": "learn-nsrr02-profusion.tsv",
-        "fileType": "annotation",
-        "generatedSearchRoots": [
-          "validation-workspaces",
           "private-dataset"
         ]
       }

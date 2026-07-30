@@ -68,4 +68,25 @@
       }
     )
   }
+
+  ConvertEDFbrowser = @{
+    targetToolName = 'ConvertEDFbrowser'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = '663cd8ee-9ca5-4956-9a4f-82561c6adadf'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'findPath'
+          roots = @('private-dataset')
+          itemType = 'File'
+          matchRegex = '[\\/]learn-nsrr01_annotations\.txt$'
+          pick = 'first'
+          required = $true
+        }
+      }
+    )
+  }
 }
