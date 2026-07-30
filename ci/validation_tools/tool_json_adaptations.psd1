@@ -27,6 +27,14 @@
   # - kind=privateDatasetPath
   #   - relativePath: path relative to private-dataset
   #   - output: path, list, or pythonListSingleQuoted (default path)
+  #
+  # Examples (final JSON produced for an input named "files"):
+  # - output = 'path' produces a single string value:
+  #   "files": { "name": "files", "value": "D:/.../private-dataset/inputs/file.txt", "sub_plugs": {}, "connections": {} }
+  # - output = 'list' produces a native JSON array:
+  #   "files": { "name": "files", "value": [ "D:/.../private-dataset/inputs/file.txt" ], "sub_plugs": {}, "connections": {} }
+  # - output = 'pythonListSingleQuoted' produces a Python-list-as-string (single-quoted):
+  #   "files": { "name": "files", "value": "['D:/.../private-dataset/inputs/file.txt']", "sub_plugs": {}, "connections": {} }
   # - kind=findPath
   #   - roots: list of roots to search recursively
   #   - itemType: Directory or File (default Directory)
