@@ -51,22 +51,6 @@ jobs:
       - name: Checkout workflow repository
         uses: actions/checkout@v5
 
-      - name: Download dataset release assets (public)
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace("${env:GH_TOKEN}")) {
-            throw "Missing secret GH_PAT"
-          }
-          New-Item -ItemType Directory -Force -Path runtime_smoke_repo/_runtime_data | Out-Null
-          $ghArgs = @(
-            "release", "download", "latest",
-            "--repo", "SnoozToolbox/snooz-datasets",
-            "--dir", "runtime_smoke_repo/_runtime_data"
-          )
-          & gh @ghArgs
-
       - name: Download dataset release assets (private)
         shell: pwsh
         env:
@@ -75,13 +59,13 @@ jobs:
           if ([string]::IsNullOrWhiteSpace("${env:GH_TOKEN}")) {
             throw "Missing secret GH_PAT_VALIDATION"
           }
-          New-Item -ItemType Directory -Force -Path datasets | Out-Null
+          New-Item -ItemType Directory -Force -Path private-dataset | Out-Null
           $tag = "${{ inputs.dataset_tag }}".Trim().Trim('"')
           $repo = "${{ inputs.dataset_repo }}".Trim().Trim('"')
           $ghArgs = @(
             "release", "download", $tag,
             "--repo", $repo,
-            "--dir", "datasets"
+            "--dir", "private-dataset"
           )
           & gh @ghArgs
 
@@ -191,11 +175,11 @@ jobs:
       - name: Extract private dataset archives and list folders
         shell: pwsh
         run: |
-          $datasetRoot = (Resolve-Path "datasets").Path
+          $datasetRoot = (Resolve-Path "private-dataset").Path
           $zipFiles = Get-ChildItem -Path $datasetRoot -Recurse -File -Filter "*.zip" -ErrorAction SilentlyContinue
 
           if ($zipFiles.Count -eq 0) {
-            Write-Host "No zip archive found under datasets."
+            Write-Host "No zip archive found under private-dataset."
           } else {
             foreach ($zipFile in $zipFiles) {
               $destinationDir = Split-Path -Path $zipFile.FullName -Parent
@@ -204,7 +188,7 @@ jobs:
             }
           }
 
-          Write-Host "Folders under datasets after extraction:"
+          Write-Host "Folders under private-dataset after extraction:"
           Get-ChildItem -Path $datasetRoot -Recurse -Directory |
             Sort-Object FullName |
             Select-Object -ExpandProperty FullName |
@@ -234,9 +218,7 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Private dataset release files:"
-          Get-ChildItem -Path datasets -Recurse -File | Select-Object -ExpandProperty FullName
-          Write-Host "Public dataset release files:"
-          Get-ChildItem -Path runtime_smoke_repo -Recurse -File | Select-Object -ExpandProperty FullName
+          Get-ChildItem -Path private-dataset -Recurse -File | Select-Object -ExpandProperty FullName
           Write-Host "Installer files:"
           Get-ChildItem -Path installer -Recurse -File | Select-Object -ExpandProperty FullName
 
@@ -387,46 +369,134 @@ jobs:
             }
           }
 
-          $dominoNodeIdentifier = "f2492f99-7965-4c48-9aec-7970891415f1"
-          $dominoFoldersValue = $null
-          $dominoLogValue = $null
-          if ($toolsToProcess -contains "ConvertDOMINO") {
-            $datasetRoot = (Resolve-Path "datasets").Path
-            $dominoSubjectDir = Get-ChildItem -Path $datasetRoot -Recurse -Directory -ErrorAction SilentlyContinue |
-              Where-Object { $_.FullName -match '[\\/]DOMINO_FILES[\\/]subject_3$' } |
-              Sort-Object FullName |
-              Select-Object -First 1
+          $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+          if (-not (Test-Path $toolTransformationsPath)) {
+            throw "Tool adaptations config not found: $toolTransformationsPath"
+          }
+          $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
 
-            if ($null -eq $dominoSubjectDir) {
-              throw "Unable to find DOMINO input folder under datasets (expected .../DOMINO_FILES/subject_3)"
+          if ($toolsToProcess.Count -gt 0) {
+            $missingToolDefinitions = @()
+            $toolsWithoutUpdates = @()
+
+            foreach ($toolName in $toolsToProcess) {
+              if (-not $toolTransformations.ContainsKey($toolName)) {
+                $missingToolDefinitions += $toolName
+                continue
+              }
+
+              $toolDefinition = $toolTransformations[$toolName]
+              if (-not $toolDefinition.ContainsKey("updates") -or $toolDefinition.updates.Count -eq 0) {
+                $toolsWithoutUpdates += $toolName
+              }
             }
 
-            $dominoLogsDir = Join-Path $workspaceDir "logs"
-            New-Item -ItemType Directory -Path $dominoLogsDir -Force | Out-Null
-
-            $dominoFoldersPath = Convert-ToJsonPath -PathValue $dominoSubjectDir.FullName
-            $dominoLogPath = Convert-ToJsonPath -PathValue (Join-Path (Resolve-Path $dominoLogsDir).Path "DOMINO_log.tsv")
-
-            $dominoFoldersValue = "['$dominoFoldersPath']"
-            $dominoLogValue = $dominoLogPath
-
-            Write-Host "ConvertDOMINO input folder: $($dominoSubjectDir.FullName)"
-            Write-Host "ConvertDOMINO output log: $dominoLogValue"
+            if ($missingToolDefinitions.Count -gt 0 -or $toolsWithoutUpdates.Count -gt 0) {
+              if ($missingToolDefinitions.Count -gt 0) {
+                Write-Host "::error::Missing tool adaptation definition(s) in tool_json_adaptations.psd1: $($missingToolDefinitions -join ', ')"
+              }
+              if ($toolsWithoutUpdates.Count -gt 0) {
+                Write-Host "::error::Tool adaptation definition(s) without updates in tool_json_adaptations.psd1: $($toolsWithoutUpdates -join ', ')"
+              }
+              throw "Invalid tool adaptation configuration for requested tool(s)."
+            }
           }
 
-          $toolTransformations = @{
-            "AnalyzeEEGConnectivity" = @{
-              targetToolName = "AnalyzeEEGConnectivity"
-              processingMode = "adapted"
+          function Resolve-ConfiguredValue {
+            param(
+              [hashtable]$Spec,
+              [string]$WorkspaceDir
+            )
+
+            if ($null -eq $Spec -or -not $Spec.ContainsKey("kind")) {
+              throw "Invalid value specification: missing kind"
             }
-            "ConvertEDFbrowser" = @{
-              targetToolName = "ConvertEDFbrowser"
-              processingMode = "adapted"
+
+            $kind = [string]$Spec.kind
+            $required = $true
+            if ($Spec.ContainsKey("required")) {
+              $required = [bool]$Spec.required
             }
-            "ConvertDOMINO" = @{
-              targetToolName = "ConvertDOMINO"
-              processingMode = "adapted"
+
+            if ($kind -eq "literal") {
+              return [string]$Spec.value
             }
+
+            if ($kind -eq "workspacePath") {
+              $relativePath = [string]$Spec.relativePath
+              if ([string]::IsNullOrWhiteSpace($relativePath)) {
+                throw "workspacePath specification requires relativePath"
+              }
+
+              $fullPath = Join-Path (Resolve-Path $WorkspaceDir).Path $relativePath
+              $parentDir = Split-Path -Path $fullPath -Parent
+              if (-not [string]::IsNullOrWhiteSpace($parentDir)) {
+                New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+              }
+
+              return Convert-ToJsonPath -PathValue $fullPath
+            }
+
+            if ($kind -eq "findPath") {
+              $roots = @()
+              if ($Spec.ContainsKey("roots")) {
+                $roots = @($Spec.roots | ForEach-Object { [string]$_ })
+              }
+              if ($roots.Count -eq 0) {
+                throw "findPath specification requires at least one root"
+              }
+
+              $itemType = if ($Spec.ContainsKey("itemType")) { [string]$Spec.itemType } else { "Directory" }
+              $matchRegex = [string]$Spec.matchRegex
+              $pick = if ($Spec.ContainsKey("pick")) { [string]$Spec.pick } else { "first" }
+              $output = if ($Spec.ContainsKey("output")) { [string]$Spec.output } else { "path" }
+
+              $matches = @()
+              foreach ($root in $roots) {
+                if (-not (Test-Path $root)) {
+                  continue
+                }
+
+                if ($itemType -eq "File") {
+                  $found = Get-ChildItem -Path $root -Recurse -File -ErrorAction SilentlyContinue
+                }
+                else {
+                  $found = Get-ChildItem -Path $root -Recurse -Directory -ErrorAction SilentlyContinue
+                }
+
+                if (-not [string]::IsNullOrWhiteSpace($matchRegex)) {
+                  $found = $found | Where-Object { $_.FullName -match $matchRegex }
+                }
+
+                $matches += @($found)
+              }
+
+              $matches = $matches | Sort-Object FullName
+              if ($matches.Count -eq 0) {
+                if ($required) {
+                  throw "No path matched for findPath roots=[$($roots -join ',')] regex='$matchRegex'"
+                }
+                return $null
+              }
+
+              $selectedPaths = @()
+              if ($pick -eq "all") {
+                $selectedPaths = @($matches | Select-Object -ExpandProperty FullName)
+              }
+              else {
+                $selectedPaths = @($matches[0].FullName)
+              }
+
+              $selectedPaths = @($selectedPaths | ForEach-Object { Convert-ToJsonPath -PathValue [string]$_ })
+              if ($output -eq "pythonListSingleQuoted") {
+                $quoted = $selectedPaths | ForEach-Object { "'$_'" }
+                return "[$($quoted -join ',')]"
+              }
+
+              return $selectedPaths[0]
+            }
+
+            throw "Unsupported value specification kind: $kind"
           }
 
           function Convert-ExtractedJson {
@@ -441,7 +511,8 @@ jobs:
               param(
                 [hashtable]$JsonObject,
                 [string]$Identifier,
-                [hashtable]$InputValues
+                [string]$InputName,
+                [string]$InputValue
               )
 
               if (-not $JsonObject.ContainsKey("process_params") -or -not $JsonObject.process_params.ContainsKey("nodes")) {
@@ -453,11 +524,9 @@ jobs:
                 if ($node.identifier -ne $Identifier) {
                   continue
                 }
-                foreach ($inputName in $InputValues.Keys) {
-                  if ($node.inputs.ContainsKey($inputName)) {
-                    $node.inputs[$inputName].value = $InputValues[$inputName]
-                    $updated = $true
-                  }
+                if ($node.inputs.ContainsKey($InputName)) {
+                  $node.inputs[$InputName].value = $InputValue
+                  $updated = $true
                 }
               }
 
@@ -479,24 +548,48 @@ jobs:
               return $false
             }
 
-            $toolDefinition = $null
+            $toolDefinition = @{}
             if ($toolTransformations.ContainsKey($ToolName)) {
               $toolDefinition = $toolTransformations[$ToolName]
             }
 
             $json.metadata.validationSource = "installed-package"
             $json.metadata.validationTarget = "validation-workspaces"
-            $json.metadata.toolName = if ($toolDefinition) { $toolDefinition.targetToolName } else { $ToolName }
-            $json.metadata.processingMode = if ($toolDefinition) { $toolDefinition.processingMode } else { "adapted" }
+            $json.metadata.toolName = if ($toolDefinition.ContainsKey("targetToolName")) { [string]$toolDefinition.targetToolName } else { $ToolName }
+            if ($toolDefinition.ContainsKey("processingMode") -and -not [string]::IsNullOrWhiteSpace([string]$toolDefinition.processingMode)) {
+              $json.metadata.processingMode = [string]$toolDefinition.processingMode
+            }
+            elseif ($json.metadata.ContainsKey("processingMode")) {
+              $json.metadata.Remove("processingMode")
+            }
 
-            if ($ToolName -eq "ConvertDOMINO") {
-              $inputValues = @{
-                "folders" = $dominoFoldersValue
-                "log_filename" = $dominoLogValue
-              }
-              $didUpdate = Update-NodeInputsByIdentifier -JsonObject $json -Identifier $dominoNodeIdentifier -InputValues $inputValues
-              if (-not $didUpdate) {
-                throw "Unable to update node '$dominoNodeIdentifier' in $SourcePath"
+            if ($toolDefinition.ContainsKey("updates")) {
+              foreach ($update in $toolDefinition.updates) {
+                $identifier = [string]$update.identifier
+                $inputName = [string]$update.inputName
+                $required = $true
+                if ($update.ContainsKey("required")) {
+                  $required = [bool]$update.required
+                }
+
+                if ([string]::IsNullOrWhiteSpace($identifier)) {
+                  throw "Invalid updates entry in $ToolName: missing identifier"
+                }
+                if ([string]::IsNullOrWhiteSpace($inputName)) {
+                  throw "Invalid updates entry in $ToolName: missing inputName"
+                }
+
+                if (-not $update.ContainsKey("value")) {
+                  throw "Invalid updates entry in $ToolName: missing value specification"
+                }
+
+                $resolvedInputValue = Resolve-ConfiguredValue -Spec $update.value -WorkspaceDir $workspaceDir
+                Write-Host "$ToolName update '$identifier.$inputName': $resolvedInputValue"
+
+                $didUpdate = Update-NodeInputsByIdentifier -JsonObject $json -Identifier $identifier -InputName $inputName -InputValue $resolvedInputValue
+                if (-not $didUpdate -and $required) {
+                  throw "Unable to update node '$identifier' input '$inputName' in $SourcePath"
+                }
               }
             }
 
@@ -541,6 +634,29 @@ jobs:
             return $normalized -split "`n"
           }
 
+          function Find-FirstFileByName {
+            param(
+              [string[]]$Roots,
+              [string]$FileName
+            )
+
+            foreach ($root in $Roots) {
+              if (-not (Test-Path $root)) {
+                continue
+              }
+
+              $candidate = Get-ChildItem -Path $root -Recurse -File -Filter $FileName -ErrorAction SilentlyContinue |
+                Sort-Object FullName |
+                Select-Object -First 1
+
+              if ($null -ne $candidate) {
+                return $candidate.FullName
+              }
+            }
+
+            return $null
+          }
+
           $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
           $toolsToProcess = @()
           if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
@@ -582,6 +698,11 @@ jobs:
           $failedScenarios = @()
           $succeededCount = 0
           $goldTag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
+          $toolValidationConfig = @{}
+          $toolValidationConfigPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_validations.json"
+          if (Test-Path $toolValidationConfigPath) {
+            $toolValidationConfig = Get-Content -Path $toolValidationConfigPath -Raw | ConvertFrom-Json -AsHashtable
+          }
 
           foreach ($scenarioEntry in $scenariosToRun) {
             $toolName = $scenarioEntry.ToolName
@@ -626,45 +747,12 @@ jobs:
               continue
             }
 
-            # Tool-specific validation of output artifacts.
-            if ($toolName -eq "ConvertDOMINO") {
-              $generatedLogsRoot = Join-Path (Resolve-Path "validation-workspaces").Path "logs"
-              $generatedLogCandidates = @(
-                (Join-Path $generatedLogsRoot "DOMINO_log.tsv")
-              )
-              $generatedLogPath = $generatedLogCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-              if ([string]::IsNullOrWhiteSpace($generatedLogPath)) {
-                $failedScenarios += [PSCustomObject]@{
-                  ToolName = $toolName
-                  Status = "validation_failed"
-                  ExecutionLog = $executionLogPath
-                }
-                Write-Host "::error::ConvertDOMINO output file not found. Expected one of:"
-                foreach ($candidate in $generatedLogCandidates) {
-                  Write-Host " - $candidate"
-                }
-                continue
-              }
-
+            # Config-driven validation of output artifacts per tool.
+            if ($toolValidationConfig.ContainsKey($toolName)) {
               if ([string]::IsNullOrWhiteSpace($goldTag)) {
-                Write-Host "No gold_standard_tag provided; skipping ConvertDOMINO output comparison."
+                Write-Host "No gold_standard_tag provided; skipping $toolName output comparison."
               }
               else {
-                $goldReference = Get-ChildItem -Path "gold-standards" -Recurse -File -Filter "DOMINO_log.tsv" -ErrorAction SilentlyContinue |
-                  Sort-Object FullName |
-                  Select-Object -First 1
-
-                if ($null -eq $goldReference) {
-                  $failedScenarios += [PSCustomObject]@{
-                    ToolName = $toolName
-                    Status = "validation_failed"
-                    ExecutionLog = $executionLogPath
-                  }
-                  Write-Host "::error::Could not find DOMINO_log.tsv in downloaded gold standards."
-                  continue
-                }
-
                 $compareScript = Join-Path (Resolve-Path ".").Path "ci/validation_tools/compare_outputs.py"
                 if (-not (Test-Path $compareScript)) {
                   $failedScenarios += [PSCustomObject]@{
@@ -676,29 +764,79 @@ jobs:
                   continue
                 }
 
-                & python "$compareScript" `
-                  --tool-name "ConvertDOMINO" `
-                  --generated-file "$generatedLogPath" `
-                  --reference-file "$($goldReference.FullName)" `
-                  --file-type "annotation" `
-                  --precision 0.0 `
-                  --max-diff-lines 50
-                $compareStatus = $LASTEXITCODE
-
-                if ($compareStatus -ne 0) {
-                  Write-Host "::error::ConvertDOMINO output mismatch against gold standard."
-                  Write-Host "Generated log: $generatedLogPath"
-                  Write-Host "Gold standard: $($goldReference.FullName)"
-
-                  $failedScenarios += [PSCustomObject]@{
-                    ToolName = $toolName
-                    Status = "validation_failed"
-                    ExecutionLog = $executionLogPath
-                  }
-                  continue
+                $toolDefinition = $toolValidationConfig[$toolName]
+                if (-not $toolDefinition.ContainsKey("comparisons") -or $toolDefinition.comparisons.Count -eq 0) {
+                  Write-Host "::warning::No comparisons configured for $toolName in tool_validations.json"
                 }
+                else {
+                  $toolValidationFailed = $false
+                  foreach ($comparison in $toolDefinition.comparisons) {
+                    $fileName = if ($comparison.ContainsKey("fileName") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.fileName)) { [string]$comparison.fileName } else { "" }
+                    $generatedFileName = if ($comparison.ContainsKey("generatedFileName") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.generatedFileName)) { [string]$comparison.generatedFileName } else { $fileName }
+                    $goldFileName = if ($comparison.ContainsKey("goldFileName") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.goldFileName)) { [string]$comparison.goldFileName } else { $fileName }
+                    $fileType = if ($comparison.ContainsKey("fileType") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.fileType)) { [string]$comparison.fileType } else { "generic" }
+                    $generatedRoots = @("validation-workspaces", "private-dataset")
+                    if ($comparison.ContainsKey("generatedSearchRoots") -and $comparison.generatedSearchRoots.Count -gt 0) {
+                      $generatedRoots = @($comparison.generatedSearchRoots | ForEach-Object { [string]$_ })
+                    }
 
-                Write-Host "ConvertDOMINO output matches gold standard: $($goldReference.FullName)"
+                    if ([string]::IsNullOrWhiteSpace($generatedFileName) -or [string]::IsNullOrWhiteSpace($goldFileName)) {
+                      Write-Host "::error::$toolName invalid comparison entry. Define fileName (or both generatedFileName and goldFileName)."
+                      $toolValidationFailed = $true
+                      break
+                    }
+
+                    $generatedFile = Find-FirstFileByName -Roots $generatedRoots -FileName $generatedFileName
+                    if ([string]::IsNullOrWhiteSpace($generatedFile)) {
+                      Write-Host "::error::$toolName generated file not found: $generatedFileName"
+                      $toolValidationFailed = $true
+                      break
+                    }
+
+                    $goldReference = Get-ChildItem -Path "gold-standards" -Recurse -File -Filter $goldFileName -ErrorAction SilentlyContinue |
+                      Sort-Object FullName |
+                      Select-Object -First 1
+                    if ($null -eq $goldReference) {
+                      Write-Host "::error::$toolName gold-standard file not found: $goldFileName"
+                      $toolValidationFailed = $true
+                      break
+                    }
+
+                    Write-Host "Comparing $toolName output file: $generatedFileName"
+                    $compareArgs = @(
+                      "$compareScript",
+                      "--tool-name", "$toolName",
+                      "--generated-file", "$generatedFile",
+                      "--reference-file", "$($goldReference.FullName)",
+                      "--file-type", "$fileType",
+                      "--max-diff-lines", "50"
+                    )
+                    if ($comparison.ContainsKey("precision") -and $null -ne $comparison.precision -and -not [string]::IsNullOrWhiteSpace([string]$comparison.precision)) {
+                      $compareArgs += @("--precision", "$(($comparison.precision).ToString())")
+                    }
+
+                    & python @compareArgs
+                    $compareStatus = $LASTEXITCODE
+                    if ($compareStatus -ne 0) {
+                      Write-Host "::error::$toolName output mismatch for $generatedFileName"
+                      Write-Host "Generated file: $generatedFile"
+                      Write-Host "Gold standard: $($goldReference.FullName)"
+                      $toolValidationFailed = $true
+                      break
+                    }
+                  }
+
+                  if ($toolValidationFailed) {
+                    $failedScenarios += [PSCustomObject]@{
+                      ToolName = $toolName
+                      Status = "validation_failed"
+                      ExecutionLog = $executionLogPath
+                    }
+                    continue
+                  }
+
+                  Write-Host "$toolName outputs match configured gold standards."
+                }
               }
             }
 
