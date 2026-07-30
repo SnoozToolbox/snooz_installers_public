@@ -493,7 +493,7 @@ jobs:
 
               $resolvedPath = Convert-ToJsonPath -PathValue $fullPath
               if ($output -eq "list") {
-                return @($resolvedPath)
+                return ,@($resolvedPath)
               }
               if ($output -eq "pythonListSingleQuoted") {
                 return "['$resolvedPath']"
@@ -554,7 +554,7 @@ jobs:
 
               $selectedPaths = @($selectedPaths | ForEach-Object { Convert-ToJsonPath -PathValue ([string]$_) })
               if ($output -eq "list") {
-                return @($selectedPaths)
+                return ,@($selectedPaths)
               }
               if ($output -eq "pythonDictByPath") {
                 if (-not $Spec.ContainsKey("dictionaryMap") -or $null -eq $Spec.dictionaryMap) {
@@ -700,26 +700,6 @@ jobs:
 
                 $resolvedInputValue = Resolve-ConfiguredValue -Spec $update.value -WorkspaceDir $workspaceDir
                 Write-Host "$ToolName update '$identifier.$inputName': $resolvedInputValue"
-
-                # DEBUG: print runtime type and JSON representation of the resolved value
-                try {
-                  $typeName = if ($null -eq $resolvedInputValue) { 'null' } else { ($resolvedInputValue.GetType().FullName) }
-                } catch {
-                  $typeName = 'unknown'
-                }
-                Write-Host "DEBUG: resolved value type for $identifier.$inputName -> $typeName"
-                try {
-                  if ($null -eq $resolvedInputValue) {
-                    Write-Host "DEBUG: resolved value is null"
-                  }
-                  elseif ($resolvedInputValue -is [System.Collections.IEnumerable] -and -not ($resolvedInputValue -is [string])) {
-                    Write-Host "DEBUG: resolved value (as JSON):" (ConvertTo-Json -InputObject $resolvedInputValue -Depth 10)
-                  } else {
-                    Write-Host "DEBUG: resolved scalar value:" $resolvedInputValue
-                  }
-                } catch {
-                  Write-Host "DEBUG: failed to serialize resolved value: $_"
-                }
 
                 $didUpdate = Update-NodeInputsByIdentifier -JsonObject $json -Identifier $identifier -InputName $inputName -InputValue $resolvedInputValue
                 if (-not $didUpdate -and $required) {
