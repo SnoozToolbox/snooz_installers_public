@@ -1007,29 +1007,13 @@ jobs:
             throw "$($failedScenarios.Count) headless scenario(s) failed. See summary above."
           }
 
-      - name: Upload extracted JSON as artifact
+      - name: Upload adapted JSON and validation logs as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-validation-json
+          name: windows-validation-assets
           if-no-files-found: warn
           path: |
-            validation-json/**
-
-      - name: Upload adapted workspace JSON as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-validation-workspaces
-          if-no-files-found: warn
-          path: |
-            validation-workspaces/**
-
-      - name: Upload validation logs as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-validation-logs
-          if-no-files-found: warn
-          path: |
-            **/*.log
+            validation-workspaces/**/*.json
+            validation-workspaces/**/*.log
+            target/validation-logs/**/*.log
