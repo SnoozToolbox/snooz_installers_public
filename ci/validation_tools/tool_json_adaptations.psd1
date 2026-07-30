@@ -82,7 +82,7 @@
         value = @{
           kind = 'privateDatasetPath'
           relativePath = 'inputs/learn-nsrr01_annotations.txt'
-          output = 'pythonListSingleQuoted'
+          output = 'list'
           required = $true
         }
       }
