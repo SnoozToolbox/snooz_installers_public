@@ -1069,11 +1069,11 @@ jobs:
             $succeededCount++
           }
 
-          $runSummaryCsvPath = Join-Path $logDir "tool-run-summary.csv"
+          $runSummaryTsvPath = Join-Path $logDir "tool-run-summary.tsv"
           $toolRunSummary |
             Select-Object tool_name, tool_version, status, comparison_status, validated_files |
-            Export-Csv -Path $runSummaryCsvPath -NoTypeInformation -Encoding UTF8
-          Write-Host "Tool run summary CSV written to: $runSummaryCsvPath"
+            Export-Csv -Path $runSummaryTsvPath -NoTypeInformation -Encoding UTF8 -Delimiter "`t"
+          Write-Host "Tool run summary TSV written to: $runSummaryTsvPath"
 
           Write-Host "Headless execution summary: success=$succeededCount failed=$($failedScenarios.Count) total=$($scenariosToRun.Count)"
           if ($failedScenarios.Count -gt 0) {
@@ -1094,4 +1094,4 @@ jobs:
             validation-workspaces/**/*.json
             validation-workspaces/**/*.log
             target/validation-logs/**/*.log
-            target/validation-logs/tool-run-summary.csv
+            target/validation-logs/tool-run-summary.tsv
