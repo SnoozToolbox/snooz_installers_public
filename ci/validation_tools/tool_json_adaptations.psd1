@@ -26,6 +26,7 @@
   #   - relativePath: path relative to validation-workspaces
   # - kind=privateDatasetPath
   #   - relativePath: path relative to private-dataset
+  #   - output: path, list, or pythonListSingleQuoted (default path)
   # - kind=findPath
   #   - roots: list of roots to search recursively
   #   - itemType: Directory or File (default Directory)
@@ -50,13 +51,8 @@
         inputName = 'folders'
         required = $true
         value = @{
-          kind = 'findPath'
-          # In this workflow, 'private-dataset' is the validation dataset root.
-          roots = @('private-dataset')
-          itemType = 'Directory'
-          matchRegex = '[\\/]DOMINO_FILES[\\/]subject_3$'
-          # The folder is expected to be unique.
-          pick = 'first'
+          kind = 'privateDatasetPath'
+          relativePath = 'inputs/DOMINO_FILES/subject_3'
           output = 'pythonListSingleQuoted'
           required = $true
         }
@@ -86,7 +82,7 @@
         value = @{
           kind = 'privateDatasetPath'
           relativePath = 'inputs/learn-nsrr01_annotations.txt'
-          output = 'list'
+          output = 'pythonListSingleQuoted'
           required = $true
         }
       }

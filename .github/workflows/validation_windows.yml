@@ -481,6 +481,8 @@ jobs:
                 throw "privateDatasetPath specification requires relativePath"
               }
 
+              $output = if ($Spec.ContainsKey("output")) { [string]$Spec.output } else { "path" }
+
               $fullPath = Join-Path (Resolve-Path "private-dataset").Path $relativePath
               if (-not (Test-Path $fullPath)) {
                 if ($required) {
@@ -489,7 +491,15 @@ jobs:
                 return $null
               }
 
-              return Convert-ToJsonPath -PathValue $fullPath
+              $resolvedPath = Convert-ToJsonPath -PathValue $fullPath
+              if ($output -eq "list") {
+                return @($resolvedPath)
+              }
+              if ($output -eq "pythonListSingleQuoted") {
+                return "['$resolvedPath']"
+              }
+
+              return $resolvedPath
             }
 
             if ($kind -eq "findPath") {
