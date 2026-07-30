@@ -408,6 +408,44 @@ jobs:
               [string]$WorkspaceDir
             )
 
+            function Convert-ToPythonLiteral {
+              param([object]$Value)
+
+              if ($null -eq $Value) {
+                return "None"
+              }
+
+              if ($Value -is [string]) {
+                $escaped = $Value.Replace("'", "\\'")
+                return "'$escaped'"
+              }
+
+              if ($Value -is [bool]) {
+                if ($Value) {
+                  return "True"
+                }
+                return "False"
+              }
+
+              if ($Value -is [System.Collections.IDictionary]) {
+                $parts = @()
+                foreach ($key in $Value.Keys) {
+                  $parts += "$(Convert-ToPythonLiteral $key): $(Convert-ToPythonLiteral $Value[$key])"
+                }
+                return "{$($parts -join ', ')}"
+              }
+
+              if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
+                $parts = @()
+                foreach ($item in $Value) {
+                  $parts += (Convert-ToPythonLiteral $item)
+                }
+                return "[$($parts -join ', ')]"
+              }
+
+              return [string]$Value
+            }
+
             if ($null -eq $Spec -or -not $Spec.ContainsKey("kind")) {
               throw "Invalid value specification: missing kind"
             }
@@ -432,6 +470,23 @@ jobs:
               $parentDir = Split-Path -Path $fullPath -Parent
               if (-not [string]::IsNullOrWhiteSpace($parentDir)) {
                 New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+              }
+
+              return Convert-ToJsonPath -PathValue $fullPath
+            }
+
+            if ($kind -eq "privateDatasetPath") {
+              $relativePath = [string]$Spec.relativePath
+              if ([string]::IsNullOrWhiteSpace($relativePath)) {
+                throw "privateDatasetPath specification requires relativePath"
+              }
+
+              $fullPath = Join-Path (Resolve-Path "private-dataset").Path $relativePath
+              if (-not (Test-Path $fullPath)) {
+                if ($required) {
+                  throw "privateDatasetPath target not found: $fullPath"
+                }
+                return $null
               }
 
               return Convert-ToJsonPath -PathValue $fullPath
@@ -491,12 +546,50 @@ jobs:
               if ($output -eq "list") {
                 return @($selectedPaths)
               }
+              if ($output -eq "pythonDictByPath") {
+                if (-not $Spec.ContainsKey("dictionaryMap") -or $null -eq $Spec.dictionaryMap) {
+                  throw "findPath output=pythonDictByPath requires dictionaryMap"
+                }
+
+                $selectedPath = [string]$selectedPaths[0]
+                $escapedPath = $selectedPath.Replace("'", "\\'")
+                $pairs = @()
+                foreach ($mapKey in $Spec.dictionaryMap.Keys) {
+                  $mapValue = [string]$Spec.dictionaryMap[$mapKey]
+                  $escapedKey = ([string]$mapKey).Replace("'", "\\'")
+                  $escapedValue = $mapValue.Replace("'", "\\'")
+                  $pairs += "'$escapedKey': '$escapedValue'"
+                }
+
+                return "{'$escapedPath': {$($pairs -join ', ')}}"
+              }
               if ($output -eq "pythonListSingleQuoted") {
                 $quoted = $selectedPaths | ForEach-Object { "'$_'" }
                 return "[$($quoted -join ',')]"
               }
 
               return $selectedPaths[0]
+            }
+
+            if ($kind -eq "pythonDictFromFileMapping") {
+              if (-not $Spec.ContainsKey("fileSpec")) {
+                throw "pythonDictFromFileMapping specification requires fileSpec"
+              }
+              if (-not $Spec.ContainsKey("mapping")) {
+                throw "pythonDictFromFileMapping specification requires mapping"
+              }
+
+              $resolvedFilePath = Resolve-ConfiguredValue -Spec $Spec.fileSpec -WorkspaceDir $WorkspaceDir
+              if ($null -eq $resolvedFilePath -or [string]::IsNullOrWhiteSpace([string]$resolvedFilePath)) {
+                if ($required) {
+                  throw "pythonDictFromFileMapping could not resolve file path"
+                }
+                return $null
+              }
+
+              $fileMapping = @{}
+              $fileMapping[[string]$resolvedFilePath] = $Spec.mapping
+              return (Convert-ToPythonLiteral $fileMapping)
             }
 
             throw "Unsupported value specification kind: $kind"
@@ -792,6 +885,27 @@ jobs:
                     $generatedFile = Find-FirstFileByName -Roots $generatedRoots -FileName $generatedFileName
                     if ([string]::IsNullOrWhiteSpace($generatedFile)) {
                       Write-Host "::error::$toolName generated file not found: $generatedFileName"
+                      Write-Host "Searched roots for $toolName:"
+                      foreach ($root in $generatedRoots) {
+                        Write-Host " - $root"
+                        if (Test-Path $root) {
+                          $tsvCandidates = Get-ChildItem -Path $root -Recurse -File -Filter "*.tsv" -ErrorAction SilentlyContinue |
+                            Sort-Object FullName |
+                            Select-Object -First 20
+                          if ($tsvCandidates.Count -gt 0) {
+                            Write-Host "   TSV candidates under $root:"
+                            foreach ($candidate in $tsvCandidates) {
+                              Write-Host "   - $($candidate.FullName)"
+                            }
+                          }
+                          else {
+                            Write-Host "   No TSV file found under $root"
+                          }
+                        }
+                        else {
+                          Write-Host "   Root does not exist"
+                        }
+                      }
                       $toolValidationFailed = $true
                       break
                     }

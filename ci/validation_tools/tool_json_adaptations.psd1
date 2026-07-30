@@ -24,12 +24,17 @@
   #   - value: fixed string value
   # - kind=workspacePath
   #   - relativePath: path relative to validation-workspaces
+  # - kind=privateDatasetPath
+  #   - relativePath: path relative to private-dataset
   # - kind=findPath
   #   - roots: list of roots to search recursively
   #   - itemType: Directory or File (default Directory)
   #   - matchRegex: regex matched against full path
   #   - pick: first or all (default first)
   #   - output: path, list, or pythonListSingleQuoted (default path)
+  # - kind=pythonDictFromFileMapping
+  #   - fileSpec: nested value spec that resolves a single file path
+  #   - mapping: key/value map used as dictionary content for that file
   # - required: true/false (default true)
   #   - true: fail fast if value/path cannot be resolved
   #   - false: allow missing value and continue (empty substitution)
@@ -79,12 +84,39 @@
         inputName = 'files'
         required = $true
         value = @{
-          kind = 'findPath'
-          roots = @('private-dataset')
-          itemType = 'File'
-          matchRegex = '[\\/]learn-nsrr01_annotations\.txt$'
-          pick = 'first'
+          kind = 'privateDatasetPath'
+          relativePath = 'inputs/learn-nsrr01_annotations.txt'
           output = 'list'
+          required = $true
+        }
+      }
+      @{
+        identifier = 'a42e544f-13dc-4148-93fe-6493e383c417'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'pythonDictFromFileMapping'
+          fileSpec = @{
+            kind = 'privateDatasetPath'
+            relativePath = 'inputs/learn-nsrr01_annotations.txt'
+            required = $true
+          }
+          mapping = @{
+            '0' = 'stage'
+            '1' = 'stage'
+            '2' = 'stage'
+            '3' = 'stage'
+            '5' = 'stage'
+            'Arousal ()' = 'expert'
+            'Hypopnea' = 'expert'
+            'Obstructive Apnea' = 'expert'
+            'SpO2 artifact' = 'SpO2'
+            'SpO2 desaturation' = 'SpO2'
+            'a4' = 'spindle'
+            'a7' = 'spindle'
+            'art_snooz' = 'art_snooz'
+            'sumo' = 'spindle'
+          }
           required = $true
         }
       }
