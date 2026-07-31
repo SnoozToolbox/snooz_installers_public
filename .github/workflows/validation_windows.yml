@@ -542,8 +542,8 @@ jobs:
                 $s = $s -replace "\bFalse\b","false"
                 # Naive single->double quote swap
                 $s = $s -replace "'","\""
-                # Remove trailing commas before ] or }
-                $s = $s -replace ",\s*(\]|\})",'$1'
+                # Remove trailing commas before ] or } using .NET regex to avoid parser issues
+                $s = [regex]::Replace($s, ",\s*(\]|\})", '$1')
                 return $s
               }
 
