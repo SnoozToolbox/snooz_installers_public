@@ -743,14 +743,21 @@ jobs:
                 if ($node.identifier -ne $Identifier) {
                   continue
                 }
+
                 if ($node.inputs.ContainsKey($InputName)) {
-                  # Preserve array-ness: if the existing JSON input value is an array,
-                  # ensure we assign an array (wrap scalars) so ConvertTo-Json emits a JSON array.
+
+                  # Preserve array-ness: only wrap values if the existing JSON value is
+                  # actually an array. Dictionaries (JSON objects) should remain objects.
                   $existingVal = $node.inputs[$InputName].value
-                  if ($existingVal -is [System.Collections.IEnumerable] -and -not ($existingVal -is [string])) {
-                    if (-not ($InputValue -is [System.Collections.IEnumerable]) -or ($InputValue -is [string])) {
-                      $InputValue = @($InputValue)
-                    }
+
+                  $existingIsArray = $existingVal -is [System.Array]
+                  $inputIsArray    = $InputValue -is [System.Array]
+
+                  if ($existingIsArray -and -not $inputIsArray) {
+                    $InputValue = @($InputValue)
+                  }
+                  elseif (-not $existingIsArray -and $inputIsArray -and $InputValue.Count -eq 1) {
+                    $InputValue = $InputValue[0]
                   }
 
                   $node.inputs[$InputName].value = $InputValue
