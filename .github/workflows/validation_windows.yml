@@ -543,7 +543,7 @@ jobs:
                 # Naive single->double quote swap
                 $s = $s -replace "'","\""
                 # Remove trailing commas before ] or }
-                $s = $s -replace ",\s*(\]|\})","$1"
+                $s = $s -replace ",\s*(\]|\})",'$1'
                 return $s
               }
 
