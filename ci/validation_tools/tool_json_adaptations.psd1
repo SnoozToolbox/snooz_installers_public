@@ -126,4 +126,29 @@
       }
     )
   }
+
+  ConvertXMLCompumedics = @{
+    targetToolName = 'ConvertXMLCompumedics'
+    processingMode = 'adapted'
+
+    # Each update defines one node, one input, and one value.
+    updates = @(
+      @{
+        identifier = '57d3ca1c-dd68-4405-849d-da0279c9dc9d'
+        inputName = 'filename'
+        required = $true
+        value = @{
+        kind = 'findPath'
+        roots = @('private-dataset/inputs/ConvertXMLCompumedics')
+        itemType = 'File'
+        matchRegex = '(learn-nsrr01-profusion\.xml|learn-nsrr02-profusion\.xml)$'
+        pick = 'all'
+        output = 'pythonListSingleQuoted'
+        required = $true
+        }
+      }
+    )
+  }
+
 }
+

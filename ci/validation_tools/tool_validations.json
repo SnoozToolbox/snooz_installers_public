@@ -51,5 +51,23 @@
         ]
       }
     ]
+  },
+  "ConvertXMLCompumedics": {
+    "comparisons": [
+      {
+        "fileName": "learn-nsrr01-profusion.tsv",
+        "fileType": "annotation",
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02-profusion.tsv",
+        "fileType": "annotation",
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }      
+    ]
   }
 }

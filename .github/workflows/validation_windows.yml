@@ -33,7 +33,7 @@ on:
       tools_to_process:
         description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool)"
         required: false
-        default: "ConvertDOMINO"
+        default: "ConvertXMLCompumedics"
       gold_standard_repo:
         description: Gold-standard repository (owner/name)
         required: false
