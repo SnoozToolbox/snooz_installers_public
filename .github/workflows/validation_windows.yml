@@ -543,7 +543,8 @@ jobs:
                 # Naive single->double quote swap
                 $s = $s -replace "'","\""
                 # Remove trailing commas before ] or } using .NET regex to avoid parser issues
-                $s = [regex]::Replace($s, ",\s*(\]|\})", '$1')
+                $trimPattern = ',\s*(\]|\})'
+                $s = [regex]::Replace($s, $trimPattern, '$1')
                 return $s
               }
 
