@@ -155,26 +155,6 @@
 
     updates = @(
       @{
-        identifier = '64feff16-15d2-4acf-b2e5-195412e476ba'
-        inputName = 'files'
-        required = $true
-        value = @{
-          kind = 'workspaceFileJson'
-          relativePath = '../ci/validation_tools/DetectArtifacts-files.json'
-          required = $true
-        }
-      }
-      @{
-        identifier = '64feff16-15d2-4acf-b2e5-195412e476ba'
-        inputName = 'alias'
-        required = $true
-        value = @{
-          kind = 'workspaceFileJson'
-          relativePath = '../ci/validation_tools/DetectArtifacts-alias.json'
-          required = $true
-        }
-      }
-      @{
         identifier = '41a6b6f1-08b3-417c-bafb-30dc2274c24b'
         inputName = 'dictionary'
         required = $true
@@ -201,6 +181,26 @@
         value = @{
           kind = 'literal'
           value = "62"
+          required = $true
+        }
+      }
+      @{
+        identifier = '64feff16-15d2-4acf-b2e5-195412e476ba'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/DetectArtifacts-files.json'
+          required = $true
+        }
+      }
+      @{
+        identifier = '64feff16-15d2-4acf-b2e5-195412e476ba'
+        inputName = 'alias'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/DetectArtifacts-alias.json'
           required = $true
         }
       }
