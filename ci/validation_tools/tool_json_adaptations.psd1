@@ -139,7 +139,7 @@
         required = $true
         value = @{
         kind = 'findPath'
-        roots = @('private-dataset/inputs/ConvertXMLCompumedics')
+        roots = @('private-dataset/inputs')
         itemType = 'File'
         matchRegex = '(learn-nsrr01-profusion\.xml|learn-nsrr02-profusion\.xml)$'
         pick = 'all'
