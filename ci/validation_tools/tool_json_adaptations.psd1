@@ -160,7 +160,7 @@
         required = $true
         value = @{
           kind = 'workspaceFileContents'
-          relativePath = 'ci/validation_tools/DetectArtifacts-files.txt'
+          relativePath = '../ci/validation_tools/DetectArtifacts-files.txt'
           required = $true
         }
       }
@@ -170,7 +170,7 @@
         required = $true
         value = @{
           kind = 'workspaceFileContents'
-          relativePath = 'ci/validation_tools/DetectArtifacts-alias.txt'
+          relativePath = '../ci/validation_tools/DetectArtifacts-alias.txt'
           required = $true
         }
       }
