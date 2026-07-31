@@ -533,41 +533,41 @@ jobs:
 
               $raw = Get-Content -Path $fullPath -Raw -ErrorAction Stop
 
-              function Convert-PythonLiteralToJson {
-                param([string]$pyText)
-                $s = $pyText
-                $s = $s -replace "(?m)#.*$",""                     # remove line comments
-                $s = $s -replace "\bNone\b","null"
-                $s = $s -replace "\bTrue\b","true"
-                $s = $s -replace "\bFalse\b","false"
-                # Naive single->double quote swap
-                $s = $s -replace "'","\""
-                # Remove trailing commas before ] or } using .NET regex to avoid parser issues
-                $trimPattern = ',\s*(\]|\})'
-                $s = [regex]::Replace($s, $trimPattern, '$1')
-                return $s
-              }
+              # function Convert-PythonLiteralToJson {
+              #   param([string]$pyText)
+              #   $s = $pyText
+              #   $s = $s -replace "(?m)#.*$",""                     # remove line comments
+              #   $s = $s -replace "\bNone\b","null"
+              #   $s = $s -replace "\bTrue\b","true"
+              #   $s = $s -replace "\bFalse\b","false"
+              #   # Naive single->double quote swap
+              #   $s = $s -replace "'","\""
+              #   # Remove trailing commas before ] or } using .NET regex to avoid parser issues
+              #   $trimPattern = ',\s*(\]|\})'
+              #   $s = [regex]::Replace($s, $trimPattern, '$1')
+              #   return $s
+              # }
 
-              $jsonText = Convert-PythonLiteralToJson -pyText $raw
-              try {
-                $obj = ConvertFrom-Json -InputObject $jsonText -ErrorAction Stop
-                # Also write a .json copy into the validation workspace so other steps
-                # can reference the converted JSON file directly if needed.
-                try {
-                  $destRelative = if ($relativePath -match "\.txt$") { $relativePath -replace "\.txt$",".json" } else { "$relativePath.json" }
-                  $destFull = Join-Path (Resolve-Path $WorkspaceDir).Path $destRelative
-                  $destParent = Split-Path -Path $destFull -Parent
-                  if (-not (Test-Path $destParent)) { New-Item -ItemType Directory -Path $destParent -Force | Out-Null }
-                  $obj | ConvertTo-Json -Depth 40 | Set-Content -Path $destFull -Encoding UTF8
-                  Write-Host "Wrote converted JSON to: $destFull"
-                } catch {
-                  Write-Host "Warning: failed to write converted JSON file: $($_.Exception.Message)"
-                }
-                return $obj
-              } catch {
-                Write-Host "Warning: workspaceFilePythonLiteral could not parse converted JSON for: $fullPath; returning raw text"
-                return [string]$raw
-              }
+              # $jsonText = Convert-PythonLiteralToJson -pyText $raw
+              # try {
+              #   $obj = ConvertFrom-Json -InputObject $jsonText -ErrorAction Stop
+              #   # Also write a .json copy into the validation workspace so other steps
+              #   # can reference the converted JSON file directly if needed.
+              #   try {
+              #     $destRelative = if ($relativePath -match "\.txt$") { $relativePath -replace "\.txt$",".json" } else { "$relativePath.json" }
+              #     $destFull = Join-Path (Resolve-Path $WorkspaceDir).Path $destRelative
+              #     $destParent = Split-Path -Path $destFull -Parent
+              #     if (-not (Test-Path $destParent)) { New-Item -ItemType Directory -Path $destParent -Force | Out-Null }
+              #     $obj | ConvertTo-Json -Depth 40 | Set-Content -Path $destFull -Encoding UTF8
+              #     Write-Host "Wrote converted JSON to: $destFull"
+              #   } catch {
+              #     Write-Host "Warning: failed to write converted JSON file: $($_.Exception.Message)"
+              #   }
+              #   return $obj
+              # } catch {
+              #   Write-Host "Warning: workspaceFilePythonLiteral could not parse converted JSON for: $fullPath; returning raw text"
+              #   return [string]$raw
+              # }
             }
 
             if ($kind -eq "privateDatasetPath") {
