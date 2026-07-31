@@ -475,6 +475,24 @@ jobs:
               return Convert-ToJsonPath -PathValue $fullPath
             }
 
+            if ($kind -eq "workspaceFileContents") {
+              $relativePath = [string]$Spec.relativePath
+              if ([string]::IsNullOrWhiteSpace($relativePath)) {
+                throw "workspaceFileContents specification requires relativePath"
+              }
+
+              $fullPath = Join-Path (Resolve-Path $WorkspaceDir).Path $relativePath
+              if (-not (Test-Path $fullPath)) {
+                if ($required) {
+                  throw "workspaceFileContents target not found: $fullPath"
+                }
+                return $null
+              }
+
+              $content = Get-Content -Path $fullPath -Raw -ErrorAction Stop
+              return [string]$content
+            }
+
             if ($kind -eq "privateDatasetPath") {
               $relativePath = [string]$Spec.relativePath
               if ([string]::IsNullOrWhiteSpace($relativePath)) {
@@ -905,7 +923,7 @@ jobs:
               $toolRunSummary += [PSCustomObject]@{
                 tool_name = $toolName
                 tool_version = $toolVersion
-                status = $toolStatus
+                run_status = $toolStatus
                 comparison_status = $comparisonStatus
                 validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
               }
@@ -931,7 +949,7 @@ jobs:
                   $toolRunSummary += [PSCustomObject]@{
                     tool_name = $toolName
                     tool_version = $toolVersion
-                    status = $toolStatus
+                    run_status = $toolStatus
                     comparison_status = $comparisonStatus
                     validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
                   }
@@ -1041,7 +1059,7 @@ jobs:
                     $toolRunSummary += [PSCustomObject]@{
                       tool_name = $toolName
                       tool_version = $toolVersion
-                      status = $toolStatus
+                      run_status = $toolStatus
                       comparison_status = $comparisonStatus
                       validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
                     }
@@ -1062,7 +1080,7 @@ jobs:
             $toolRunSummary += [PSCustomObject]@{
               tool_name = $toolName
               tool_version = $toolVersion
-              status = $toolStatus
+              run_status = $toolStatus
               comparison_status = $comparisonStatus
               validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
             }
@@ -1071,7 +1089,7 @@ jobs:
 
           $runSummaryTsvPath = Join-Path $logDir "tool-run-summary.tsv"
           $toolRunSummary |
-            Select-Object tool_name, tool_version, status, comparison_status, validated_files |
+            Select-Object tool_name, tool_version, run_status, comparison_status, validated_files |
             Export-Csv -Path $runSummaryTsvPath -NoTypeInformation -Encoding UTF8 -Delimiter "`t"
           Write-Host "Tool run summary TSV written to: $runSummaryTsvPath"
 

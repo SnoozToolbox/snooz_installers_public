@@ -1,0 +1,1 @@
+{'EEG': ['EEG', 'EEG(sec)', 'F4-RC', 'F7-RC', 'P7-RC', 'F3-RC', 'P4-RC', 'Fp1-RC', 'T7-RC', 'F8-RC', 'Cz-RC', 'C3-RC', 'P3-RC', 'T8-RC', 'C4-RC', 'O2-RC', 'Pz-RC', 'Fp2-RC', 'P8-RC', 'Fz-RC', 'O1-RC', 'F3', 'C3', 'O2', 'F4', 'C4', 'O1'], 'EMG': ['EMG', 'EMG1-EMG2', 'EMG1', '']}
