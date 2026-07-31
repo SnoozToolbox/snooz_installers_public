@@ -159,8 +159,8 @@
         inputName = 'files'
         required = $true
         value = @{
-          kind = 'workspaceFilePythonLiteral'
-          relativePath = '../ci/validation_tools/DetectArtifacts-files.txt'
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/DetectArtifacts-files.json'
           required = $true
         }
       }
@@ -169,8 +169,8 @@
         inputName = 'alias'
         required = $true
         value = @{
-          kind = 'workspaceFilePythonLiteral'
-          relativePath = '../ci/validation_tools/DetectArtifacts-alias.txt'
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/DetectArtifacts-alias.json'
           required = $true
         }
       }

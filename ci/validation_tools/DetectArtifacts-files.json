@@ -1,0 +1,1523 @@
+{
+  "inputs/learn-nsrr01.edf": {
+    "event_groups": [
+      "stage",
+      "SpO2 artifact",
+      "Hypopnea",
+      "SpO2 desaturation",
+      "Arousal ()",
+      "Obstructive Apnea"
+    ],
+    "montages": {
+      "edf": {
+        "is_selected": true,
+        "montage_index": 0.0,
+        "channels": {
+          "SaO2": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          },
+          "PR": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          },
+          "EEG(sec)": {
+            "is_selected": true,
+            "sample_rate": "125.0"
+          },
+          "ECG": {
+            "is_selected": false,
+            "sample_rate": "250.0"
+          },
+          "EMG": {
+            "is_selected": true,
+            "sample_rate": "125.0"
+          },
+          "EOG(L)": {
+            "is_selected": false,
+            "sample_rate": "50.0"
+          },
+          "EOG(R)": {
+            "is_selected": false,
+            "sample_rate": "50.0"
+          },
+          "EEG": {
+            "is_selected": true,
+            "sample_rate": "125.0"
+          },
+          "AIRFLOW": {
+            "is_selected": false,
+            "sample_rate": "10.0"
+          },
+          "THOR RES": {
+            "is_selected": false,
+            "sample_rate": "10.0"
+          },
+          "ABDO RES": {
+            "is_selected": false,
+            "sample_rate": "10.0"
+          },
+          "POSITION": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          },
+          "LIGHT": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          },
+          "OX STAT": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          }
+        }
+      }
+    }
+  },
+  "inputs/learn-nsrr02.edf": {
+    "event_groups": [
+      "stage",
+      "SpO2 artifact",
+      "Arousal ()",
+      "Hypopnea",
+      "SpO2 desaturation",
+      "Obstructive Apnea"
+    ],
+    "montages": {
+      "edf": {
+        "is_selected": true,
+        "montage_index": 0.0,
+        "channels": {
+          "SaO2": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          },
+          "PR": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          },
+          "EEG(sec)": {
+            "is_selected": true,
+            "sample_rate": "125.0"
+          },
+          "ECG": {
+            "is_selected": false,
+            "sample_rate": "250.0"
+          },
+          "EMG": {
+            "is_selected": true,
+            "sample_rate": "125.0"
+          },
+          "EOG(L)": {
+            "is_selected": false,
+            "sample_rate": "50.0"
+          },
+          "EOG(R)": {
+            "is_selected": false,
+            "sample_rate": "50.0"
+          },
+          "EEG": {
+            "is_selected": true,
+            "sample_rate": "125.0"
+          },
+          "AIRFLOW": {
+            "is_selected": false,
+            "sample_rate": "10.0"
+          },
+          "THOR RES": {
+            "is_selected": false,
+            "sample_rate": "10.0"
+          },
+          "ABDO RES": {
+            "is_selected": false,
+            "sample_rate": "10.0"
+          },
+          "POSITION": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          },
+          "LIGHT": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          },
+          "OX STAT": {
+            "is_selected": false,
+            "sample_rate": "1.0"
+          }
+        }
+      }
+    }
+  },
+  "inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg": {
+    "event_groups": [
+      "Section d' chantillon.",
+      "Annotation",
+      "DetecteMJ",
+      "HYPNO",
+      "M-EVE",
+      " V NEMENTS RESPIRATOIRES",
+      "Stade"
+    ],
+    "montages": {
+      "Amp_Embla NDx": {
+        "is_selected": false,
+        "montage_index": 0.0,
+        "channels": {
+          "C3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "C4": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Cz": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "F3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "F4": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "F7": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "F8": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Fz": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Fp1": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Fp2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Fpz": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "A1": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "A2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "O1": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "O2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Oz": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "P3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "P4": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "P7": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "P8": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Pz": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "T7": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "T8": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "ZYGG": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "ZYGD": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "X28": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "X29": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "X30": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "X31": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "X32": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "ECGL": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "modif": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DII": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "ECG-V1": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "ECG-V2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "LOC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "ROC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "EMG1": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "EMG2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "EMG3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "THE": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DIF1-": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "CANULE": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DIF2-": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "SANTHOR": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DIF3-": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "SANABDO": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DIF4-": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "MICRO": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DIF5-": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "FSDG": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DIF6-": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "FSDD": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DIF7-": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "MAG": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "REF MAG": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "MAD": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "REF MAD": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "DIF10+": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DIF10-": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "TAD1": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "TAD2": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "TAG1": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "TAG2": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "Snore": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Flow": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Pressure": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Flow_DR": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Snore_DR": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "Abdomen": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Chest": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Phase": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "RMI": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "RR": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "XSum": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "XFlow": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "XVolume": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "Position": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Elevation": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "Activity": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "PPG": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "PTT": {
+            "is_selected": false,
+            "sample_rate": "0"
+          },
+          "Pleth": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC13": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC14": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC15": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC16": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC1": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC4": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC5": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC6": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC7": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC8": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC9": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC10": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC11": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DC12": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "TRIG": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "SpO2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "PR": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "PulseQuality": {
+            "is_selected": false,
+            "sample_rate": "512"
+          }
+        }
+      },
+      " tude_COVID - NDx": {
+        "is_selected": true,
+        "montage_index": 1.0,
+        "channels": {
+          "LOC-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "ROC-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "EMG1-EMG2": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "EMG1-EMG3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "EMG2-EMG3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Fp1-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "Fp2-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "F3-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "F4-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "C3-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "C4-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "P3-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "P4-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "O1-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "O2-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "F7-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "F8-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "T7-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "T8-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "P7-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "P8-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "Fz-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "Cz-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "Pz-RC": {
+            "is_selected": true,
+            "sample_rate": "512"
+          },
+          "DII-modif": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "TAG1-TAG2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "TAD1-TAD2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "FSDG-DIF6-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "FSDD-DIF7-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "THE-DIF1-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "CANULE-DIF2-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "SANTHOR-DIF3-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "SANABDO-DIF4-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "SpO2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "PR": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "MICRO-DIF5-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          }
+        }
+      },
+      " tude_MCI NDx": {
+        "is_selected": false,
+        "montage_index": 2.0,
+        "channels": {
+          "LOC-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "ROC-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "EMG1-EMG2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "EMG1-EMG3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "EMG2-EMG3": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Fp1-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Fp2-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "F3-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "F4-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "F7-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "F8-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "C3-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "C4-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "P3-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "P4-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "O1-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "O2-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "T7-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "T8-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "P7-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "P8-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Fz-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Cz-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "Pz-RC": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "DII-modif": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "TAG1-TAG2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "TAD1-TAD2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "THE-DIF1-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "CANULE-DIF2-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "SANTHOR-DIF3-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "SANABDO-DIF4-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "SpO2": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "PR": {
+            "is_selected": false,
+            "sample_rate": "512"
+          },
+          "MICRO-DIF5-": {
+            "is_selected": false,
+            "sample_rate": "512"
+          }
+        }
+      }
+    }
+  },
+  "inputs/01-01-0001.sts": {
+    "event_groups": [
+      "D marrage de l'enreg.",
+      "Section de calibration",
+      "Section de d blocage",
+      "E-Test Section",
+      "Section de patient d connect ",
+      "Section d' chantillon.",
+      "Section de bouton-poussoir",
+      "D tection manuelle",
+      "Annotation",
+      "Pap",
+      "Position du corps",
+      "Biocalibration",
+      "Id. de calibration",
+      "Message",
+      "Param. de visualisation",
+      "DetecteMJ",
+      "Artefact",
+      "M-EVE",
+      "MJ",
+      " V NEMENTS RESPIRATOIRES",
+      "HRVAS",
+      "RONFLEMENT",
+      "HYPNO",
+      "Calibration Label",
+      "Artifact",
+      "c-rem 2 signs",
+      "c-rem 1 sign",
+      "Stade",
+      "Hyperventilation",
+      "Apr s l'hyperventil."
+    ],
+    "montages": {
+      "APN E-MCI_RC": {
+        "is_selected": false,
+        "montage_index": 0.0,
+        "channels": {
+          "LOC-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "ROC-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F3-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F4-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C3-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C4-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "O1-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "O2-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "ECG": {
+            "is_selected": false,
+            "sample_rate": "512.0327700972863"
+          },
+          "TAG": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "TAD": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "THE": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "CANULE": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "SANTHOR": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "SANABDO": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "MICRO": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F7-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F8-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T3-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T4-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T5-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T6-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P3-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P4-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Fz-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Cz-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Pz-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "A2-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "SpO2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          }
+        }
+      },
+      "COMPLET_RC": {
+        "is_selected": false,
+        "montage_index": 1.0,
+        "channels": {
+          "LOC": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "ROC": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "O1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "O2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F7": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F8": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T5": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T6": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Fz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Cz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Pz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "ECG": {
+            "is_selected": false,
+            "sample_rate": "512.0327700972863"
+          },
+          "TAG": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "TAD": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "THE": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "CANULE": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "SANTHOR": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "SANABDO": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "MICRO": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "SpO2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          }
+        }
+      },
+      "SCORING_RC": {
+        "is_selected": true,
+        "montage_index": 2.0,
+        "channels": {
+          "LOC": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "ROC": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG1": {
+            "is_selected": true,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F3": {
+            "is_selected": true,
+            "sample_rate": "256.01638504864314"
+          },
+          "F4": {
+            "is_selected": true,
+            "sample_rate": "256.01638504864314"
+          },
+          "C3": {
+            "is_selected": true,
+            "sample_rate": "256.01638504864314"
+          },
+          "C4": {
+            "is_selected": true,
+            "sample_rate": "256.01638504864314"
+          },
+          "O1": {
+            "is_selected": true,
+            "sample_rate": "256.01638504864314"
+          },
+          "O2": {
+            "is_selected": true,
+            "sample_rate": "256.01638504864314"
+          },
+          "ECG": {
+            "is_selected": false,
+            "sample_rate": "512.0327700972863"
+          },
+          "TAG": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "TAD": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "THE": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "CANULE": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "SANTHOR": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "SANABDO": {
+            "is_selected": false,
+            "sample_rate": "128.00819252432157"
+          },
+          "MICRO": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "SpO2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          }
+        }
+      },
+      "DOUBLE BANANE": {
+        "is_selected": false,
+        "montage_index": 3.0,
+        "channels": {
+          "LOC-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "ROC-A1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "EMG3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F7-T3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T3-T5": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T5-O1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F8-T4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T4-T6": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T6-O2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F3-C3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C3-P3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P3-O1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F4-C4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C4-P4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P4-O2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          }
+        }
+      },
+      "QUEEN SQUARE ANT": {
+        "is_selected": false,
+        "montage_index": 4.0,
+        "channels": {
+          "F7-T3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T3-T5": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T5-O1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F8-T4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T4-T6": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T6-O2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F7-F3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F3-Fz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Fz-F4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F4-F8": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T3-C3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C3-Cz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Cz-C4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C4-T4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          }
+        }
+      },
+      "QUEEN SQUARE POS": {
+        "is_selected": false,
+        "montage_index": 5.0,
+        "channels": {
+          "F7-T3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T3-T5": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T5-O1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F8-T4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T4-T6": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T6-O2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T3-C3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C3-Cz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Cz-C4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C4-T4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T5-P3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P3-Pz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Pz-P4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P4-T6": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          }
+        }
+      },
+      "TRANSVERSE": {
+        "is_selected": false,
+        "montage_index": 6.0,
+        "channels": {
+          "F7-F3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F3-Fz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Fz-F4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "F4-F8": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T3-C3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C3-Cz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Cz-C4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "C4-T4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T5-P3": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P3-Pz": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "Pz-P4": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "P4-T6": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "T5-O1": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "O1-O2": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          },
+          "O2-T6": {
+            "is_selected": false,
+            "sample_rate": "256.01638504864314"
+          }
+        }
+      }
+    }
+  }
+}
