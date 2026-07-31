@@ -493,6 +493,70 @@ jobs:
               return [string]$content
             }
 
+            if ($kind -eq "workspaceFileJson") {
+              $relativePath = [string]$Spec.relativePath
+              if ([string]::IsNullOrWhiteSpace($relativePath)) {
+                throw "workspaceFileJson specification requires relativePath"
+              }
+
+              $fullPath = Join-Path (Resolve-Path $WorkspaceDir).Path $relativePath
+              if (-not (Test-Path $fullPath)) {
+                if ($required) {
+                  throw "workspaceFileJson target not found: $fullPath"
+                }
+                return $null
+              }
+
+              $raw = Get-Content -Path $fullPath -Raw -ErrorAction Stop
+              try {
+                $obj = ConvertFrom-Json -InputObject $raw -ErrorAction Stop
+                return $obj
+              }
+              catch {
+                throw "workspaceFileJson could not parse JSON from: $fullPath"
+              }
+            }
+
+            if ($kind -eq "workspaceFilePythonLiteral") {
+              $relativePath = [string]$Spec.relativePath
+              if ([string]::IsNullOrWhiteSpace($relativePath)) {
+                throw "workspaceFilePythonLiteral specification requires relativePath"
+              }
+
+              $fullPath = Join-Path (Resolve-Path $WorkspaceDir).Path $relativePath
+              if (-not (Test-Path $fullPath)) {
+                if ($required) {
+                  throw "workspaceFilePythonLiteral target not found: $fullPath"
+                }
+                return $null
+              }
+
+              $raw = Get-Content -Path $fullPath -Raw -ErrorAction Stop
+
+              function Convert-PythonLiteralToJson {
+                param([string]$pyText)
+                $s = $pyText
+                $s = $s -replace "(?m)#.*$",""                     # remove line comments
+                $s = $s -replace "\bNone\b","null"
+                $s = $s -replace "\bTrue\b","true"
+                $s = $s -replace "\bFalse\b","false"
+                # Naive single->double quote swap
+                $s = $s -replace "'","\""
+                # Remove trailing commas before ] or }
+                $s = $s -replace ",\s*(\]|\})","$1"
+                return $s
+              }
+
+              $jsonText = Convert-PythonLiteralToJson -pyText $raw
+              try {
+                $obj = ConvertFrom-Json -InputObject $jsonText -ErrorAction Stop
+                return $obj
+              } catch {
+                Write-Host "Warning: workspaceFilePythonLiteral could not parse converted JSON for: $fullPath; returning raw text"
+                return [string]$raw
+              }
+            }
+
             if ($kind -eq "privateDatasetPath") {
               $relativePath = [string]$Spec.relativePath
               if ([string]::IsNullOrWhiteSpace($relativePath)) {
@@ -928,6 +992,101 @@ jobs:
                 validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
               }
               Write-Host "::error::Headless execution failed for ${toolName} with status $appStatus. Continuing to next scenario."
+              continue
+            }
+
+            # Even when the executable returned exit code 0, inspect logs for internal errors.
+            $scenarioDir = Split-Path $scenarioPath -Parent
+            $snoozProcessLog = Get-ChildItem -Path $scenarioDir -Filter "*.log" -File -ErrorAction SilentlyContinue |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+            if ($null -ne $snoozProcessLog) {
+              $processLogPath = $snoozProcessLog.FullName
+            } else {
+              $processLogPath = $null
+            }
+
+            $errorPatterns = @('process Interrupted','Traceback','Exception','AttributeError','Error:','Unhandled exception')
+            $successPattern = 'process Total process time'
+            $detectedError = $false
+            $detectedLines = @()
+
+            if ($processLogPath) {
+              $procLogText = Get-Content -Raw -Path $processLogPath -ErrorAction SilentlyContinue
+              foreach ($pat in $errorPatterns) {
+                if ($procLogText -match $pat) {
+                  $detectedError = $true
+                  $detectedLines += "ProcessLog: matched '$pat'"
+                }
+              }
+            }
+
+            $execLogText = Get-Content -Raw -Path $executionLogPath -ErrorAction SilentlyContinue
+            foreach ($pat in $errorPatterns) {
+              if ($execLogText -match $pat) {
+                $detectedError = $true
+                $detectedLines += "ExecutionLog: matched '$pat'"
+              }
+            }
+
+            if ($detectedError) {
+              $comparisonStatus = 'not-run-headless-logged-error'
+              Write-Host "::error::Detected runtime error patterns for ${toolName}: $($detectedLines -join '; ')"
+              if ($processLogPath) {
+                Write-Host "--- Snooz process log (last 200 lines) ---"
+                Get-Content -Path $processLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
+              }
+              Write-Host "--- Headless execution log (last 200 lines) ---"
+              Get-Content -Path $executionLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
+
+              $failedScenarios += [PSCustomObject]@{
+                ToolName = $toolName
+                Status = 'logged_error'
+                ExecutionLog = $executionLogPath
+              }
+              $toolRunSummary += [PSCustomObject]@{
+                tool_name = $toolName
+                tool_version = $toolVersion
+                run_status = $toolStatus
+                comparison_status = $comparisonStatus
+                validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
+              }
+              Write-Host "Marking ${toolName} as failed due to logged errors. Continuing to next scenario."
+              continue
+            }
+
+            # Require explicit success marker in logs to consider run successful.
+            $hasSuccess = $false
+            if ($processLogPath) {
+              if ($procLogText -match [regex]::Escape($successPattern)) { $hasSuccess = $true }
+            }
+            if (-not $hasSuccess) {
+              if ($execLogText -match [regex]::Escape($successPattern)) { $hasSuccess = $true }
+            }
+
+            if (-not $hasSuccess) {
+              $comparisonStatus = 'not-run-headless-no-success-marker'
+              Write-Host "::error::No success marker ('$successPattern') found in logs for ${toolName}. Treating as failure."
+              if ($processLogPath) {
+                Write-Host "--- Snooz process log (last 200 lines) ---"
+                Get-Content -Path $processLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
+              }
+              Write-Host "--- Headless execution log (last 200 lines) ---"
+              Get-Content -Path $executionLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
+
+              $failedScenarios += [PSCustomObject]@{
+                ToolName = $toolName
+                Status = 'missing_success_marker'
+                ExecutionLog = $executionLogPath
+              }
+              $toolRunSummary += [PSCustomObject]@{
+                tool_name = $toolName
+                tool_version = $toolVersion
+                run_status = $toolStatus
+                comparison_status = $comparisonStatus
+                validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
+              }
+              Write-Host "Marking ${toolName} as failed due to missing success marker. Continuing to next scenario."
               continue
             }
 
