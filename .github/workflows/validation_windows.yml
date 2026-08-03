@@ -274,7 +274,7 @@ jobs:
             throw "No installer executable found under installer directory"
           }
 
-          $installDir = "C:/snooz_ci_install"
+          $installDir = "C:\\snooz_ci_install"
           if (Test-Path $installDir) {
             Remove-Item -Path $installDir -Recurse -Force
           }
@@ -324,10 +324,10 @@ jobs:
           $ceamsToolsDir = $null
           $searchRoots = @(
             (Join-Path $env:LOCALAPPDATA "Snooz Toolbox"),
-            (Join-Path $env:LOCALAPPDATA "Snooz Toolbox/packages"),
+            (Join-Path $env:LOCALAPPDATA "Snooz Toolbox\\packages"),
             (Join-Path $env:APPDATA "Snooz Toolbox"),
             (Join-Path $env:LOCALAPPDATA "Snooz"),
-            "C:/snooz_ci_install"
+            "C:\\snooz_ci_install"
           )
 
           foreach ($root in $searchRoots) {
