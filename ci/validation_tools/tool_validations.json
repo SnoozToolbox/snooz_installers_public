@@ -97,7 +97,7 @@
         "fileName": "DetectREMsYASA-report.tsv",
         "fileType": "annotation",
         "generatedSearchRoots": [
-          "validation-workspaces/reports"
+          "validation-workspaces"
         ]
       },
       {
