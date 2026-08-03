@@ -164,4 +164,14 @@ Notes:
 - `GH_PAT` is required for all builds (Windows, macOS, Linux): it is used to check out the source repository, download `fbs-pro` release assets, and publish installers to a release when release publishing is enabled.
 - Apple-related secrets are required for macOS signing and notarization jobs.
 
+## Note: recommended models for common tasks
+
+Quick reminder of which models to use for different tasks:
+
+- **Daily work (80%)** → GPT-5 mini
+- **Understanding / refactoring / documenting (20%)** → Claude Haiku 4.5
+- **Complex problems (default)** → Claude Sonnet 4.6
+- **Very complex / ambiguous problems** → Claude Sonnet 5
+- **Final cross-check for hard problems** → GPT-5.3-Codex
+
 

@@ -31,9 +31,9 @@ on:
         required: true
         default: v1.0.0
       tools_to_process:
-        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool)"
+        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.psd1"
         required: false
-        default: "ConvertXMLCompumedics"
+        default: ""
       gold_standard_repo:
         description: Gold-standard repository (owner/name)
         required: false
@@ -81,8 +81,29 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            Write-Host "No tool requested; skipping gold standards download."
-            exit 0
+            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+            if (-not (Test-Path $toolTransformationsPath)) {
+              throw "Tool adaptations config not found: $toolTransformationsPath"
+            }
+
+            $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+            $toolsToProcess = @(
+              $toolTransformations.GetEnumerator() |
+                Where-Object {
+                  $_.Value -is [hashtable] -and
+                  $_.Value.ContainsKey("updates") -and
+                  $null -ne $_.Value.updates -and
+                  $_.Value.updates.Count -gt 0
+                } |
+                ForEach-Object { [string]$_.Key } |
+                Sort-Object
+            )
+
+            if ($toolsToProcess.Count -eq 0) {
+              throw "No tool definitions with updates found in tool_json_adaptations.psd1"
+            }
+
+            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.psd1: $($toolsToProcess -join ', ')"
           }
 
           $tag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
@@ -129,8 +150,29 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            Write-Host "No tool requested; skipping gold standards extraction."
-            exit 0
+            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+            if (-not (Test-Path $toolTransformationsPath)) {
+              throw "Tool adaptations config not found: $toolTransformationsPath"
+            }
+
+            $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+            $toolsToProcess = @(
+              $toolTransformations.GetEnumerator() |
+                Where-Object {
+                  $_.Value -is [hashtable] -and
+                  $_.Value.ContainsKey("updates") -and
+                  $null -ne $_.Value.updates -and
+                  $_.Value.updates.Count -gt 0
+                } |
+                ForEach-Object { [string]$_.Key } |
+                Sort-Object
+            )
+
+            if ($toolsToProcess.Count -eq 0) {
+              throw "No tool definitions with updates found in tool_json_adaptations.psd1"
+            }
+
+            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.psd1: $($toolsToProcess -join ', ')"
           }
 
           $goldDir = "gold-standards"
@@ -355,6 +397,32 @@ jobs:
             $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
           }
 
+          $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+          if (-not (Test-Path $toolTransformationsPath)) {
+            throw "Tool adaptations config not found: $toolTransformationsPath"
+          }
+          $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+
+          if ($toolsToProcess.Count -eq 0) {
+            $toolsToProcess = @(
+              $toolTransformations.GetEnumerator() |
+                Where-Object {
+                  $_.Value -is [hashtable] -and
+                  $_.Value.ContainsKey("updates") -and
+                  $null -ne $_.Value.updates -and
+                  $_.Value.updates.Count -gt 0
+                } |
+                ForEach-Object { [string]$_.Key } |
+                Sort-Object
+            )
+
+            if ($toolsToProcess.Count -eq 0) {
+              throw "No tool definitions with updates found in tool_json_adaptations.psd1"
+            }
+
+            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.psd1."
+          }
+
           function Convert-ToJsonPath {
             param([string]$PathValue)
             return ($PathValue -replace '\\', '/')
@@ -368,12 +436,6 @@ jobs:
               Write-Host " - $toolName"
             }
           }
-
-          $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
-          if (-not (Test-Path $toolTransformationsPath)) {
-            throw "Tool adaptations config not found: $toolTransformationsPath"
-          }
-          $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
 
           if ($toolsToProcess.Count -gt 0) {
             $missingToolDefinitions = @()
@@ -919,8 +981,29 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            Write-Host "No tools requested; skipping execution step."
-            exit 0
+            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+            if (-not (Test-Path $toolTransformationsPath)) {
+              throw "Tool adaptations config not found: $toolTransformationsPath"
+            }
+
+            $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+            $toolsToProcess = @(
+              $toolTransformations.GetEnumerator() |
+                Where-Object {
+                  $_.Value -is [hashtable] -and
+                  $_.Value.ContainsKey("updates") -and
+                  $null -ne $_.Value.updates -and
+                  $_.Value.updates.Count -gt 0
+                } |
+                ForEach-Object { [string]$_.Key } |
+                Sort-Object
+            )
+
+            if ($toolsToProcess.Count -eq 0) {
+              throw "No tool definitions with updates found in tool_json_adaptations.psd1"
+            }
+
+            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.psd1: $($toolsToProcess -join ', ')"
           }
 
           if ([string]::IsNullOrWhiteSpace("$env:SNOOZ_INSTALLED_EXE") -or -not (Test-Path "$env:SNOOZ_INSTALLED_EXE")) {
