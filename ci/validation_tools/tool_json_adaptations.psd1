@@ -239,7 +239,7 @@
         required = $true
           value = @{
           kind = 'workspacePath'
-          relativePath = 'DetectREMsYASA_report.tsv'
+          relativePath = 'DetectREMsYASA-report.tsv'
           required = $true
         }
       }
