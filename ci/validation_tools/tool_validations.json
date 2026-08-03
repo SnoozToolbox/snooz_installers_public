@@ -5,7 +5,9 @@
       "Add one top-level key per tool basename (example: ConvertDOMINO, ConvertEDFbrowser).",
       "Each tool must define a non-empty comparisons array.",
       "Each item in comparisons defines one generated file to compare against one gold-standard file.",
-      "If generated and gold names are identical, use fileName only."
+      "If generated and gold names are identical, use fileName only.",
+      "comparisons[].delimiter: Optional delimiter override for text normalization when relevant.",
+      "comparisons[].maxDiffLines: Optional maximum number of diff lines to print in mismatch logs."
     ],
     "fields": {
       "<ToolName>": "Top-level key for one tool configuration. Must match the JSON filename of the tool in CEAMSTools package.",
@@ -29,7 +31,8 @@
         "fileName": "DOMINO_log.tsv",
         "fileType": "annotation",
         "generatedSearchRoots": [
-          "validation-workspaces/logs"
+          "validation-workspaces",
+          "private-dataset"
         ]
       },
       {
@@ -86,6 +89,45 @@
           "private-dataset"
         ]
       }     
+    ]
+  },
+  "DetectREMsYASA": {
+    "comparisons": [
+      {
+        "fileName": "DetectREMsYASA-report.tsv",
+        "fileType": "annotation",
+        "generatedSearchRoots": [
+          "validation-workspaces/reports"
+        ]
+      },
+      {
+        "fileName": "01-01-0001_YASA_REM.tsv",
+        "fileType": "annotation",
+        "generatedSearchRoots": [
+          "private-dataset/rems_characteristics"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_YASA_REM.tsv",
+        "fileType": "annotation",
+        "generatedSearchRoots": [
+          "private-dataset/rems_characteristics"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_YASA_REM.tsv",
+        "fileType": "annotation",
+        "generatedSearchRoots": [
+          "private-dataset/rems_characteristics"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_YASA_REM.tsv",
+        "fileType": "annotation",
+        "generatedSearchRoots": [
+          "private-dataset/rems_characteristics"
+        ]
+      }
     ]
   }
 }

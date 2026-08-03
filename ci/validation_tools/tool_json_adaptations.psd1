@@ -83,7 +83,7 @@
         required = $true
         value = @{
           kind = 'workspacePath'
-          relativePath = 'logs/DOMINO_log.tsv'
+          relativePath = 'DOMINO_log.tsv'
           required = $true
         }
       }
@@ -213,6 +213,33 @@
         value = @{
           kind = 'workspaceFileJson'
           relativePath = '../ci/validation_tools/DetectArtifacts-alias.json'
+          required = $true
+        }
+      }
+    )
+  }
+  DetectREMsYASA = @{
+    targetToolName = 'DetectREMsYASA'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = 'c3e6adf4-0698-4655-b2a5-e0cf102bf224'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/DetectREMsYASA-files.json'
+          required = $true
+        }
+      }
+      @{
+        identifier = 'd1489e58-7c3d-490e-9c36-f830c8dc596e'
+        inputName = 'cohort_filename'
+        required = $true
+          value = @{
+          kind = 'workspacePath'
+          relativePath = 'DetectREMsYASA_report.tsv'
           required = $true
         }
       }

@@ -1052,6 +1052,8 @@ jobs:
             $validatedFilesForTool = @()
 
             Write-Host "Using adapted scenario JSON for ${toolName}: $scenarioPath"
+            # (no pre-created reports folder — outputs will be written in flat layout)
+
             Write-Host "Launching headless scenario: $env:SNOOZ_INSTALLED_EXE --f $scenarioPath"
 
             $executionLogPath = Join-Path $logDir ("{0}-headless-exec.log" -f $toolName.ToLowerInvariant())
@@ -1064,7 +1066,7 @@ jobs:
             }
 
             if ($appStatus -ne 0) {
-              $comparisonStatus = "not-run-headless-failed"
+              $comparisonStatus = "fail"
               $scenarioDir = Split-Path $scenarioPath -Parent
               $snoozProcessLog = Get-ChildItem -Path $scenarioDir -Filter "*.log" -File -ErrorAction SilentlyContinue |
                 Sort-Object LastWriteTime -Descending |
@@ -1090,6 +1092,7 @@ jobs:
               $toolRunSummary += [PSCustomObject]@{
                 tool_name = $toolName
                 tool_version = $toolVersion
+                json_name = [System.IO.Path]::GetFileName($scenarioPath)
                 run_status = $toolStatus
                 comparison_status = $comparisonStatus
                 validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
@@ -1133,7 +1136,7 @@ jobs:
             }
 
             if ($detectedError) {
-              $comparisonStatus = 'not-run-headless-logged-error'
+              $comparisonStatus = 'fail'
               Write-Host "::error::Detected runtime error patterns for ${toolName}: $($detectedLines -join '; ')"
               if ($processLogPath) {
                 Write-Host "--- Snooz process log (last 200 lines) ---"
@@ -1150,6 +1153,7 @@ jobs:
               $toolRunSummary += [PSCustomObject]@{
                 tool_name = $toolName
                 tool_version = $toolVersion
+                json_name = [System.IO.Path]::GetFileName($scenarioPath)
                 run_status = $toolStatus
                 comparison_status = $comparisonStatus
                 validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
@@ -1168,7 +1172,7 @@ jobs:
             }
 
             if (-not $hasSuccess) {
-              $comparisonStatus = 'not-run-headless-no-success-marker'
+              $comparisonStatus = 'fail'
               Write-Host "::error::No success marker ('$successPattern') found in logs for ${toolName}. Treating as failure."
               if ($processLogPath) {
                 Write-Host "--- Snooz process log (last 200 lines) ---"
@@ -1185,6 +1189,7 @@ jobs:
               $toolRunSummary += [PSCustomObject]@{
                 tool_name = $toolName
                 tool_version = $toolVersion
+                json_name = [System.IO.Path]::GetFileName($scenarioPath)
                 run_status = $toolStatus
                 comparison_status = $comparisonStatus
                 validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
@@ -1202,7 +1207,7 @@ jobs:
               else {
                 $compareScript = Join-Path (Resolve-Path ".").Path "ci/validation_tools/compare_outputs.py"
                 if (-not (Test-Path $compareScript)) {
-                  $comparisonStatus = "failed-missing-compare-script"
+                  $comparisonStatus = "fail"
                   $failedScenarios += [PSCustomObject]@{
                     ToolName = $toolName
                     Status = "validation_failed"
@@ -1211,6 +1216,7 @@ jobs:
                   $toolRunSummary += [PSCustomObject]@{
                     tool_name = $toolName
                     tool_version = $toolVersion
+                    json_name = [System.IO.Path]::GetFileName($scenarioPath)
                     run_status = $toolStatus
                     comparison_status = $comparisonStatus
                     validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
@@ -1296,7 +1302,7 @@ jobs:
                     & python @compareArgs
                     $compareStatus = $LASTEXITCODE
                     if ($compareStatus -ne 0) {
-                      $comparisonStatus = "failed"
+                      $comparisonStatus = "fail"
                       Write-Host "::error::$toolName output mismatch for $generatedFileName"
                       Write-Host "Generated file: $generatedFile"
                       Write-Host "Gold standard: $($goldReference.FullName)"
@@ -1328,7 +1334,7 @@ jobs:
                     continue
                   }
 
-                  $comparisonStatus = "passed"
+                  $comparisonStatus = "pass"
                   Write-Host "$toolName outputs match configured gold standards."
                 }
               }
@@ -1342,6 +1348,7 @@ jobs:
             $toolRunSummary += [PSCustomObject]@{
               tool_name = $toolName
               tool_version = $toolVersion
+              json_name = [System.IO.Path]::GetFileName($scenarioPath)
               run_status = $toolStatus
               comparison_status = $comparisonStatus
               validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
@@ -1351,7 +1358,10 @@ jobs:
 
           $runSummaryTsvPath = Join-Path $logDir "tool-run-summary.tsv"
           $toolRunSummary |
-            Select-Object tool_name, tool_version, run_status, comparison_status, validated_files |
+            Select-Object tool_name, tool_version, json_name,
+              @{Name='run_status';Expression={ if ($_.run_status -eq 'pass') { 'pass' } else { 'fail' }}},
+              @{Name='comparison_status';Expression={ if ($_.comparison_status -eq 'pass') { 'pass' } else { $_.comparison_status }}},
+              validated_files |
             Export-Csv -Path $runSummaryTsvPath -NoTypeInformation -Encoding UTF8 -Delimiter "`t"
           Write-Host "Tool run summary TSV written to: $runSummaryTsvPath"
 
