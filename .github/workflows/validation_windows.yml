@@ -274,7 +274,7 @@ jobs:
             throw "No installer executable found under installer directory"
           }
 
-          $installDir = "C:\\snooz_ci_install"
+          $installDir = "C:\snooz_ci_install"
           if (Test-Path $installDir) {
             Remove-Item -Path $installDir -Recurse -Force
           }
