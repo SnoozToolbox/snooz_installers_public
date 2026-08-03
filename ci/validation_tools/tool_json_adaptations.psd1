@@ -4,6 +4,7 @@
   #
   # Workflow dataset root used by adaptations:
   # - private-dataset: validation release assets from SnoozToolbox/snooz-datasets-private
+
   # Validation rule: private-dataset is the single source of truth.
   #
   # Tool-level keys:
@@ -44,6 +45,17 @@
   # - kind=pythonDictFromFileMapping
   #   - fileSpec: nested value spec that resolves a single file path
   #   - mapping: key/value map used as dictionary content for that file
+  # - kind=workspaceFileJson
+  #   - relativePath: path to a JSON file (relative to validation-workspaces)
+  #   - behavior: reads the JSON file and injects its full JSON content as the input value
+  #   - use this when the target input value is large/complex and should be maintained in a separate file
+  #   - developer workflow (create JSON files to be read):
+  #     1) Generate or open the adapted process JSON for your tool.
+  #     2) Copy the exact value of the input field to override (for example "files" or "alias").
+  #     3) Create a dedicated JSON file in this repository containing only that value.
+  #     4) Commit that JSON file and reference it with kind=workspaceFileJson + relativePath.
+  #     5) For private dataset files in CI, use paths under:
+  #        D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/
   # - required: true/false (default true)
   #   - true: fail fast if value/path cannot be resolved
   #   - false: allow missing value and continue (empty substitution)
