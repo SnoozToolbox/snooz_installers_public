@@ -161,7 +161,13 @@ def compare_annotation_unordered(reference: list[str], generated: list[str], max
                     break
             if best_match:
                 diff_info = first_diff_field(ref_value, best_match)
-                print(f"  only in ref (closest gen match): {diff_info}")
+                # Show line counts if lines appear identical
+                if diff_info == "(lines identical)":
+                    ref_count = reference_counter.get(ref_value, 0)
+                    gen_count = generated_counter.get(ref_value, 0)
+                    print(f"  lines are identical but have different occurrence counts: ref={ref_count}, gen={gen_count}")
+                else:
+                    print(f"  only in ref (closest gen match): {diff_info}")
             else:
                 print(f"  only in ref: {ref_value}")
         else:
@@ -171,6 +177,9 @@ def compare_annotation_unordered(reference: list[str], generated: list[str], max
         if shown >= max_diff_lines:
             print(f"... showing first {max_diff_lines} differences only")
             break
+
+    print(f"\nSummary: Reference has {len(reference)} lines, Generated has {len(generated)} lines")
+    print(f"Unique lines in ref: {len(reference_counter)}, Unique lines in gen: {len(generated_counter)}")
 
     return 1
 

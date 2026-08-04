@@ -1496,7 +1496,7 @@ jobs:
                 Copy-Item -Path $generatedFile -Destination $destGenFile -Force
                 Write-Host "Copied generated: $generatedFile -> $destGenFile"
               } else {
-                Write-Host "::warning::Generated file not found for $toolName: $fileName"
+                Write-Host "::warning::Generated file not found for ${toolName}: $fileName"
               }
 
               # Find and copy gold standard reference
@@ -1508,7 +1508,7 @@ jobs:
                 Copy-Item -Path $goldFile.FullName -Destination $destGoldFile -Force
                 Write-Host "Copied reference: $($goldFile.FullName) -> $destGoldFile"
               } else {
-                Write-Host "::warning::Gold standard file not found for $toolName: $fileName"
+                Write-Host "::warning::Gold standard file not found for ${toolName}: $fileName"
               }
             }
           }
