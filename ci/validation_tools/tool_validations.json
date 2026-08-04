@@ -103,35 +103,35 @@
         ]
       },
       {
-        "fileName": "01-01-0001_YASA_REM.tsv",
+        "fileName": "01-01-0001_YASA_REMs_summary.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
-          "private-dataset/rems_characteristics"
+          "private-dataset"
         ]
       },
       {
-        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_YASA_REM.tsv",
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_YASA_REMs_summary.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
-          "private-dataset/rems_characteristics"
+          "private-dataset"
         ]
       },
       {
-        "fileName": "learn-nsrr01_YASA_REM.tsv",
+        "fileName": "learn-nsrr01_YASA_REMs_summary.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
-          "private-dataset/rems_characteristics"
+          "private-dataset"
         ]
       },
       {
-        "fileName": "learn-nsrr02_YASA_REM.tsv",
+        "fileName": "learn-nsrr02_YASA_REMs_summary.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
-          "private-dataset/rems_characteristics"
+          "private-dataset"
         ]
       }
     ]
