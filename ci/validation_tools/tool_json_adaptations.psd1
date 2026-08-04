@@ -266,7 +266,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = 1
+          value = "1"
           required = $true
         }
       }
