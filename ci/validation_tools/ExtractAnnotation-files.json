@@ -1,0 +1,70 @@
+{
+    "D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf": {
+        "event_groups": [
+            "stage",
+            "SpO2 artifact",
+            "Hypopnea",
+            "SpO2 desaturation",
+            "Arousal ()",
+            "Obstructive Apnea"
+        ]
+    },
+    "D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf": {
+        "event_groups": [
+            "stage",
+            "SpO2 artifact",
+            "Arousal ()",
+            "Hypopnea",
+            "SpO2 desaturation",
+            "Obstructive Apnea"
+        ]
+    },
+    "D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg": {
+        "event_groups": [
+            "Section d'\u00c9chantillon.",
+            "Annotation",
+            "DetecteMJ",
+            "HYPNO",
+            "art_snooz_set1_NREM",
+            "M-EVE",
+            "\u00c9V\u00c9NEMENTS RESPIRATOIRES",
+            "art_inspector",
+            "Stade"
+        ]
+    },
+    "D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts": {
+        "event_groups": [
+            "D\u00e9marrage de l'enreg.",
+            "Section de calibration",
+            "Section de d\u00e9blocage",
+            "E-Test Section",
+            "Section de patient d\u00e9connect\u00e9",
+            "Section d'\u00e9chantillon.",
+            "Section de bouton-poussoir",
+            "D\u00e9tection manuelle",
+            "Annotation",
+            "Pap",
+            "Position du corps",
+            "Biocalibration",
+            "Id. de calibration",
+            "Message",
+            "Param. de visualisation",
+            "DetecteMJ",
+            "art_snooz_set1_NREM",
+            "Artefact",
+            "M-EVE",
+            "MJ",
+            "\u00c9V\u00c9NEMENTS RESPIRATOIRES",
+            "HRVAS",
+            "RONFLEMENT",
+            "HYPNO",
+            "Calibration Label",
+            "Artifact",
+            "c-rem 2 signs",
+            "c-rem 1 sign",
+            "Stade",
+            "Hyperventilation",
+            "Apr\u00e8s l'hyperventil."
+        ]
+    }
+}

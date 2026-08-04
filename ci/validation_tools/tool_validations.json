@@ -135,5 +135,41 @@
         ]
       }
     ]
+  },
+  "ExtractAnnotation": {
+    "comparisons": [
+      {
+        "fileName": "01-01-0001_art_snooz_YASA_REM.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_art_snooz_YASA_REM.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_art_snooz_YASA_REM.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_art_snooz_YASA_REM.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }
+    ]
   }
 }

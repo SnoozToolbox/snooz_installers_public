@@ -245,6 +245,72 @@
       }
     )
   }
+  ExtractAnnotation = @{
+    targetToolName = 'ExtractAnnotation'
+    processingMode = 'adapted'
 
+    updates = @(
+      @{
+        identifier = '58ffafc2-c74f-40fa-b6a4-362bdb1535ca'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/ExtractAnnotation-files.json'
+          required = $true
+        }
+      }
+      @{
+        identifier = 'aeec670e-3e4d-41b1-97ee-09db11fbe37c'
+        inputName = 'suffix'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "_art_snooz_YASA_REM.tsv"
+          required = $true
+        }
+      }
+      @{
+        identifier = '9e2e8c71-d2cc-48a3-89a0-c1241e66ab4e'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'inputs/learn-nsrr01.edf': 'REM,art_snooz_set1_NREM', 'inputs/learn-nsrr02.edf': 'REM,art_snooz_set1_NREM', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'REM,art_snooz_set1_NREM', 'inputs/01-01-0001.sts': 'REM,art_snooz_set1_NREM'}"
+          required = $true
+        }
+      }
+      @{
+        identifier = 'c111e8b0-e11c-4846-8c1a-46352f849203'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'inputs/learn-nsrr01.edf': 'YASA_REM,art_snooz_set1_NREM', 'inputs/learn-nsrr02.edf': 'YASA_REM,art_snooz_set1_NREM', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'YASA_REM,art_snooz_set1_NREM', 'inputs/01-01-0001.sts': 'YASA_REM,art_snooz_set1_NREM'}"
+          required = $true
+        }
+      }
+      @{
+        identifier = '73f19acb-36f0-45b6-a1ab-b07a09f8ca58'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'inputs/learn-nsrr01.edf': 'None', 'inputs/learn-nsrr02.edf': 'None', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'inputs/01-01-0001.sts': 'None'}"
+          required = $true
+        }
+      }
+      @{
+        identifier = 'dc4ff07e-d8bf-472b-a308-8706ddbacf76'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'inputs/learn-nsrr01.edf': 'None', 'inputs/learn-nsrr02.edf': 'None', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'inputs/01-01-0001.sts': 'None'}"
+          required = $true
+        }
+      }
+    )
+  }
 }
 
