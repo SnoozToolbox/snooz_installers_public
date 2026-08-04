@@ -1054,6 +1054,13 @@ jobs:
             Write-Host "Using adapted scenario JSON for ${toolName}: $scenarioPath"
             # (no pre-created reports folder — outputs will be written in flat layout)
 
+            $learnNsrr01Tsv = Get-ChildItem -Path "private-dataset" -Recurse -File -Filter "learn-nsrr01.tsv" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($null -ne $learnNsrr01Tsv) {
+              Write-Host "Before ${toolName}: learn-nsrr01.tsv size = $($learnNsrr01Tsv.Length) bytes"
+            } else {
+              Write-Host "Before ${toolName}: learn-nsrr01.tsv not found under private-dataset"
+            }
+
             Write-Host "Launching headless scenario: $env:SNOOZ_INSTALLED_EXE --f $scenarioPath"
 
             $executionLogPath = Join-Path $logDir ("{0}-headless-exec.log" -f $toolName.ToLowerInvariant())
@@ -1061,6 +1068,13 @@ jobs:
 
             & "$env:SNOOZ_INSTALLED_EXE" --f "$scenarioPath" 2>&1 | Tee-Object -FilePath $executionLogPath
             $appStatus = $LASTEXITCODE
+
+            $learnNsrr01Tsv = Get-ChildItem -Path "private-dataset" -Recurse -File -Filter "learn-nsrr01.tsv" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($null -ne $learnNsrr01Tsv) {
+              Write-Host "After ${toolName}: learn-nsrr01.tsv size = $($learnNsrr01Tsv.Length) bytes"
+            } else {
+              Write-Host "After ${toolName}: learn-nsrr01.tsv not found under private-dataset"
+            }
 
             # Diagnostic: list TSVs under validation-workspaces (only if single tool for readability)
             if ($toolsToProcess.Count -eq 1) {
