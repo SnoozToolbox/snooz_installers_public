@@ -1062,28 +1062,16 @@ jobs:
             & "$env:SNOOZ_INSTALLED_EXE" --f "$scenarioPath" 2>&1 | Tee-Object -FilePath $executionLogPath
             $appStatus = $LASTEXITCODE
 
-            # Diagnostic: list TSVs under validation-workspaces and check expected generated file
-            Write-Host "Diagnostic: TSV files under validation-workspaces (top 50)"
-            if (Test-Path "validation-workspaces") {
-              Get-ChildItem -Path validation-workspaces -Recurse -File -Filter "*.tsv" |
-                Sort-Object FullName |
-                Select-Object -First 50 -ExpandProperty FullName | ForEach-Object { Write-Host " - $_" }
-            } else {
-              Write-Host " - validation-workspaces directory not present"
-            }
-
-            $expected = Join-Path (Resolve-Path "validation-workspaces" -ErrorAction SilentlyContinue) "DetectREMsYASA-report.tsv"
-            if ($null -eq $expected) { $expected = "validation-workspaces\\DetectREMsYASA-report.tsv" }
-            Write-Host "Checking expected generated file: $expected"
-            if (Test-Path $expected) {
-              $fi = Get-Item -Path $expected
-              Write-Host "Found generated file: $($fi.FullName) - $($fi.Length) bytes"
-              if ($toolsToProcess.Count -eq 1) {
-                Write-Host "--- Head of generated file (up to 80 lines) ---"
-                Get-Content -Path $expected -TotalCount 80 | ForEach-Object { Write-Host $_ }
+            # Diagnostic: list TSVs under validation-workspaces (only if single tool for readability)
+            if ($toolsToProcess.Count -eq 1) {
+              Write-Host "Diagnostic: TSV files under validation-workspaces (top 50)"
+              if (Test-Path "validation-workspaces") {
+                Get-ChildItem -Path validation-workspaces -Recurse -File -Filter "*.tsv" |
+                  Sort-Object FullName |
+                  Select-Object -First 50 -ExpandProperty FullName | ForEach-Object { Write-Host " - $_" }
+              } else {
+                Write-Host " - validation-workspaces directory not present"
               }
-            } else {
-              Write-Host "Generated file not found: $expected"
             }
             if ($null -eq $appStatus) {
               $appStatus = 0
