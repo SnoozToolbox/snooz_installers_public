@@ -101,14 +101,33 @@ def compare_annotation_unordered(reference: list[str], generated: list[str], max
     only_in_reference = list((reference_counter - generated_counter).elements())
     only_in_generated = list((generated_counter - reference_counter).elements())
 
+    def first_diff_field(ref_line: str, gen_line: str, delimiter: str = "\t") -> str:
+        ref_fields = ref_line.split(delimiter)
+        gen_fields = gen_line.split(delimiter)
+        maxf = max(len(ref_fields), len(gen_fields))
+        for i in range(maxf):
+            r = ref_fields[i] if i < len(ref_fields) else "<missing>"
+            g = gen_fields[i] if i < len(gen_fields) else "<missing>"
+            if r != g:
+                # limit output length for readability
+                r_short = (r[:300] + "...") if len(r) > 300 else r
+                g_short = (g[:300] + "...") if len(g) > 300 else g
+                return f"first differing field #{i+1}: ref='{r_short}' vs gen='{g_short}'"
+        return "(lines differ but no differing tab-separated field detected)"
+
     shown = 0
     max_len = max(len(only_in_reference), len(only_in_generated))
     for idx in range(max_len):
         ref_value = only_in_reference[idx] if idx < len(only_in_reference) else "<none>"
         gen_value = only_in_generated[idx] if idx < len(only_in_generated) else "<none>"
         print(f"Diff {idx + 1}:")
-        print(f"  only in ref: {ref_value}")
-        print(f"  only in gen: {gen_value}")
+        # Show concise first differing field when possible
+        if ref_value != "<none>" and gen_value != "<none>":
+            diff_info = first_diff_field(ref_value, gen_value)
+            print(f"  {diff_info}")
+        else:
+            print(f"  only in ref: {ref_value}")
+            print(f"  only in gen: {gen_value}")
         shown += 1
         if shown >= max_diff_lines:
             print(f"... showing first {max_diff_lines} differences only")
