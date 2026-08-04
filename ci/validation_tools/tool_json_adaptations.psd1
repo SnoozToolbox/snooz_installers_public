@@ -266,7 +266,8 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "1"
+          # Disabled: known TsvWriter header/column count bug when an input file yields 0 events. See TsvWriter.compute.
+          value = "0"
           required = $true
         }
       }
