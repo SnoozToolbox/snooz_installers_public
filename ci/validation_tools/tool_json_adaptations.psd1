@@ -261,6 +261,16 @@
         }
       }
       @{
+        identifier = '2103d165-8cfa-4db1-8e6a-1fbc0b1a972d'
+        inputName = 'time_elapsed'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = true
+          required = $true
+        }
+      }
+      @{
         identifier = 'aeec670e-3e4d-41b1-97ee-09db11fbe37c'
         inputName = 'suffix'
         required = $true
