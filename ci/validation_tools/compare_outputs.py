@@ -125,6 +125,25 @@ def compare_annotation_unordered(reference: list[str], generated: list[str], max
         if ref_value != "<none>" and gen_value != "<none>":
             diff_info = first_diff_field(ref_value, gen_value)
             print(f"  {diff_info}")
+        elif ref_value != "<none>" and gen_value == "<none>":
+            # Try to find a best-match in generated lines by matching initial fields (id/key)
+            ref_fields = ref_value.split("\t")
+            best_match = None
+            # try matching first 1..3 fields
+            for k in range(1, min(4, len(ref_fields) + 1)):
+                key = tuple(ref_fields[:k])
+                for g in generated:
+                    g_fields = g.split("\t")
+                    if tuple(g_fields[:k]) == key:
+                        best_match = g
+                        break
+                if best_match:
+                    break
+            if best_match:
+                diff_info = first_diff_field(ref_value, best_match)
+                print(f"  only in ref (closest gen match): {diff_info}")
+            else:
+                print(f"  only in ref: {ref_value}")
         else:
             print(f"  only in ref: {ref_value}")
             print(f"  only in gen: {gen_value}")
