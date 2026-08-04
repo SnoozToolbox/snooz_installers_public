@@ -33,7 +33,7 @@ on:
       tools_to_process:
         description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.psd1"
         required: false
-        default: "DetectREMsYASA"
+        default: ""
       gold_standard_repo:
         description: Gold-standard repository (owner/name)
         required: false
