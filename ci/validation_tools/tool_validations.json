@@ -97,7 +97,7 @@
       {
         "fileName": "DetectREMsYASA-report.tsv",
         "fileType": "bag-comparison",
-        "precision": 6,
+        "precision": 4,
         "generatedSearchRoots": [
           "validation-workspaces"
         ]
@@ -105,6 +105,7 @@
       {
         "fileName": "01-01-0001_YASA_REM.tsv",
         "fileType": "bag-comparison",
+        "precision": 4,
         "generatedSearchRoots": [
           "private-dataset/rems_characteristics"
         ]
@@ -112,6 +113,7 @@
       {
         "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_YASA_REM.tsv",
         "fileType": "bag-comparison",
+        "precision": 4,
         "generatedSearchRoots": [
           "private-dataset/rems_characteristics"
         ]
@@ -119,6 +121,7 @@
       {
         "fileName": "learn-nsrr01_YASA_REM.tsv",
         "fileType": "bag-comparison",
+        "precision": 4,
         "generatedSearchRoots": [
           "private-dataset/rems_characteristics"
         ]
@@ -126,6 +129,7 @@
       {
         "fileName": "learn-nsrr02_YASA_REM.tsv",
         "fileType": "bag-comparison",
+        "precision": 4,
         "generatedSearchRoots": [
           "private-dataset/rems_characteristics"
         ]
