@@ -1410,6 +1410,111 @@ jobs:
             throw "$($failedScenarios.Count) headless scenario(s) failed. See summary above."
           }
 
+      - name: Collect evaluated files by tool
+        shell: pwsh
+        if: always()
+        run: |
+          $validationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_validations.json"
+          if (-not (Test-Path $validationsPath)) {
+            Write-Host "tool_validations.json not found; skipping file collection."
+            exit 0
+          }
+
+          $validations = Get-Content -Path $validationsPath -Raw | ConvertFrom-Json -AsHashtable
+
+          $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
+          $toolsToProcess = @()
+          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
+            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+          }
+
+          if ($toolsToProcess.Count -eq 0) {
+            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+            if (Test-Path $toolTransformationsPath) {
+              $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+              $toolsToProcess = @(
+                $toolTransformations.GetEnumerator() |
+                  Where-Object {
+                    $_.Value -is [hashtable] -and
+                    $_.Value.ContainsKey("updates") -and
+                    $null -ne $_.Value.updates -and
+                    $_.Value.updates.Count -gt 0
+                  } |
+                  ForEach-Object { [string]$_.Key } |
+                  Sort-Object
+              )
+            }
+          }
+
+          if ($toolsToProcess.Count -eq 0) {
+            Write-Host "No tools to process; skipping file collection."
+            exit 0
+          }
+
+          $outputBaseDir = "validation-outputs"
+          if (Test-Path $outputBaseDir) {
+            Remove-Item -Path $outputBaseDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $outputBaseDir -Force | Out-Null
+
+          foreach ($toolName in $toolsToProcess) {
+            if (-not $validations.ContainsKey($toolName)) {
+              Write-Host "Tool $toolName not found in tool_validations.json; skipping."
+              continue
+            }
+
+            $toolConfig = $validations[$toolName]
+            if (-not $toolConfig.ContainsKey("comparisons") -or $toolConfig.comparisons.Count -eq 0) {
+              Write-Host "Tool $toolName has no comparisons defined; skipping."
+              continue
+            }
+
+            $toolOutputDir = Join-Path $outputBaseDir $toolName
+            New-Item -ItemType Directory -Path $toolOutputDir -Force | Out-Null
+
+            foreach ($comparison in $toolConfig.comparisons) {
+              $fileName = $comparison.fileName
+              $generatedSearchRoots = $comparison.generatedSearchRoots
+              if ($null -eq $generatedSearchRoots -or $generatedSearchRoots.Count -eq 0) {
+                $generatedSearchRoots = @("validation-workspaces", "private-dataset")
+              }
+
+              # Find generated file in search roots
+              $generatedFile = $null
+              foreach ($root in $generatedSearchRoots) {
+                $found = Get-ChildItem -Path $root -Recurse -File -Filter $fileName -ErrorAction SilentlyContinue |
+                  Sort-Object FullName |
+                  Select-Object -First 1
+                if ($null -ne $found) {
+                  $generatedFile = $found.FullName
+                  break
+                }
+              }
+
+              if ($null -ne $generatedFile) {
+                $destGenFile = Join-Path $toolOutputDir ("generated_" + (Split-Path $generatedFile -Leaf))
+                Copy-Item -Path $generatedFile -Destination $destGenFile -Force
+                Write-Host "Copied generated: $generatedFile -> $destGenFile"
+              } else {
+                Write-Host "::warning::Generated file not found for $toolName: $fileName"
+              }
+
+              # Find and copy gold standard reference
+              $goldFile = Get-ChildItem -Path "gold-standards" -Recurse -File -Filter $fileName -ErrorAction SilentlyContinue |
+                Sort-Object FullName |
+                Select-Object -First 1
+              if ($null -ne $goldFile) {
+                $destGoldFile = Join-Path $toolOutputDir ("reference_" + (Split-Path $goldFile -Leaf))
+                Copy-Item -Path $goldFile.FullName -Destination $destGoldFile -Force
+                Write-Host "Copied reference: $($goldFile.FullName) -> $destGoldFile"
+              } else {
+                Write-Host "::warning::Gold standard file not found for $toolName: $fileName"
+              }
+            }
+          }
+
+          Write-Host "Collected evaluated files in: $outputBaseDir"
+
       - name: Upload adapted JSON and validation logs as artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -1421,3 +1526,4 @@ jobs:
             validation-workspaces/**/*.log
             target/validation-logs/**/*.log
             target/validation-logs/tool-run-summary.tsv
+            validation-outputs/**/*

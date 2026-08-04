@@ -113,7 +113,27 @@ def compare_annotation_unordered(reference: list[str], generated: list[str], max
                 r_short = (r[:300] + "...") if len(r) > 300 else r
                 g_short = (g[:300] + "...") if len(g) > 300 else g
                 return f"first differing field #{i+1}: ref='{r_short}' vs gen='{g_short}'"
-        return "(lines differ but no differing tab-separated field detected)"
+        # If no differing tab-separated field, fall back to first differing character
+        if ref_line == gen_line:
+            return "(lines identical)"
+        maxc = max(len(ref_line), len(gen_line))
+        for i in range(maxc):
+            rc = ref_line[i] if i < len(ref_line) else "<EOL>"
+            gc = gen_line[i] if i < len(gen_line) else "<EOL>"
+            if rc != gc:
+                # show context around the differing char
+                start = max(0, i - 20)
+                end = min(maxc, i + 20)
+                ref_snip = ref_line[start:end]
+                gen_snip = gen_line[start:end]
+                rc_repr = f"U+{ord(rc):04X}" if len(rc) == 1 else rc
+                gc_repr = f"U+{ord(gc):04X}" if len(gc) == 1 else gc
+                return (
+                    f"first differing char at index {i}: ref[{rc_repr}] vs gen[{gc_repr}]\n"
+                    f"  ref context: ...{ref_snip}...\n"
+                    f"  gen context: ...{gen_snip}..."
+                )
+        return "(lines differ but no differing character found)"
 
     shown = 0
     max_len = max(len(only_in_reference), len(only_in_generated))
