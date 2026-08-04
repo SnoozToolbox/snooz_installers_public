@@ -1078,8 +1078,10 @@ jobs:
             if (Test-Path $expected) {
               $fi = Get-Item -Path $expected
               Write-Host "Found generated file: $($fi.FullName) - $($fi.Length) bytes"
-              Write-Host "--- Head of generated file (up to 80 lines) ---"
-              Get-Content -Path $expected -TotalCount 80 | ForEach-Object { Write-Host $_ }
+              if ($toolsToProcess.Count -eq 1) {
+                Write-Host "--- Head of generated file (up to 80 lines) ---"
+                Get-Content -Path $expected -TotalCount 80 | ForEach-Object { Write-Host $_ }
+              }
             } else {
               Write-Host "Generated file not found: $expected"
             }

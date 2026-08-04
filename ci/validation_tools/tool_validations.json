@@ -6,6 +6,7 @@
       "Each tool must define a non-empty comparisons array.",
       "Each item in comparisons defines one generated file to compare against one gold-standard file.",
       "If generated and gold names are identical, use fileName only.",
+      "fileType: Use 'bag-comparison' for unordered line comparison (order-independent, counts must match), 'generic' for strict line-by-line order preservation, or 'report' for ordered comparison.",
       "comparisons[].delimiter: Optional delimiter override for text normalization when relevant.",
       "comparisons[].maxDiffLines: Optional maximum number of diff lines to print in mismatch logs."
     ],
@@ -13,7 +14,7 @@
       "<ToolName>": "Top-level key for one tool configuration. Must match the JSON filename of the tool in CEAMSTools package.",
       "comparisons": "Array of comparison rules executed for this tool.",
       "comparisons[].fileName": "Preferred single filename used for both generated output and gold-standard reference.",
-      "comparisons[].fileType": "Comparison mode used by compare_outputs.py (examples: annotation, generic, report).",
+      "comparisons[].fileType": "Comparison mode used by compare_outputs.py (examples: bag-comparison, generic, report).",
       "comparisons[].generatedSearchRoots": "Ordered list of roots scanned recursively to find generatedFileName.",
       "comparisons[].precision": "Optional integer precision for numeric normalization before comparison. Omit to disable rounding.",
       "comparisons[].delimiter": "Optional delimiter override for text normalization when relevant.",
@@ -29,7 +30,7 @@
     "comparisons": [
       {
         "fileName": "DOMINO_log.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "validation-workspaces",
           "private-dataset"
@@ -37,7 +38,7 @@
       },
       {
         "fileName": "patient-CEJUDO_(1).tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset/inputs/DOMINO_FILES/subject_3"
         ]
@@ -48,7 +49,7 @@
     "comparisons": [
       {
         "fileName": "learn-nsrr01_annotations.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset"
         ]
@@ -59,14 +60,14 @@
     "comparisons": [
       {
         "fileName": "learn-nsrr01-profusion.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset"
         ]
       },
       {
         "fileName": "learn-nsrr02-profusion.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset"
         ]
@@ -77,14 +78,14 @@
     "comparisons": [
       {
         "fileName": "learn-nsrr01.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset"
         ]
       },
       {
         "fileName": "learn-nsrr02.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset"
         ]
@@ -95,35 +96,36 @@
     "comparisons": [
       {
         "fileName": "DetectREMsYASA-report.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
+        "precision": 6,
         "generatedSearchRoots": [
           "validation-workspaces"
         ]
       },
       {
         "fileName": "01-01-0001_YASA_REM.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset/rems_characteristics"
         ]
       },
       {
         "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_YASA_REM.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset/rems_characteristics"
         ]
       },
       {
         "fileName": "learn-nsrr01_YASA_REM.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset/rems_characteristics"
         ]
       },
       {
         "fileName": "learn-nsrr02_YASA_REM.tsv",
-        "fileType": "annotation",
+        "fileType": "bag-comparison",
         "generatedSearchRoots": [
           "private-dataset/rems_characteristics"
         ]

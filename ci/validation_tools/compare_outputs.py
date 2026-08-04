@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--file-type",
         default="generic",
-        choices=["generic", "annotation", "report"],
+        choices=["generic", "bag-comparison", "report"],
         help="File type selector for future custom logic.",
     )
     parser.add_argument(
@@ -217,7 +217,7 @@ def main() -> int:
     ref_lines = normalize_lines(ref_lines, args.delimiter, round_precision)
     gen_lines = normalize_lines(gen_lines, args.delimiter, round_precision)
 
-    if args.file_type == "annotation":
+    if args.file_type == "bag-comparison":
         status = compare_annotation_unordered(ref_lines, gen_lines, args.max_diff_lines)
     else:
         status = compare_as_text(ref_lines, gen_lines, args.max_diff_lines)
