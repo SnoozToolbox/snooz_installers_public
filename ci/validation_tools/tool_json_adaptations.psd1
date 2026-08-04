@@ -172,7 +172,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'inputs/learn-nsrr01.edf': 'None', 'inputs/learn-nsrr02.edf': 'None', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'inputs/01-01-0001.sts': 'None'}"
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
           required = $true
         }
       }
@@ -182,7 +182,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'inputs/learn-nsrr01.edf': 'None', 'inputs/learn-nsrr02.edf': 'None', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector', 'inputs/01-01-0001.sts': 'None'}"
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
           required = $true
         }
       }
@@ -266,8 +266,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          # Disabled: known TsvWriter header/column count bug when an input file yields 0 events. See TsvWriter.compute.
-          value = "0"
+          value = "1"
           required = $true
         }
       }
@@ -287,7 +286,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'inputs/learn-nsrr01.edf': 'REM,art_snooz_set1_NREM', 'inputs/learn-nsrr02.edf': 'REM,art_snooz_set1_NREM', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'REM,art_snooz_set1_NREM', 'inputs/01-01-0001.sts': 'REM,art_snooz_set1_NREM'}"
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'REM,art_snooz_set1_NREM'}"
           required = $true
         }
       }
@@ -297,7 +296,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'inputs/learn-nsrr01.edf': 'YASA_REM,art_snooz_set1_NREM', 'inputs/learn-nsrr02.edf': 'YASA_REM,art_snooz_set1_NREM', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'YASA_REM,art_snooz_set1_NREM', 'inputs/01-01-0001.sts': 'YASA_REM,art_snooz_set1_NREM'}"
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'YASA_REM,art_snooz_set1_NREM'}"
           required = $true
         }
       }
@@ -307,7 +306,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'inputs/learn-nsrr01.edf': 'None', 'inputs/learn-nsrr02.edf': 'None', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'inputs/01-01-0001.sts': 'None'}"
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
           required = $true
         }
       }
@@ -317,7 +316,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'inputs/learn-nsrr01.edf': 'None', 'inputs/learn-nsrr02.edf': 'None', 'inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'inputs/01-01-0001.sts': 'None'}"
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
           required = $true
         }
       }
