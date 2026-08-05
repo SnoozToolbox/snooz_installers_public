@@ -344,5 +344,32 @@
       }
     )
   }
+  ImportTextAnnotations = @{
+    targetToolName = 'ImportTextAnnotations'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = '134e1371-8cd7-4362-bf33-92ce14d187c0'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/ImportTextAnnotations-files.json'
+          required = $true
+        }
+      }
+      @{
+        identifier = '351e5f9f-d4ee-4347-b554-230b558d2034'
+        inputName = 'suffix'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "_fake_text_annot.tsv"
+          required = $true
+        }
+      }
+    )
+  }
 }
 
