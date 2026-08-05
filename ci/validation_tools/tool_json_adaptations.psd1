@@ -28,14 +28,6 @@
   # - kind=privateDatasetPath
   #   - relativePath: path relative to private-dataset
   #   - output: path, list, or pythonListSingleQuoted (default path)
-  #
-  # Examples (final JSON produced for an input named "files"):
-  # - output = 'path' produces a single string value:
-  #   "files": { "name": "files", "value": "D:/.../private-dataset/inputs/file.txt", "sub_plugs": {}, "connections": {} }
-  # - output = 'list' produces a native JSON array:
-  #   "files": { "name": "files", "value": [ "D:/.../private-dataset/inputs/file.txt" ], "sub_plugs": {}, "connections": {} }
-  # - output = 'pythonListSingleQuoted' produces a Python-list-as-string (single-quoted):
-  #   "files": { "name": "files", "value": "['D:/.../private-dataset/inputs/file.txt']", "sub_plugs": {}, "connections": {} }
   # - kind=findPath
   #   - roots: list of roots to search recursively
   #   - itemType: Directory or File (default Directory)
@@ -56,6 +48,7 @@
   #     4) Commit that JSON file and reference it with kind=workspaceFileJson + relativePath.
   #     5) For private dataset files in CI, use paths under:
   #        D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/
+  #
   # - required: true/false (default true)
   #   - true: fail fast if value/path cannot be resolved
   #   - false: allow missing value and continue (empty substitution)
@@ -317,6 +310,35 @@
         value = @{
           kind = 'literal'
           value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          required = $true
+        }
+      }
+    )
+  }
+  ImportEDFPlusAnnotations = @{
+    targetToolName = 'ImportEDFPlusAnnotations'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = 'b2f4f23b-172a-4655-b976-d153f8e91110'
+        inputName = 'annot_files'
+        required = $true
+        value = @{
+          kind = 'privateDatasetPath'
+          relativePath = 'inputs/SC4001EC-Hypnogram.edf'
+          output = 'pythonListSingleQuoted'
+          required = $true
+        }
+      }
+      @{
+        identifier = 'b2f4f23b-172a-4655-b976-d153f8e91110'
+        inputName = 'psg_files'
+        required = $true
+        value = @{
+          kind = 'privateDatasetPath'
+          relativePath = 'inputs/SC4001E0-PSG.edf'
+          output = 'pythonListSingleQuoted'
           required = $true
         }
       }
