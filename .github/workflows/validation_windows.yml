@@ -1316,11 +1316,21 @@ jobs:
                       break
                     }
 
-                    $goldReference = Get-ChildItem -Path "gold-standards" -Recurse -File -Filter $goldFileName -ErrorAction SilentlyContinue |
+                    # Search for gold standard in tool-specific folder only
+                    $toolSpecificGoldDir = Join-Path "gold-standards" "extracted" $toolName
+                    
+                    if (-not (Test-Path $toolSpecificGoldDir)) {
+                      Write-Host "::error::$toolName gold-standard directory not found: $toolSpecificGoldDir"
+                      $toolValidationFailed = $true
+                      break
+                    }
+                    
+                    $goldReference = Get-ChildItem -Path $toolSpecificGoldDir -Recurse -File -Filter $goldFileName -ErrorAction SilentlyContinue |
                       Sort-Object FullName |
                       Select-Object -First 1
+                    
                     if ($null -eq $goldReference) {
-                      Write-Host "::error::$toolName gold-standard file not found: $goldFileName"
+                      Write-Host "::error::$toolName gold-standard file not found in $toolSpecificGoldDir`: $goldFileName"
                       $toolValidationFailed = $true
                       break
                     }
@@ -1384,6 +1394,8 @@ jobs:
             }
 
             Write-Host "Headless execution succeeded for ${toolName}."
+            Write-Host "=========================================="
+            Write-Host ""
             $toolStatus = "pass"
             $toolRunSummary += [PSCustomObject]@{
               tool_name = $toolName
