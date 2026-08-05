@@ -188,6 +188,7 @@
       {
         "fileName": "learn-nsrr01.tsv",
         "fileType": "bag-comparison",
+        "precision": 4,
         "generatedSearchRoots": [
           "private-dataset"
         ]
@@ -195,6 +196,7 @@
       {
         "fileName": "learn-nsrr02.tsv",
         "fileType": "bag-comparison",
+        "precision": 4,
         "generatedSearchRoots": [
           "private-dataset"
         ]
