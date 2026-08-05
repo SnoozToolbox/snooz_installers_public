@@ -61,27 +61,20 @@ def normalize_numeric_field(field: str, round_precision: int | None) -> str:
     return f"{float(field):.{round_precision}f}"
 
 
-def parse_time_field_to_seconds(field: str) -> float | None:
-    # Accepts MM:SS(.s) or H:MM:SS(.s); tolerates unpadded/extra hour segment (e.g. Excel reformatting).
+def normalize_time_format(field: str) -> str:
+    # Normalize time format MM:SS(.s) to H:MM:SS(.s) for consistent comparison.
     if not TIME_FIELD_PATTERN.fullmatch(field):
-        return None
+        return field
     parts = field.split(":")
     try:
         seconds = float(parts[-1])
         minutes = int(parts[-2])
         hours = int(parts[-3]) if len(parts) == 3 else 0
     except ValueError:
-        return None
-    if not (0 <= minutes < 60) or not (0 <= seconds < 60):
-        return None
-    return hours * 3600 + minutes * 60 + seconds
-
-
-def normalize_time_field(field: str) -> str:
-    total_seconds = parse_time_field_to_seconds(field)
-    if total_seconds is None:
         return field
-    return f"{total_seconds:.6f}".rstrip("0").rstrip(".")
+    if not (0 <= minutes < 60) or not (0 <= seconds < 60):
+        return field
+    return f"{hours}:{minutes:02d}:{seconds:.1f}"
 
 
 def normalize_line(line: str, delimiter: str, round_precision: int | None, normalize_time: bool = False) -> str:
@@ -90,7 +83,7 @@ def normalize_line(line: str, delimiter: str, round_precision: int | None, norma
     for field in fields:
         normalized_field = normalize_numeric_field(field, round_precision)
         if normalize_time:
-            normalized_field = normalize_time_field(normalized_field)
+            normalized_field = normalize_time_format(normalized_field)
         normalized_fields.append(normalized_field)
     return delimiter.join(normalized_fields)
 
