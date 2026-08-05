@@ -11,6 +11,7 @@ from pathlib import Path
 
 
 NUMERIC_FIELD_PATTERN = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
+TIME_FIELD_PATTERN = re.compile(r"^\d{1,3}:\d{1,2}(:\d{1,2})?(\.\d+)?$")
 
 
 def parse_args() -> argparse.Namespace:
@@ -60,14 +61,44 @@ def normalize_numeric_field(field: str, round_precision: int | None) -> str:
     return f"{float(field):.{round_precision}f}"
 
 
-def normalize_line(line: str, delimiter: str, round_precision: int | None) -> str:
+def parse_time_field_to_seconds(field: str) -> float | None:
+    # Accepts MM:SS(.s) or H:MM:SS(.s); tolerates unpadded/extra hour segment (e.g. Excel reformatting).
+    if not TIME_FIELD_PATTERN.fullmatch(field):
+        return None
+    parts = field.split(":")
+    try:
+        seconds = float(parts[-1])
+        minutes = int(parts[-2])
+        hours = int(parts[-3]) if len(parts) == 3 else 0
+    except ValueError:
+        return None
+    if not (0 <= minutes < 60) or not (0 <= seconds < 60):
+        return None
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def normalize_time_field(field: str) -> str:
+    total_seconds = parse_time_field_to_seconds(field)
+    if total_seconds is None:
+        return field
+    return f"{total_seconds:.6f}".rstrip("0").rstrip(".")
+
+
+def normalize_line(line: str, delimiter: str, round_precision: int | None, normalize_time: bool = False) -> str:
     fields = line.split(delimiter)
-    normalized_fields = [normalize_numeric_field(field, round_precision) for field in fields]
+    normalized_fields = []
+    for field in fields:
+        normalized_field = normalize_numeric_field(field, round_precision)
+        if normalize_time:
+            normalized_field = normalize_time_field(normalized_field)
+        normalized_fields.append(normalized_field)
     return delimiter.join(normalized_fields)
 
 
-def normalize_lines(lines: list[str], delimiter: str, round_precision: int | None) -> list[str]:
-    return [normalize_line(line, delimiter, round_precision) for line in lines]
+def normalize_lines(
+    lines: list[str], delimiter: str, round_precision: int | None, normalize_time: bool = False
+) -> list[str]:
+    return [normalize_line(line, delimiter, round_precision, normalize_time) for line in lines]
 
 
 def compare_as_text(reference: list[str], generated: list[str], max_diff_lines: int) -> int:
@@ -212,10 +243,11 @@ def main() -> int:
             return 1
         round_precision = int(args.precision)
 
+    normalize_time = args.file_type == "bag-comparison"
     ref_lines = read_normalized_lines(reference)
     gen_lines = read_normalized_lines(generated)
-    ref_lines = normalize_lines(ref_lines, args.delimiter, round_precision)
-    gen_lines = normalize_lines(gen_lines, args.delimiter, round_precision)
+    ref_lines = normalize_lines(ref_lines, args.delimiter, round_precision, normalize_time)
+    gen_lines = normalize_lines(gen_lines, args.delimiter, round_precision, normalize_time)
 
     if args.file_type == "bag-comparison":
         status = compare_annotation_unordered(ref_lines, gen_lines, args.max_diff_lines)

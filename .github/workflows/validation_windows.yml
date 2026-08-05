@@ -1515,16 +1515,22 @@ jobs:
                 Write-Host "::warning::Generated file not found for ${toolName}: $fileName"
               }
 
-              # Find and copy gold standard reference
-              $goldFile = Get-ChildItem -Path "gold-standards" -Recurse -File -Filter $fileName -ErrorAction SilentlyContinue |
-                Sort-Object FullName |
-                Select-Object -First 1
-              if ($null -ne $goldFile) {
+              # Find and copy gold standard reference - search in tool-specific folder only
+              $toolSpecificGoldDir = Join-Path "gold-standards" "extracted" $toolName
+              $goldFile = $null
+              
+              if (Test-Path $toolSpecificGoldDir) {
+                $goldFile = Get-ChildItem -Path $toolSpecificGoldDir -Recurse -File -Filter $fileName -ErrorAction SilentlyContinue |
+                  Sort-Object FullName |
+                  Select-Object -First 1
+              }
+              
+              if ($null -eq $goldFile) {
+                Write-Host "::error::Gold standard file not found for ${toolName}: $fileName in $toolSpecificGoldDir"
+              } else {
                 $destGoldFile = Join-Path $toolOutputDir ("reference_" + (Split-Path $goldFile -Leaf))
                 Copy-Item -Path $goldFile.FullName -Destination $destGoldFile -Force
                 Write-Host "Copied reference: $($goldFile.FullName) -> $destGoldFile"
-              } else {
-                Write-Host "::warning::Gold standard file not found for ${toolName}: $fileName"
               }
             }
           }
