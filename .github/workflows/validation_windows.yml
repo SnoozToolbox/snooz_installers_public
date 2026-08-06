@@ -43,6 +43,48 @@ on:
         required: false
         default: v1.0.0
 
+  workflow_call:
+    inputs:
+      installer_repo:
+        description: Installer release repository (owner/name)
+        required: true
+        type: string
+      installer_tag:
+        description: Installer release tag to validate
+        required: true
+        type: string
+      installer_asset_pattern:
+        description: Installer asset name pattern
+        required: true
+        type: string
+      package_version:
+        description: "CEAMS package version to validate (ex: 7.4.0)"
+        required: true
+        type: string
+      dataset_repo:
+        description: Private dataset repository (owner/name)
+        required: true
+        type: string
+      dataset_tag:
+        description: Dataset release tag
+        required: true
+        type: string
+      tools_to_process:
+        description: "Comma-separated list of tool basenames to adapt in this run. Leave empty to run all tools."
+        required: false
+        type: string
+        default: ""
+      gold_standard_repo:
+        description: Gold-standard repository (owner/name)
+        required: false
+        type: string
+        default: SnoozToolbox/snooz-gold-standards
+      gold_standard_tag:
+        description: Gold-standard release tag (optional; enables output comparison)
+        required: false
+        type: string
+        default: v1.0.0
+
 jobs:
   validate_windows:
     runs-on: windows-2022
@@ -920,6 +962,16 @@ jobs:
             ForEach-Object { $_.FullName.Substring((Resolve-Path $workspaceDir).Path.Length).TrimStart('\', '/') } |
             Sort-Object |
             ForEach-Object { Write-Host " - $_" }
+
+      - name: Adapt JSON paths for cross-platform validation
+        shell: pwsh
+        run: |
+          Write-Host "Adapting JSON configuration file paths for Windows runner..."
+          python ci/validation_tools/adapt_json_paths.py --workspace-root "${{ github.workspace }}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "JSON path adaptation failed with exit code $LASTEXITCODE"
+          }
+          Write-Host "JSON paths successfully adapted."
 
       - name: Run adapted headless scenarios and print failure logs
         shell: pwsh

@@ -165,7 +165,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          value = "{'$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
           required = $true
         }
       }
@@ -175,7 +175,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          value = "{'$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
           required = $true
         }
       }
@@ -279,7 +279,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'REM,art_snooz_set1_NREM'}"
+          value = "{'$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'REM,art_snooz_set1_NREM', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'REM,art_snooz_set1_NREM', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'REM,art_snooz_set1_NREM', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'REM,art_snooz_set1_NREM'}"
           required = $true
         }
       }
@@ -289,7 +289,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'YASA_REM,art_snooz_set1_NREM'}"
+          value = "{'$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'YASA_REM,art_snooz_set1_NREM', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'YASA_REM,art_snooz_set1_NREM', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'YASA_REM,art_snooz_set1_NREM', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'YASA_REM,art_snooz_set1_NREM'}"
           required = $true
         }
       }
@@ -299,7 +299,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          value = "{'$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
           required = $true
         }
       }
@@ -309,7 +309,7 @@
         required = $true
         value = @{
           kind = 'literal'
-          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          value = "{'$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', '$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
           required = $true
         }
       }
