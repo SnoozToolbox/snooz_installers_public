@@ -1,0 +1,117 @@
+name: Validate all platforms
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      installer_repo:
+        description: Installer release repository (owner/name)
+        required: true
+        default: SnoozToolbox/snooz-toolbox-ceams
+      installer_tag:
+        description: Installer release tag to validate
+        required: true
+        default: v1.0.1-rc2-Windows
+      package_version:
+        description: "CEAMS package version to validate (ex: 7.4.0)"
+        required: true
+        default: "7.4.0"
+      dataset_repo:
+        description: Private dataset repository (owner/name)
+        required: true
+        default: SnoozToolbox/snooz-datasets-private
+      dataset_tag:
+        description: Dataset release tag
+        required: true
+        default: v1.0.0
+      tools_to_process:
+        description: "Comma-separated list of tool basenames to adapt in this run. Leave empty to run all tools."
+        required: false
+        default: ""
+      gold_standard_repo:
+        description: Gold-standard repository (owner/name)
+        required: false
+        default: SnoozToolbox/snooz-gold-standards
+      gold_standard_tag:
+        description: Gold-standard release tag (optional; enables output comparison)
+        required: false
+        default: v1.0.0
+
+jobs:
+  validate_windows:
+    uses: ./.github/workflows/validation_windows.yml
+    with:
+      installer_repo: ${{ inputs.installer_repo }}
+      installer_tag: ${{ inputs.installer_tag }}
+      installer_asset_pattern: "Snooz*.exe"
+      package_version: ${{ inputs.package_version }}
+      dataset_repo: ${{ inputs.dataset_repo }}
+      dataset_tag: ${{ inputs.dataset_tag }}
+      tools_to_process: ${{ inputs.tools_to_process }}
+      gold_standard_repo: ${{ inputs.gold_standard_repo }}
+      gold_standard_tag: ${{ inputs.gold_standard_tag }}
+    secrets: inherit
+
+  validate_macos_x64:
+    uses: ./.github/workflows/validation_macos.yml
+    with:
+      arch: x64
+      installer_repo: ${{ inputs.installer_repo }}
+      installer_tag: ${{ inputs.installer_tag }}
+      installer_asset_pattern: "Snooz*.dmg"
+      package_version: ${{ inputs.package_version }}
+      dataset_repo: ${{ inputs.dataset_repo }}
+      dataset_tag: ${{ inputs.dataset_tag }}
+      tools_to_process: ${{ inputs.tools_to_process }}
+      gold_standard_repo: ${{ inputs.gold_standard_repo }}
+      gold_standard_tag: ${{ inputs.gold_standard_tag }}
+    secrets: inherit
+
+  validate_macos_arm64:
+    uses: ./.github/workflows/validation_macos.yml
+    with:
+      arch: arm64
+      installer_repo: ${{ inputs.installer_repo }}
+      installer_tag: ${{ inputs.installer_tag }}
+      installer_asset_pattern: "Snooz*.dmg"
+      package_version: ${{ inputs.package_version }}
+      dataset_repo: ${{ inputs.dataset_repo }}
+      dataset_tag: ${{ inputs.dataset_tag }}
+      tools_to_process: ${{ inputs.tools_to_process }}
+      gold_standard_repo: ${{ inputs.gold_standard_repo }}
+      gold_standard_tag: ${{ inputs.gold_standard_tag }}
+    secrets: inherit
+
+  validate_linux:
+    uses: ./.github/workflows/validation_linux.yml
+    with:
+      installer_repo: ${{ inputs.installer_repo }}
+      installer_tag: ${{ inputs.installer_tag }}
+      installer_asset_pattern: "Snooz*.tar.gz"
+      package_version: ${{ inputs.package_version }}
+      dataset_repo: ${{ inputs.dataset_repo }}
+      dataset_tag: ${{ inputs.dataset_tag }}
+      tools_to_process: ${{ inputs.tools_to_process }}
+      gold_standard_repo: ${{ inputs.gold_standard_repo }}
+      gold_standard_tag: ${{ inputs.gold_standard_tag }}
+    secrets: inherit
+
+  summary:
+    needs: [validate_windows, validate_macos_x64, validate_macos_arm64, validate_linux]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Report platform validation summary
+        run: |
+          echo "✓ Windows validation: ${{ needs.validate_windows.result }}"
+          echo "✓ macOS x64 validation: ${{ needs.validate_macos_x64.result }}"
+          echo "✓ macOS arm64 validation: ${{ needs.validate_macos_arm64.result }}"
+          echo "✓ Linux validation: ${{ needs.validate_linux.result }}"
+          if [ "${{ needs.validate_windows.result }}" != "success" ] || \
+             [ "${{ needs.validate_macos_x64.result }}" != "success" ] || \
+             [ "${{ needs.validate_macos_arm64.result }}" != "success" ] || \
+             [ "${{ needs.validate_linux.result }}" != "success" ]; then
+            exit 1
+          fi

@@ -1,0 +1,315 @@
+name: Validate installer (Linux)
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      installer_repo:
+        description: Installer release repository (owner/name)
+        required: true
+        default: SnoozToolbox/snooz-toolbox-ceams
+      installer_tag:
+        description: Installer release tag to validate
+        required: true
+        default: v1.0.1-rc1-Linux
+      installer_asset_pattern:
+        description: Installer asset name pattern (e.g. Snooz*.deb or SnoozSetup-portable-linux.zip)
+        required: true
+        default: "Snooz*.deb"
+      package_version:
+        description: "CEAMS package version to validate (ex: 7.4.0)"
+        required: true
+        default: "7.4.0"
+      dataset_repo:
+        description: Private dataset repository (owner/name)
+        required: true
+        default: SnoozToolbox/snooz-datasets-private
+      dataset_tag:
+        description: Dataset release tag
+        required: true
+        default: v1.0.0
+      tools_to_process:
+        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.json"
+        required: false
+        default: ""
+      gold_standard_repo:
+        description: Gold-standard repository (owner/name)
+        required: false
+        default: SnoozToolbox/snooz-gold-standards
+      gold_standard_tag:
+        description: Gold-standard release tag (optional; enables output comparison)
+        required: false
+        default: v1.0.0
+
+  workflow_call:
+    inputs:
+      installer_repo:
+        description: Installer release repository (owner/name)
+        required: true
+        type: string
+      installer_tag:
+        description: Installer release tag to validate
+        required: true
+        type: string
+      installer_asset_pattern:
+        description: Installer asset name pattern
+        required: true
+        type: string
+      package_version:
+        description: "CEAMS package version to validate (ex: 7.4.0)"
+        required: true
+        type: string
+      dataset_repo:
+        description: Private dataset repository (owner/name)
+        required: true
+        type: string
+      dataset_tag:
+        description: Dataset release tag
+        required: true
+        type: string
+      tools_to_process:
+        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.json"
+        required: false
+        type: string
+        default: ""
+      gold_standard_repo:
+        description: Gold-standard repository (owner/name)
+        required: false
+        type: string
+        default: SnoozToolbox/snooz-gold-standards
+      gold_standard_tag:
+        description: Gold-standard release tag (optional; enables output comparison)
+        required: false
+        type: string
+        default: v1.0.0
+
+jobs:
+  validate_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout workflow repository
+        uses: actions/checkout@v5
+
+      - name: Download dataset release assets (private)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_VALIDATION }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "Missing secret GH_PAT_VALIDATION"
+            exit 1
+          fi
+          mkdir -p private-dataset
+          gh release download "${{ inputs.dataset_tag }}" \
+            --repo "${{ inputs.dataset_repo }}" \
+            --dir private-dataset
+
+      - name: Download gold standards release assets (optional)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_VALIDATION }}
+        run: |
+          GOLD_TAG="${{ inputs.gold_standard_tag }}"
+          if [ -z "$GOLD_TAG" ]; then
+            echo "No gold_standard_tag provided; skipping gold standards download."
+            exit 0
+          fi
+
+          # If no explicit tools_to_process was provided, derive the list from tool_json_adaptations.json
+          tools_input="${{ inputs.tools_to_process }}"
+          if [ -z "$tools_input" ]; then
+            toolTransformationsPath="ci/validation_tools/tool_json_adaptations.json"
+            if [ ! -f "$toolTransformationsPath" ]; then
+              echo "Tool adaptations config not found: $toolTransformationsPath"
+              exit 1
+            fi
+            toolsToProcess=$(python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); print(",".join(sorted([k for k,v in data.items() if isinstance(v,dict) and v.get("updates")])))' "$toolTransformationsPath")
+
+            if [ -z "$toolsToProcess" ]; then
+              echo "No tool definitions with updates found in $toolTransformationsPath"
+              exit 1
+            fi
+
+            echo "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json: $toolsToProcess"
+          fi
+
+          if [ -z "$GH_TOKEN" ]; then
+            echo "Missing secret GH_PAT_VALIDATION"
+            exit 1
+          fi
+          mkdir -p gold-standards
+          gh release download "$GOLD_TAG" \
+            --repo "${{ inputs.gold_standard_repo }}" \
+            --dir gold-standards
+
+      - name: Extract gold standards assets for requested tools (optional)
+        shell: bash
+        run: |
+          GOLD_TAG="${{ inputs.gold_standard_tag }}"
+          if [ -z "$GOLD_TAG" ]; then
+            echo "No gold_standard_tag provided; skipping gold standards extraction."
+            exit 0
+          fi
+
+          if [ ! -d "gold-standards" ]; then
+            echo "Gold standards directory not found."
+            exit 0
+          fi
+
+          mkdir -p gold-standards/extracted
+          for zip_file in gold-standards/*.zip; do
+            if [ -f "$zip_file" ]; then
+              tool_name=$(basename "$zip_file" .zip)
+              mkdir -p "gold-standards/extracted/$tool_name"
+              unzip -o "$zip_file" -d "gold-standards/extracted/$tool_name"
+              echo "Extracted: $zip_file"
+            fi
+          done
+
+          echo "Gold-standard extracted files:"
+          find gold-standards/extracted -type f | sort
+
+      - name: Extract private dataset archives and list folders
+        shell: bash
+        run: |
+          for zip_file in $(find private-dataset -name "*.zip" -type f); do
+            dir=$(dirname "$zip_file")
+            echo "Extracting archive: $zip_file"
+            unzip -o "$zip_file" -d "$dir"
+          done
+
+          echo "Folders under private-dataset after extraction:"
+          find private-dataset -type d | sort
+
+      - name: Download Linux installer release asset
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "Missing secret GH_PAT"
+            exit 1
+          fi
+          mkdir -p installer
+          gh release download "${{ inputs.installer_tag }}" \
+            --repo "${{ inputs.installer_repo }}" \
+            --pattern "${{ inputs.installer_asset_pattern }}" \
+            --dir installer
+
+      - name: Show downloaded files
+        shell: bash
+        run: |
+          echo "Private dataset release files:"
+          find private-dataset -type f | head -20
+          echo ""
+          echo "Installer files:"
+          find installer -type f
+
+      - name: Install Snooz and extract JSON files
+        shell: bash
+        run: |
+          INSTALLER=$(find installer -name "*.tar.gz" | head -1)
+          if [ -z "$INSTALLER" ]; then
+            echo "No installer tar.gz found"
+            exit 1
+          fi
+
+          INSTALL_DIR="/tmp/snooz_ci_install"
+          rm -rf "$INSTALL_DIR"
+          mkdir -p "$INSTALL_DIR"
+
+          echo "Installing: $INSTALLER"
+          tar -xzf "$INSTALLER" -C "$INSTALL_DIR"
+
+          INSTALLED_EXE=$(find "$INSTALL_DIR" -type f -name "snooz" -o -name "Snooz" | head -1)
+          if [ -z "$INSTALLED_EXE" ]; then
+            echo "Expected installed executable not found"
+            find "$INSTALL_DIR" -type f -executable | head -5
+            exit 1
+          fi
+
+          chmod +x "$INSTALLED_EXE"
+          echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
+
+          # Extract JSON files
+          VERSION_UNDERSCORE="${{ inputs.package_version }}"
+          VERSION_UNDERSCORE="${VERSION_UNDERSCORE//./_}"
+          
+          CEAMS_TOOLS_DIR=$(find "$INSTALL_DIR" -type d -name "CEAMSTools_$VERSION_UNDERSCORE" | head -1)
+          if [ -z "$CEAMS_TOOLS_DIR" ]; then
+            echo "CEAMSTools directory not found for version $VERSION_UNDERSCORE"
+            exit 1
+          fi
+
+          mkdir -p validation-json
+          find "$CEAMS_TOOLS_DIR" -name "*.json" -exec cp {} validation-json/ \;
+          
+          echo "Extracted JSON files:"
+          find validation-json -type f -name "*.json" | sort
+
+      - name: Adapt extracted JSON files for validation workspaces
+        shell: bash
+        run: |
+          # Placeholder: Call Python adaptation script similar to Windows
+          # For now, copy JSONs as-is
+          mkdir -p validation-workspaces
+          cp -r validation-json/* validation-workspaces/ 2>/dev/null || true
+          echo "Validation workspaces prepared"
+
+      - name: Adapt JSON paths for cross-platform validation
+        shell: bash
+        run: |
+          echo "Adapting JSON configuration file paths for Linux runner..."
+          python3 ci/validation_tools/adapt_json_paths.py --workspace-root "${{ github.workspace }}"
+          if [ $? -ne 0 ]; then
+            echo "::error::JSON path adaptation failed"
+            exit 1
+          fi
+          echo "JSON paths successfully adapted."
+
+      - name: Run adapted headless scenarios and print failure logs
+        shell: bash
+        run: |
+          mkdir -p target/validation-logs
+          
+          SNOOZ_EXE="${SNOOZ_INSTALLED_EXE}"
+          if [ ! -f "$SNOOZ_EXE" ]; then
+            echo "Snooz executable not found: $SNOOZ_EXE"
+            exit 1
+          fi
+
+          for scenario in validation-workspaces/*.json; do
+            TOOL_NAME=$(basename "$scenario" .json)
+            echo "Running scenario: $TOOL_NAME"
+            
+            "$SNOOZ_EXE" --f "$scenario" 2>&1 | tee "target/validation-logs/${TOOL_NAME}-exec.log"
+            
+            if [ $? -ne 0 ]; then
+              echo "::error::Headless execution failed for $TOOL_NAME"
+            else
+              echo "Headless execution succeeded for $TOOL_NAME."
+              echo "=========================================="
+              echo ""
+            fi
+          done
+
+      - name: Collect evaluated files by tool
+        shell: bash
+        if: always()
+        run: |
+          mkdir -p validation-outputs
+          echo "Validation outputs prepared for collection"
+
+      - name: Upload adapted JSON and validation logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-validation-assets
+          if-no-files-found: warn
+          path: |
+            validation-workspaces/**/*.json
+            validation-workspaces/**/*.log
+            target/validation-logs/**/*.log
+            validation-outputs/**/*
