@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""Simple, configurable output comparison utility for CI validation."""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+
+NUMERIC_FIELD_PATTERN = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
+TIME_FIELD_PATTERN = re.compile(r"^\d{1,3}:\d{1,2}(:\d{1,2})?(\.\d+)?$")
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Compare a generated file against a reference file with optional numeric tolerance."
+    )
+    parser.add_argument("--tool-name", required=True, help="Tool name (for logs only).")
+    parser.add_argument("--generated-file", required=True, help="Path to generated output file.")
+    parser.add_argument("--reference-file", required=True, help="Path to reference output file.")
+    parser.add_argument(
+        "--file-type",
+        default="generic",
+        choices=["generic", "bag-comparison", "report"],
+        help="File type selector for future custom logic.",
+    )
+    parser.add_argument(
+        "--precision",
+        type=float,
+        default=None,
+        help="Numeric rounding precision in decimals (omit for no rounding, use 0 for integer rounding).",
+    )
+    parser.add_argument(
+        "--delimiter",
+        default="\t",
+        help="Column delimiter used when precision > 0 (default: tab).",
+    )
+    parser.add_argument(
+        "--max-diff-lines",
+        type=int,
+        default=20,
+        help="Maximum number of differences to print.",
+    )
+    return parser.parse_args()
+
+
+def read_normalized_lines(path: Path) -> list[str]:
+    content = path.read_text(encoding="utf-8")
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
+    return content.split("\n")
+
+
+def normalize_numeric_field(field: str, round_precision: int | None) -> str:
+    if round_precision is None:
+        return field
+    if not NUMERIC_FIELD_PATTERN.fullmatch(field):
+        return field
+    return f"{float(field):.{round_precision}f}"
+
+
+def normalize_time_format(field: str) -> str:
+    # Normalize time format MM:SS(.s) to H:MM:SS(.s) for consistent comparison.
+    if not TIME_FIELD_PATTERN.fullmatch(field):
+        return field
+    parts = field.split(":")
+    try:
+        seconds = float(parts[-1])
+        minutes = int(parts[-2])
+        hours = int(parts[-3]) if len(parts) == 3 else 0
+    except ValueError:
+        return field
+    if not (0 <= minutes < 60) or not (0 <= seconds < 60):
+        return field
+    return f"{hours}:{minutes:02d}:{seconds:.1f}"
+
+
+def normalize_line(line: str, delimiter: str, round_precision: int | None, normalize_time: bool = False) -> str:
+    fields = line.split(delimiter)
+    normalized_fields = []
+    for field in fields:
+        normalized_field = normalize_numeric_field(field, round_precision)
+        if normalize_time:
+            normalized_field = normalize_time_format(normalized_field)
+        normalized_fields.append(normalized_field)
+    return delimiter.join(normalized_fields)
+
+
+def normalize_lines(
+    lines: list[str], delimiter: str, round_precision: int | None, normalize_time: bool = False
+) -> list[str]:
+    return [normalize_line(line, delimiter, round_precision, normalize_time) for line in lines]
+
+
+def compare_as_text(reference: list[str], generated: list[str], max_diff_lines: int) -> int:
+    if reference == generated:
+        return 0
+
+    print("Mismatch detected with exact text comparison.")
+    max_len = max(len(reference), len(generated))
+    shown = 0
+    for idx in range(max_len):
+        left = reference[idx] if idx < len(reference) else "<missing>"
+        right = generated[idx] if idx < len(generated) else "<missing>"
+        if left != right:
+            print(f"Line {idx + 1}:")
+            print(f"  ref: {left}")
+            print(f"  gen: {right}")
+            shown += 1
+            if shown >= max_diff_lines:
+                print(f"... showing first {max_diff_lines} differences only")
+                break
+    return 1
+
+
+def compare_annotation_unordered(reference: list[str], generated: list[str], max_diff_lines: int) -> int:
+    reference_counter = Counter(reference)
+    generated_counter = Counter(generated)
+    if reference_counter == generated_counter:
+        return 0
+
+    print("Mismatch detected with annotation unordered comparison.")
+    only_in_reference = list((reference_counter - generated_counter).elements())
+    only_in_generated = list((generated_counter - reference_counter).elements())
+
+    def first_diff_field(ref_line: str, gen_line: str, delimiter: str = "\t") -> str:
+        ref_fields = ref_line.split(delimiter)
+        gen_fields = gen_line.split(delimiter)
+        maxf = max(len(ref_fields), len(gen_fields))
+        for i in range(maxf):
+            r = ref_fields[i] if i < len(ref_fields) else "<missing>"
+            g = gen_fields[i] if i < len(gen_fields) else "<missing>"
+            if r != g:
+                # limit output length for readability
+                r_short = (r[:300] + "...") if len(r) > 300 else r
+                g_short = (g[:300] + "...") if len(g) > 300 else g
+                return f"first differing field #{i+1}: ref='{r_short}' vs gen='{g_short}'"
+        # If no differing tab-separated field, fall back to first differing character
+        if ref_line == gen_line:
+            return "(lines identical)"
+        maxc = max(len(ref_line), len(gen_line))
+        for i in range(maxc):
+            rc = ref_line[i] if i < len(ref_line) else "<EOL>"
+            gc = gen_line[i] if i < len(gen_line) else "<EOL>"
+            if rc != gc:
+                # show context around the differing char
+                start = max(0, i - 20)
+                end = min(maxc, i + 20)
+                ref_snip = ref_line[start:end]
+                gen_snip = gen_line[start:end]
+                rc_repr = f"U+{ord(rc):04X}" if len(rc) == 1 else rc
+                gc_repr = f"U+{ord(gc):04X}" if len(gc) == 1 else gc
+                return (
+                    f"first differing char at index {i}: ref[{rc_repr}] vs gen[{gc_repr}]\n"
+                    f"  ref context: ...{ref_snip}...\n"
+                    f"  gen context: ...{gen_snip}..."
+                )
+        return "(lines differ but no differing character found)"
+
+    shown = 0
+    max_len = max(len(only_in_reference), len(only_in_generated))
+    for idx in range(max_len):
+        ref_value = only_in_reference[idx] if idx < len(only_in_reference) else "<none>"
+        gen_value = only_in_generated[idx] if idx < len(only_in_generated) else "<none>"
+        print(f"Diff {idx + 1}:")
+        # Show concise first differing field when possible
+        if ref_value != "<none>" and gen_value != "<none>":
+            diff_info = first_diff_field(ref_value, gen_value)
+            print(f"  {diff_info}")
+        elif ref_value != "<none>" and gen_value == "<none>":
+            # Try to find a best-match in generated lines by matching initial fields (id/key)
+            ref_fields = ref_value.split("\t")
+            best_match = None
+            # try matching first 1..3 fields
+            for k in range(1, min(4, len(ref_fields) + 1)):
+                key = tuple(ref_fields[:k])
+                for g in generated:
+                    g_fields = g.split("\t")
+                    if tuple(g_fields[:k]) == key:
+                        best_match = g
+                        break
+                if best_match:
+                    break
+            if best_match:
+                diff_info = first_diff_field(ref_value, best_match)
+                # Show line counts if lines appear identical
+                if diff_info == "(lines identical)":
+                    ref_count = reference_counter.get(ref_value, 0)
+                    gen_count = generated_counter.get(ref_value, 0)
+                    print(f"  lines are identical but have different occurrence counts: ref={ref_count}, gen={gen_count}")
+                else:
+                    print(f"  only in ref (closest gen match): {diff_info}")
+            else:
+                print(f"  only in ref: {ref_value}")
+        else:
+            print(f"  only in ref: {ref_value}")
+            print(f"  only in gen: {gen_value}")
+        shown += 1
+        if shown >= max_diff_lines:
+            print(f"... showing first {max_diff_lines} differences only")
+            break
+
+    print(f"\nSummary: Reference has {len(reference)} lines, Generated has {len(generated)} lines")
+    print(f"Unique lines in ref: {len(reference_counter)}, Unique lines in gen: {len(generated_counter)}")
+
+    return 1
+
+
+def main() -> int:
+    args = parse_args()
+    generated = Path(args.generated_file)
+    reference = Path(args.reference_file)
+
+    print(f"Tool: {args.tool_name}")
+    print(f"File type: {args.file_type}")
+    print(f"Generated file: {generated}")
+    print(f"Reference file: {reference}")
+    print(f"Precision: {args.precision}")
+
+    if not generated.is_file():
+        print(f"Generated file not found: {generated}")
+        return 1
+    if not reference.is_file():
+        print(f"Reference file not found: {reference}")
+        return 1
+
+    round_precision: int | None = None
+    if args.precision is not None:
+        if args.precision < 0:
+            print("Precision must be >= 0 when provided.")
+            return 1
+        if not float(args.precision).is_integer():
+            print("Precision must be an integer number of decimals when provided (e.g. 0, 2, 4).")
+            return 1
+        round_precision = int(args.precision)
+
+    normalize_time = args.file_type == "bag-comparison"
+    ref_lines = read_normalized_lines(reference)
+    gen_lines = read_normalized_lines(generated)
+    ref_lines = normalize_lines(ref_lines, args.delimiter, round_precision, normalize_time)
+    gen_lines = normalize_lines(gen_lines, args.delimiter, round_precision, normalize_time)
+
+    if args.file_type == "bag-comparison":
+        status = compare_annotation_unordered(ref_lines, gen_lines, args.max_diff_lines)
+    else:
+        status = compare_as_text(ref_lines, gen_lines, args.max_diff_lines)
+
+    if status == 0:
+        print("Comparison succeeded.")
+    else:
+        print("Comparison failed.")
+
+    return status
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,207 @@
+{
+  "__documentation__": {
+    "purpose": "Developer-maintained validation rules for generated tool outputs compared to gold-standard files.",
+    "how_to_use": [
+      "Add one top-level key per tool basename (example: ConvertDOMINO, ConvertEDFbrowser).",
+      "Each tool must define a non-empty comparisons array.",
+      "Each item in comparisons defines one generated file to compare against one gold-standard file.",
+      "If generated and gold names are identical, use fileName only.",
+      "fileType: Use 'bag-comparison' for unordered line comparison (order-independent, counts must match), 'generic' for strict line-by-line order preservation, or 'report' for ordered comparison.",
+      "comparisons[].delimiter: Optional delimiter override for text normalization when relevant.",
+      "comparisons[].maxDiffLines: Optional maximum number of diff lines to print in mismatch logs."
+    ],
+    "fields": {
+      "<ToolName>": "Top-level key for one tool configuration. Must match the JSON filename of the tool in CEAMSTools package.",
+      "comparisons": "Array of comparison rules executed for this tool.",
+      "comparisons[].fileName": "Preferred single filename used for both generated output and gold-standard reference.",
+      "comparisons[].fileType": "Comparison mode used by compare_outputs.py (examples: bag-comparison, generic, report).",
+      "comparisons[].generatedSearchRoots": "Ordered list of roots scanned recursively to find generatedFileName.",
+      "comparisons[].precision": "Optional integer precision for numeric normalization before comparison. Omit to disable rounding.",
+      "comparisons[].delimiter": "Optional delimiter override for text normalization when relevant.",
+      "comparisons[].maxDiffLines": "Optional maximum number of diff lines to print in mismatch logs."
+    },
+    "notes": [
+      "Keep generatedSearchRoots as specific and as short as possible.",
+      "For stable CI validation, prefer writing outputs under validation-workspaces and private-dataset only.",
+      "Unknown top-level keys are ignored by the current workflow as long as tool names are requested explicitly."
+    ]
+  },
+  "ConvertDOMINO": {
+    "comparisons": [
+      {
+        "fileName": "DOMINO_log.tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "validation-workspaces",
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "patient-CEJUDO_(1).tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "private-dataset/inputs/DOMINO_FILES/subject_3"
+        ]
+      }
+    ]
+  },
+  "ConvertEDFbrowser": {
+    "comparisons": [
+      {
+        "fileName": "learn-nsrr01_annotations.tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }
+    ]
+  },
+  "ConvertXMLCompumedics": {
+    "comparisons": [
+      {
+        "fileName": "learn-nsrr01-profusion.tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02-profusion.tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }      
+    ]
+  },
+  "DetectArtifacts": {
+    "comparisons": [
+      {
+        "fileName": "learn-nsrr01.tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02.tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }     
+    ]
+  },
+  "DetectREMsYASA": {
+    "comparisons": [
+      {
+        "fileName": "DetectREMsYASA-report.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "01-01-0001_YASA_REMs_summary.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_YASA_REMs_summary.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_YASA_REMs_summary.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_YASA_REMs_summary.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }
+    ]
+  },
+  "ExtractAnnotation": {
+    "comparisons": [
+      {
+        "fileName": "01-01-0001_art_snooz_YASA_REM.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_art_snooz_YASA_REM.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_art_snooz_YASA_REM.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_art_snooz_YASA_REM.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }
+    ]
+  },
+  "ImportEDFPlusAnnotations": {
+    "comparisons": [
+      {
+        "fileName": "SC4001E0-PSG.tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }
+    ]
+  },
+  "ImportTextAnnotations": {
+    "comparisons": [
+      {
+        "fileName": "learn-nsrr01.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "private-dataset"
+        ]
+      }     
+    ]
+  }
+
+}

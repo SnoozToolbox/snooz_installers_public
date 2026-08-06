@@ -1,0 +1,375 @@
+@{
+  # Human-friendly adaptation rules applied to extracted JSON files.
+  # One top-level key per tool basename (without .json).
+  #
+  # Workflow dataset root used by adaptations:
+  # - private-dataset: validation release assets from SnoozToolbox/snooz-datasets-private
+
+  # Validation rule: private-dataset is the single source of truth.
+  #
+  # Tool-level keys:
+  # - targetToolName: logical tool name written to metadata.toolName
+  # - processingMode: optional value written to metadata.processingMode
+  # - updates: list of input updates to apply in process_params.nodes
+  #
+  # updates[] specification:
+  # - identifier: node identifier to target
+  # - inputName: input name to modify on the target node
+  # - value: value specification used to compute the final input value
+  # - required: true/false (default true)
+  #   - true: fail if the target identifier/input is not found or the value cannot be resolved
+  #   - false: skip silently if identifier/input is absent or the value cannot be resolved
+  #
+  # value specification:
+  # - kind=literal
+  #   - value: fixed string value
+  # - kind=workspacePath
+  #   - relativePath: path relative to validation-workspaces
+  # - kind=privateDatasetPath
+  #   - relativePath: path relative to private-dataset
+  #   - output: path, list, or pythonListSingleQuoted (default path)
+  # - kind=findPath
+  #   - roots: list of roots to search recursively
+  #   - itemType: Directory or File (default Directory)
+  #   - matchRegex: regex matched against full path
+  #   - pick: first or all (default first)
+  #   - output: path, list, or pythonListSingleQuoted (default path)
+  # - kind=pythonDictFromFileMapping
+  #   - fileSpec: nested value spec that resolves a single file path
+  #   - mapping: key/value map used as dictionary content for that file
+  # - kind=workspaceFileJson
+  #   - relativePath: path to a JSON file (relative to validation-workspaces)
+  #   - behavior: reads the JSON file and injects its full JSON content as the input value
+  #   - use this when the target input value is large/complex and should be maintained in a separate file
+  #   - developer workflow (create JSON files to be read):
+  #     1) Generate or open the adapted process JSON for your tool.
+  #     2) Copy the exact value of the input field to override (for example "files" or "alias").
+  #     3) Create a dedicated JSON file in this repository containing only that value.
+  #     4) Commit that JSON file and reference it with kind=workspaceFileJson + relativePath.
+  #     5) For private dataset files in CI, use paths under:
+  #        D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/
+  #
+  # - required: true/false (default true)
+  #   - true: fail fast if value/path cannot be resolved
+  #   - false: allow missing value and continue (empty substitution)
+
+  ConvertDOMINO = @{
+    targetToolName = 'ConvertDOMINO'
+    processingMode = 'adapted'
+
+    # Each update defines one node, one input, and one value.
+    updates = @(
+      @{
+        identifier = 'f2492f99-7965-4c48-9aec-7970891415f1'
+        inputName = 'folders'
+        required = $true
+        value = @{
+          kind = 'privateDatasetPath'
+          relativePath = 'inputs/DOMINO_FILES/subject_3'
+          output = 'pythonListSingleQuoted'
+          required = $true
+        }
+      }
+      @{
+        identifier = 'f2492f99-7965-4c48-9aec-7970891415f1'
+        inputName = 'log_filename'
+        required = $true
+        value = @{
+          kind = 'workspacePath'
+          relativePath = 'DOMINO_log.tsv'
+          required = $true
+        }
+      }
+    )
+  }
+
+  ConvertEDFbrowser = @{
+    targetToolName = 'ConvertEDFbrowser'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = '663cd8ee-9ca5-4956-9a4f-82561c6adadf'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'privateDatasetPath'
+          relativePath = 'inputs/learn-nsrr01_annotations.txt'
+          output = 'list'
+          required = $true
+        }
+      }
+      @{
+        identifier = 'a42e544f-13dc-4148-93fe-6493e383c417'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'pythonDictFromFileMapping'
+          fileSpec = @{
+            kind = 'privateDatasetPath'
+            relativePath = 'inputs/learn-nsrr01_annotations.txt'
+            required = $true
+          }
+          mapping = @{
+            '0' = 'stage'
+            '1' = 'stage'
+            '2' = 'stage'
+            '3' = 'stage'
+            '5' = 'stage'
+            'Arousal ()' = 'expert'
+            'Hypopnea' = 'expert'
+            'Obstructive Apnea' = 'expert'
+            'SpO2 artifact' = 'SpO2'
+            'SpO2 desaturation' = 'SpO2'
+            'a4' = 'spindle'
+            'a7' = 'spindle'
+            'art_snooz' = 'art_snooz'
+            'sumo' = 'spindle'
+          }
+          required = $true
+        }
+      }
+    )
+  }
+
+  ConvertXMLCompumedics = @{
+    targetToolName = 'ConvertXMLCompumedics'
+    processingMode = 'adapted'
+
+    # Each update defines one node, one input, and one value.
+    updates = @(
+      @{
+        identifier = '57d3ca1c-dd68-4405-849d-da0279c9dc9d'
+        inputName = 'filename'
+        required = $true
+        value = @{
+        kind = 'findPath'
+        roots = @('private-dataset/inputs')
+        itemType = 'File'
+        matchRegex = '(learn-nsrr01-profusion\.xml|learn-nsrr02-profusion\.xml)$'
+        pick = 'all'
+        output = 'pythonListSingleQuoted'
+        required = $true
+        }
+      }
+    )
+  }
+  DetectArtifacts = @{
+    targetToolName = 'DetectArtifacts'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = '41a6b6f1-08b3-417c-bafb-30dc2274c24b'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          required = $true
+        }
+      }
+      @{
+        identifier = 'fdffc3b0-7ef0-4b45-98a3-63093adae04a'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          required = $true
+        }
+      }
+      @{
+        identifier = 'e5120882-ba1a-48c6-8414-a51b2286ce65'
+        inputName = 'cutoff'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "62"
+          required = $true
+        }
+      }
+      @{
+        identifier = '64feff16-15d2-4acf-b2e5-195412e476ba'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/DetectArtifacts-files.json'
+          required = $true
+        }
+      }
+      @{
+        identifier = '64feff16-15d2-4acf-b2e5-195412e476ba'
+        inputName = 'alias'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/DetectArtifacts-alias.json'
+          required = $true
+        }
+      }
+    )
+  }
+  DetectREMsYASA = @{
+    targetToolName = 'DetectREMsYASA'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = 'c3e6adf4-0698-4655-b2a5-e0cf102bf224'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/DetectREMsYASA-files.json'
+          required = $true
+        }
+      }
+      @{
+        identifier = 'd1489e58-7c3d-490e-9c36-f830c8dc596e'
+        inputName = 'cohort_filename'
+        required = $true
+          value = @{
+          kind = 'workspacePath'
+          relativePath = 'DetectREMsYASA-report.tsv'
+          required = $true
+        }
+      }
+    )
+  }
+  ExtractAnnotation = @{
+    targetToolName = 'ExtractAnnotation'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = '58ffafc2-c74f-40fa-b6a4-362bdb1535ca'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/ExtractAnnotation-files.json'
+          required = $true
+        }
+      }
+      @{
+        identifier = '2103d165-8cfa-4db1-8e6a-1fbc0b1a972d'
+        inputName = 'time_elapsed'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "0"
+          required = $true
+        }
+      }
+      @{
+        identifier = 'aeec670e-3e4d-41b1-97ee-09db11fbe37c'
+        inputName = 'suffix'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "_art_snooz_YASA_REM.tsv"
+          required = $true
+        }
+      }
+      @{
+        identifier = '9e2e8c71-d2cc-48a3-89a0-c1241e66ab4e'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'REM,art_snooz_set1_NREM'}"
+          required = $true
+        }
+      }
+      @{
+        identifier = 'c111e8b0-e11c-4846-8c1a-46352f849203'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'YASA_REM,art_snooz_set1_NREM', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'YASA_REM,art_snooz_set1_NREM'}"
+          required = $true
+        }
+      }
+      @{
+        identifier = '73f19acb-36f0-45b6-a1ab-b07a09f8ca58'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          required = $true
+        }
+      }
+      @{
+        identifier = 'dc4ff07e-d8bf-472b-a308-8706ddbacf76'
+        inputName = 'dictionary'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "{'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', 'D:/a/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}"
+          required = $true
+        }
+      }
+    )
+  }
+  ImportEDFPlusAnnotations = @{
+    targetToolName = 'ImportEDFPlusAnnotations'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = 'b2f4f23b-172a-4655-b976-d153f8e91110'
+        inputName = 'annot_files'
+        required = $true
+        value = @{
+          kind = 'privateDatasetPath'
+          relativePath = 'inputs/SC4001EC-Hypnogram.edf'
+          output = 'pythonListSingleQuoted'
+          required = $true
+        }
+      }
+      @{
+        identifier = 'b2f4f23b-172a-4655-b976-d153f8e91110'
+        inputName = 'psg_files'
+        required = $true
+        value = @{
+          kind = 'privateDatasetPath'
+          relativePath = 'inputs/SC4001E0-PSG.edf'
+          output = 'pythonListSingleQuoted'
+          required = $true
+        }
+      }
+    )
+  }
+  ImportTextAnnotations = @{
+    targetToolName = 'ImportTextAnnotations'
+    processingMode = 'adapted'
+
+    updates = @(
+      @{
+        identifier = '134e1371-8cd7-4362-bf33-92ce14d187c0'
+        inputName = 'files'
+        required = $true
+        value = @{
+          kind = 'workspaceFileJson'
+          relativePath = '../ci/validation_tools/ImportTextAnnotations-files.json'
+          required = $true
+        }
+      }
+      @{
+        identifier = '351e5f9f-d4ee-4347-b554-230b558d2034'
+        inputName = 'suffix'
+        required = $true
+        value = @{
+          kind = 'literal'
+          value = "_fake_text_annot.tsv"
+          required = $true
+        }
+      }
+    )
+  }
+}
+

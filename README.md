@@ -22,9 +22,20 @@ The long-term plan is to keep installer creation and installer validation in sep
 - The validation workflow downloads a completed release candidate and runs the real Snooz Toolbox tools in headless mode.
 - Validation scenarios are described in JSON files, with expected outputs stored as private gold standards when needed.
 - A private dataset repository can be used for sensitive test inputs, including PSG recordings.
-- Each validation run should write a full report with the tool name, tool version, JSON scenario used, execution status, and output comparison result.
+- Each validation run should write a full report with the tool name, tool version, execution status, and output comparison result.
 
 The goal is to validate the shipped installer exactly as users will run it, not to rebuild the application during the validation step.
+
+## CI validation folders and files to maintain
+
+Validation assets are under [ci/validation_tools](ci/validation_tools).
+
+Files to maintain:
+
+- [ci/validation_tools/tool_json_adaptations.psd1](ci/validation_tools/tool_json_adaptations.psd1): per-tool rules used to adapt process JSON inputs for CI headless runs.
+- [ci/validation_tools/tool_validations.json](ci/validation_tools/tool_validations.json): per-tool rules used to validate generated outputs against gold standards.
+
+Note: the adaptation file used in this repository is [ci/validation_tools/tool_json_adaptations.psd1](ci/validation_tools/tool_json_adaptations.psd1) (not tool_json_adaptation.json).
 
 ## 🔐 API Token Setup
 
@@ -152,5 +163,15 @@ Notes:
 
 - `GH_PAT` is required for all builds (Windows, macOS, Linux): it is used to check out the source repository, download `fbs-pro` release assets, and publish installers to a release when release publishing is enabled.
 - Apple-related secrets are required for macOS signing and notarization jobs.
+
+## Note: recommended models for common tasks
+
+Quick reminder of which models to use for different tasks:
+
+- **Daily work (80%)** → GPT-5 mini
+- **Understanding / refactoring / documenting (20%)** → Claude Haiku 4.5
+- **Complex problems (default)** → Claude Sonnet 4.6
+- **Very complex / ambiguous problems** → Claude Sonnet 5
+- **Final cross-check for hard problems** → GPT-5.3-Codex
 
 

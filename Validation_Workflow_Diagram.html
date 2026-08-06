@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snooz Validation Workflow</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 1000px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+        }
+        
+        .legend-color.preparation {
+            background-color: #e1f5ff;
+            border: 2px solid #01579b;
+        }
+        
+        .legend-color.configuration {
+            background-color: #fff3e0;
+            border: 2px solid #e65100;
+        }
+        
+        .legend-color.execution {
+            background-color: #f3e5f5;
+            border: 2px solid #4a148c;
+        }
+        
+        .legend-color.validation {
+            background-color: #e8f5e9;
+            border: 2px solid #1b5e20;
+        }
+        
+        .legend-text {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .description {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .description p {
+            margin-bottom: 10px;
+        }
+        
+        .description p:last-child {
+            margin-bottom: 0;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Snooz Validation Workflow</h1>
+        <p class="subtitle">Automated Tool Testing and Output Validation Pipeline</p>
+        
+        <div class="mermaid">
+            graph TD
+                A["📥 Download PSG files<br/>from private repository"] --> B["📦 Download Snooz<br/>installer"]
+                B --> C["⚙️ Install Snooz and extract<br/>tool JSON files empty form"]
+                C --> D["🔧 Modify JSON files<br/>Inputs | Outputs | Parameters"]
+                D --> E["▶️ Execute Snooz<br/>for each tool individually"]
+                E --> F["📊 Compare outputs<br/>vs. Gold-Standard repository"]
+                F --> G["✅ Save status file artifact<br/>Tool versions | Results | Comparison"]
+                G --> H["📁 GitHub Artifact<br/>Adapted JSON | Logs | Summary"]
+                
+                style A fill:#e1f5ff,stroke:#01579b,color:#000
+                style B fill:#e1f5ff,stroke:#01579b,color:#000
+                style C fill:#fff3e0,stroke:#e65100,color:#000
+                style D fill:#fff3e0,stroke:#e65100,color:#000
+                style E fill:#f3e5f5,stroke:#4a148c,color:#000
+                style F fill:#f3e5f5,stroke:#4a148c,color:#000
+                style G fill:#e8f5e9,stroke:#1b5e20,color:#000
+                style H fill:#e8f5e9,stroke:#1b5e20,color:#000
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color preparation"></div>
+                <div class="legend-text">Preparation Phase</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color configuration"></div>
+                <div class="legend-text">Configuration Phase</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color execution"></div>
+                <div class="legend-text">Execution Phase</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color validation"></div>
+                <div class="legend-text">Validation Phase</div>
+            </div>
+        </div>
+        
+        <div class="description">
+            <p><strong>Workflow Overview:</strong></p>
+            <p>
+                This workflow automates the validation of Snooz tools by downloading PSG files from a private repository, 
+                extracting tool definitions from the Snooz installer, and adapting their JSON files to define inputs, outputs, 
+                and required parameters. The JSON modification process remains compatible with future CEAMS package versions.
+            </p>
+            <p>
+                Snooz is then executed with each tool individually. The generated outputs are compared against a gold-standard 
+                private repository, and a status file is saved as an artifact to record exactly which tools were executed, 
+                their versions, and the results of the output comparison.
+            </p>
+        </div>
+        
+        <footer>
+            <p>Generated for Snooz Toolbox Validation Pipeline</p>
+        </footer>
+    </div>
+</body>
+</html>
