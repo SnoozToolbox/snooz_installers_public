@@ -32,10 +32,11 @@ Validation assets are under [ci/validation_tools](ci/validation_tools).
 
 Files to maintain:
 
-- [ci/validation_tools/tool_json_adaptations.psd1](ci/validation_tools/tool_json_adaptations.psd1): per-tool rules used to adapt process JSON inputs for CI headless runs.
+- [ci/validation_tools/tool_json_adaptations.json](ci/validation_tools/tool_json_adaptations.json): per-tool rules used to adapt process JSON inputs for CI headless runs.
+  - **See [ADAPTATION_GUIDE.md](ci/validation_tools/ADAPTATION_GUIDE.md) for full documentation** on how to configure and extend JSON adaptations for new tools.
 - [ci/validation_tools/tool_validations.json](ci/validation_tools/tool_validations.json): per-tool rules used to validate generated outputs against gold standards.
 
-Note: the adaptation file used in this repository is [ci/validation_tools/tool_json_adaptations.psd1](ci/validation_tools/tool_json_adaptations.psd1) (not tool_json_adaptation.json).
+Note: the adaptation file used in this repository is [ci/validation_tools/tool_json_adaptations.json](ci/validation_tools/tool_json_adaptations.json) (not tool_json_adaptation.psd1).
 
 ## 🔐 API Token Setup
 

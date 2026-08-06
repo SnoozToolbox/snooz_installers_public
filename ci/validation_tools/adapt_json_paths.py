@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Adapt JSON configuration files by substituting $GITHUB_WORKSPACE placeholder
-with the actual GitHub workspace path from the runner environment.
+Adapt JSON configuration files for cross-platform (Windows/macOS/Linux) validation.
 
-This enables cross-platform (Windows/macOS/Linux) validation workflows.
+Replaces $GITHUB_WORKSPACE placeholder with the actual runner workspace path,
+enabling consistent path resolution across all platforms.
 
 Usage:
     python adapt_json_paths.py --workspace-root /path/to/workspace
@@ -18,7 +18,7 @@ from pathlib import Path
 
 def adapt_json_file(file_path, workspace_root):
     """
-    Read JSON file, replace $GITHUB_WORKSPACE with actual path, write back.
+    Read JSON file and replace $GITHUB_WORKSPACE placeholder with actual runner path.
     
     Args:
         file_path: Path to the JSON file to adapt
@@ -31,8 +31,11 @@ def adapt_json_file(file_path, workspace_root):
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # Replace placeholder with actual workspace path
-        adapted_content = content.replace('$GITHUB_WORKSPACE', workspace_root)
+        # Normalize workspace_root to forward slashes for JSON compatibility
+        workspace_root_normalized = workspace_root.replace('\\', '/')
+        
+        # Replace $GITHUB_WORKSPACE placeholder with actual workspace path
+        adapted_content = content.replace('$GITHUB_WORKSPACE', workspace_root_normalized)
         
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(adapted_content)

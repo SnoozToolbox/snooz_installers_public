@@ -31,7 +31,7 @@ on:
         required: true
         default: v1.0.0
       tools_to_process:
-        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.psd1"
+        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.json"
         required: false
         default: ""
       gold_standard_repo:
@@ -123,12 +123,12 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
             if (-not (Test-Path $toolTransformationsPath)) {
               throw "Tool adaptations config not found: $toolTransformationsPath"
             }
 
-            $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+            $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
             $toolsToProcess = @(
               $toolTransformations.GetEnumerator() |
                 Where-Object {
@@ -142,10 +142,10 @@ jobs:
             )
 
             if ($toolsToProcess.Count -eq 0) {
-              throw "No tool definitions with updates found in tool_json_adaptations.psd1"
+              throw "No tool definitions with updates found in tool_json_adaptations.json"
             }
 
-            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.psd1: $($toolsToProcess -join ', ')"
+            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json: $($toolsToProcess -join ', ')"
           }
 
           $tag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
@@ -192,12 +192,12 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
             if (-not (Test-Path $toolTransformationsPath)) {
               throw "Tool adaptations config not found: $toolTransformationsPath"
             }
 
-            $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+            $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
             $toolsToProcess = @(
               $toolTransformations.GetEnumerator() |
                 Where-Object {
@@ -211,10 +211,10 @@ jobs:
             )
 
             if ($toolsToProcess.Count -eq 0) {
-              throw "No tool definitions with updates found in tool_json_adaptations.psd1"
+              throw "No tool definitions with updates found in tool_json_adaptations.json"
             }
 
-            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.psd1: $($toolsToProcess -join ', ')"
+            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json: $($toolsToProcess -join ', ')"
           }
 
           $goldDir = "gold-standards"
@@ -439,11 +439,11 @@ jobs:
             $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
           }
 
-          $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+          $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
           if (-not (Test-Path $toolTransformationsPath)) {
             throw "Tool adaptations config not found: $toolTransformationsPath"
           }
-          $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+          $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
 
           if ($toolsToProcess.Count -eq 0) {
             $toolsToProcess = @(
@@ -459,10 +459,10 @@ jobs:
             )
 
             if ($toolsToProcess.Count -eq 0) {
-              throw "No tool definitions with updates found in tool_json_adaptations.psd1"
+              throw "No tool definitions with updates found in tool_json_adaptations.json"
             }
 
-            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.psd1."
+            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json."
           }
 
           function Convert-ToJsonPath {
@@ -497,10 +497,10 @@ jobs:
 
             if ($missingToolDefinitions.Count -gt 0 -or $toolsWithoutUpdates.Count -gt 0) {
               if ($missingToolDefinitions.Count -gt 0) {
-                Write-Host "::error::Missing tool adaptation definition(s) in tool_json_adaptations.psd1: $($missingToolDefinitions -join ', ')"
+                Write-Host "::error::Missing tool adaptation definition(s) in tool_json_adaptations.json: $($missingToolDefinitions -join ', ')"
               }
               if ($toolsWithoutUpdates.Count -gt 0) {
-                Write-Host "::error::Tool adaptation definition(s) without updates in tool_json_adaptations.psd1: $($toolsWithoutUpdates -join ', ')"
+                Write-Host "::error::Tool adaptation definition(s) without updates in tool_json_adaptations.json: $($toolsWithoutUpdates -join ', ')"
               }
               throw "Invalid tool adaptation configuration for requested tool(s)."
             }
@@ -1033,12 +1033,12 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
             if (-not (Test-Path $toolTransformationsPath)) {
               throw "Tool adaptations config not found: $toolTransformationsPath"
             }
 
-            $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+            $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
             $toolsToProcess = @(
               $toolTransformations.GetEnumerator() |
                 Where-Object {
@@ -1052,10 +1052,10 @@ jobs:
             )
 
             if ($toolsToProcess.Count -eq 0) {
-              throw "No tool definitions with updates found in tool_json_adaptations.psd1"
+              throw "No tool definitions with updates found in tool_json_adaptations.json"
             }
 
-            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.psd1: $($toolsToProcess -join ', ')"
+            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json: $($toolsToProcess -join ', ')"
           }
 
           if ([string]::IsNullOrWhiteSpace("$env:SNOOZ_INSTALLED_EXE") -or -not (Test-Path "$env:SNOOZ_INSTALLED_EXE")) {
@@ -1497,9 +1497,9 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.psd1"
+            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
             if (Test-Path $toolTransformationsPath) {
-              $toolTransformations = Import-PowerShellDataFile -Path $toolTransformationsPath
+              $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
               $toolsToProcess = @(
                 $toolTransformations.GetEnumerator() |
                   Where-Object {

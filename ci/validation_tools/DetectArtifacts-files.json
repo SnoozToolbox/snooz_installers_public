@@ -1,5 +1,5 @@
 {
-  "$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf": {
+  "$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf": {
     "event_groups": [
       "stage",
       "SpO2 artifact",
@@ -73,7 +73,7 @@
       }
     }
   },
-  "$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf": {
+  "$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf": {
     "event_groups": [
       "stage",
       "SpO2 artifact",
@@ -147,7 +147,7 @@
       }
     }
   },
-  "$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg": {
+  "$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg": {
     "event_groups": [
       "Section d' chantillon.",
       "Annotation",
@@ -870,7 +870,7 @@
       }
     }
   },
-  "$GITHUB_WORKSPACE/snooz_installers_public/snooz_installers_public/private-dataset/inputs/01-01-0001.sts": {
+  "$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts": {
     "event_groups": [
       "D marrage de l'enreg.",
       "Section de calibration",
