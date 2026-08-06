@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Adapt JSON configuration files for cross-platform (Windows/macOS/Linux) validation.
 
@@ -14,6 +15,10 @@ import os
 import sys
 import argparse
 from pathlib import Path
+
+# Force UTF-8 encoding on stdout for cross-platform compatibility (especially Windows)
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 
 def adapt_json_file(file_path, workspace_root):
@@ -40,11 +45,11 @@ def adapt_json_file(file_path, workspace_root):
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(adapted_content)
         
-        print(f"✓ Adapted: {file_path}")
+        print(f"[OK] Adapted: {file_path}")
         return True
         
     except Exception as e:
-        print(f"✗ Error adapting {file_path}: {e}", file=sys.stderr)
+        print(f"[ERROR] Error adapting {file_path}: {e}", file=sys.stderr)
         return False
 
 
@@ -68,7 +73,7 @@ def main():
     json_files = sorted([f.name for f in script_dir.glob('*.json')])
     
     if not json_files:
-        print(f"⚠ No JSON files found in {script_dir}")
+        print(f"[WARNING] No JSON files found in {script_dir}")
         return 0
     
     print(f"Adapting JSON files using workspace root: {workspace_root}\n")
@@ -83,7 +88,7 @@ def main():
         if adapt_json_file(str(file_path), workspace_root):
             success_count += 1
     
-    print(f"\n✓ Successfully adapted {success_count}/{len(json_files)} files")
+    print(f"\n[OK] Successfully adapted {success_count}/{len(json_files)} files")
     
     if success_count == len(json_files):
         return 0
