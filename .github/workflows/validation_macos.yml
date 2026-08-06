@@ -35,7 +35,7 @@ on:
         required: true
         default: v1.0.0
       tools_to_process:
-        description: "Comma-separated list of tool basenames to adapt in this run. Leave empty to run all tools."
+        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.json"
         required: false
         default: ""
       gold_standard_repo:
@@ -78,7 +78,7 @@ on:
         required: true
         type: string
       tools_to_process:
-        description: "Comma-separated list of tool basenames to adapt in this run. Leave empty to run all tools."
+        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.json"
         required: false
         type: string
         default: ""
@@ -124,6 +124,25 @@ jobs:
             echo "No gold_standard_tag provided; skipping gold standards download."
             exit 0
           fi
+
+          # If no explicit tools_to_process was provided, derive the list from tool_json_adaptations.json
+          tools_input="${{ inputs.tools_to_process }}"
+          if [ -z "$tools_input" ]; then
+            toolTransformationsPath="ci/validation_tools/tool_json_adaptations.json"
+            if [ ! -f "$toolTransformationsPath" ]; then
+              echo "Tool adaptations config not found: $toolTransformationsPath"
+              exit 1
+            fi
+            toolsToProcess=$(python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); print(",".join(sorted([k for k,v in data.items() if isinstance(v,dict) and v.get("updates")])))' "$toolTransformationsPath")
+
+            if [ -z "$toolsToProcess" ]; then
+              echo "No tool definitions with updates found in $toolTransformationsPath"
+              exit 1
+            fi
+
+            echo "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json: $toolsToProcess"
+          fi
+
           if [ -z "$GH_TOKEN" ]; then
             echo "Missing secret GH_PAT_VALIDATION"
             exit 1
