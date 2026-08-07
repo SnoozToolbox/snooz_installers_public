@@ -18,8 +18,12 @@ on:
         description: Linux installer release tag to validate
         required: true
         default: v1.0.1-rc1-Linux
-      installer_tag_macos:
-        description: macOS installer release tag to validate (leave empty to auto-derive per architecture)
+      installer_tag_macos_x64:
+        description: macOS x64 installer release tag to validate (leave empty to auto-derive)
+        required: false
+        default: ""
+      installer_tag_macos_arm64:
+        description: macOS arm64 installer release tag to validate (leave empty to auto-derive)
         required: false
         default: ""
       package_version:
@@ -67,7 +71,7 @@ jobs:
     with:
       arch: x64
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag_macos }}
+      installer_tag: ${{ inputs.installer_tag_macos_x64 }}
       installer_asset_pattern: "Snooz*.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
@@ -82,7 +86,7 @@ jobs:
     with:
       arch: arm64
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag_macos }}
+      installer_tag: ${{ inputs.installer_tag_macos_arm64 }}
       installer_asset_pattern: "Snooz*.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
