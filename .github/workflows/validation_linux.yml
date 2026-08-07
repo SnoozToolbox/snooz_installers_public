@@ -270,12 +270,14 @@ jobs:
           fi
 
           # Find the main Snooz executable
-          # It's typically in /opt/Snooz Toolbox/ or /opt/snooz/
-          SNOOZ_APP_DIR=$(find "$INSTALL_DIR" -maxdepth 2 -type d -iname "*snooz*" | head -1)
+          # DEB packages typically install to /opt or /usr
+          # Look for the application directory (NOT the install root)
+          SNOOZ_APP_DIR=$(find "$INSTALL_DIR/opt" "$INSTALL_DIR/usr/local/opt" "$INSTALL_DIR/usr/bin" -maxdepth 2 -type d -iname "*snooz*" 2>/dev/null | grep -v "^\.$" | head -1)
+          
           if [ -z "$SNOOZ_APP_DIR" ]; then
-            echo "Could not find Snooz application directory"
-            echo "Directory structure:"
-            find "$INSTALL_DIR" -maxdepth 3 -type d
+            echo "Could not find Snooz application directory in standard locations"
+            echo "Full directory structure under $INSTALL_DIR:"
+            find "$INSTALL_DIR" -maxdepth 4 -type d | head -30
             exit 1
           fi
           
