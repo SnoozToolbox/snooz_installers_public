@@ -153,6 +153,7 @@ def main():
     parser.add_argument('--generated-search-roots', default='validation-workspaces,private-dataset', help='Comma-separated default search roots for generated files')
     parser.add_argument('--output-summary-tsv', required=True, help='Destination path for tool-run-summary.tsv')
     parser.add_argument('--output-dir', required=True, help='Destination directory for collected generated/reference files')
+    parser.add_argument('--append', action='store_true', help='Append to the summary TSV and keep existing output-dir contents (use when validating one tool right after it runs, instead of all tools at the end)')
 
     args = parser.parse_args()
 
@@ -168,7 +169,7 @@ def main():
     generated_search_roots_default = [r.strip() for r in args.generated_search_roots.split(',') if r.strip()]
     workspace_dir = Path(args.workspace_dir)
     output_dir = Path(args.output_dir)
-    if output_dir.exists():
+    if not args.append and output_dir.exists():
         import shutil
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -177,6 +178,25 @@ def main():
     any_failure = False
 
     for tool_name, run_info in run_status.items():
+        print("\n==========================================")
+        print(f"\nRunning comparisons for: {tool_name}")
+        # If run-status included an execution log, show a short tail for context
+        exec_log = run_info.get("execution_log")
+        if exec_log:
+            try:
+                exec_path = Path(exec_log)
+                if exec_path.exists():
+                    print(f"--- Headless execution log for {tool_name} (last 200 lines) ---")
+                    try:
+                        for line in exec_path.read_text(encoding='utf-8').splitlines()[-200:]:
+                            print(line)
+                    except Exception:
+                        print(f"(Could not read execution log: {exec_path})")
+                else:
+                    print(f"(Execution log path listed but file not found: {exec_log})")
+            except Exception:
+                print(f"(Invalid execution log path: {exec_log})")
+
         tool_run_status = run_info.get("run_status", "fail")
         scenario_path = workspace_dir / f"{tool_name}.json"
         tool_version = get_tool_version(scenario_path)
@@ -213,9 +233,11 @@ def main():
 
     output_summary_path = Path(args.output_summary_tsv)
     output_summary_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_summary_path, 'w', encoding='utf-8', newline='') as f:
+    write_header = not (args.append and output_summary_path.exists())
+    with open(output_summary_path, 'a' if args.append else 'w', encoding='utf-8', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=["tool_name", "tool_version", "json_name", "run_status", "comparison_status", "validated_files"], delimiter='\t')
-        writer.writeheader()
+        if write_header:
+            writer.writeheader()
         writer.writerows(summary_rows)
     print(f"Tool run summary TSV written to: {output_summary_path}")
 

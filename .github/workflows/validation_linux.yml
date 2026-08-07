@@ -339,7 +339,7 @@ jobs:
           fi
           echo "JSON paths successfully adapted."
 
-      - name: Run adapted headless scenarios and print failure logs
+      - name: Run adapted headless scenarios and validate each tool immediately
         shell: bash
         run: |
           mkdir -p target/validation-logs
@@ -363,6 +363,12 @@ jobs:
           
           run_status_tsv="target/validation-logs/run-status.tsv"
           : > "$run_status_tsv"
+          # Annotation files accumulate across tool runs, so each tool must be
+          # compared against its gold standard right after it runs, before the
+          # next tool appends more annotations to the same file.
+          rm -f tool-run-summary.tsv
+          rm -rf validation-outputs
+          overall_exit=0
           
           for TOOL_NAME in $TOOLS; do
             scenario="validation-workspaces/${TOOL_NAME}.json"
@@ -421,6 +427,7 @@ jobs:
               tail -200 "$exec_log"
               echo "::error::Headless execution failed for $TOOL_NAME with runtime errors. Continuing to next scenario."
               printf '%s\tfail\n' "$TOOL_NAME" >> "$run_status_tsv"
+              tool_status="fail"
             elif [ $app_status -ne 0 ]; then
               echo "::error::Headless execution failed for $TOOL_NAME with exit code $app_status"
               if [ -n "$process_log" ] && [ -f "$process_log" ]; then
@@ -430,33 +437,43 @@ jobs:
               echo "--- Headless execution log (last 200 lines) ---"
               tail -200 "$exec_log"
               printf '%s\tfail\n' "$TOOL_NAME" >> "$run_status_tsv"
+              tool_status="fail"
             else
               echo "Headless execution succeeded for $TOOL_NAME."
-              echo "=========================================="
-              echo ""
               printf '%s\tpass\n' "$TOOL_NAME" >> "$run_status_tsv"
+              tool_status="pass"
             fi
+
+            # Validate this tool's outputs now, while its annotation file is still
+            # in the state produced by this run (before the next tool modifies it).
+            single_status_tsv="target/validation-logs/${TOOL_NAME}-status.tsv"
+            single_status_json="target/validation-logs/${TOOL_NAME}-status.json"
+            printf '%s\t%s\n' "$TOOL_NAME" "$tool_status" > "$single_status_tsv"
+            python3 ci/validation_tools/build_run_status_json.py \
+              --input "$single_status_tsv" \
+              --output "$single_status_json" \
+              --exec-log-dir target/validation-logs
+
+            python3 ci/validation_tools/compare_and_summarize.py \
+              --run-status-file "$single_status_json" \
+              --tool-validations-file ci/validation_tools/tool_validations.json \
+              --gold-standards-dir gold-standards/extracted \
+              --gold-standard-tag "${{ inputs.gold_standard_tag }}" \
+              --compare-script ci/validation_tools/compare_outputs.py \
+              --workspace-dir validation-workspaces \
+              --output-summary-tsv tool-run-summary.tsv \
+              --output-dir validation-outputs \
+              --append
+            compare_status=$?
+            if [ $compare_status -ne 0 ]; then
+              overall_exit=1
+            fi
+
+            echo "=========================================="
+            echo ""
           done
           
-          # Convert run-status.tsv to run-status.json for the comparison script
-          python3 ci/validation_tools/build_run_status_json.py \
-            --input target/validation-logs/run-status.tsv \
-            --output target/validation-logs/run-status.json \
-            --exec-log-dir target/validation-logs
-
-      - name: Compare outputs against gold standards and write summary
-        shell: bash
-        if: always()
-        run: |
-          python3 ci/validation_tools/compare_and_summarize.py \
-            --run-status-file target/validation-logs/run-status.json \
-            --tool-validations-file ci/validation_tools/tool_validations.json \
-            --gold-standards-dir gold-standards/extracted \
-            --gold-standard-tag "${{ inputs.gold_standard_tag }}" \
-            --compare-script ci/validation_tools/compare_outputs.py \
-            --workspace-dir validation-workspaces \
-            --output-summary-tsv tool-run-summary.tsv \
-            --output-dir validation-outputs
+          exit $overall_exit
           name: linux-validation-assets
           if-no-files-found: warn
           path: |
