@@ -291,10 +291,7 @@ jobs:
           fi
           
           echo "Found executable: $INSTALLED_EXE"
-          fi
           
-          echo "Using executable: $INSTALLED_EXE"
-
           chmod +x "$INSTALLED_EXE"
           echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
 

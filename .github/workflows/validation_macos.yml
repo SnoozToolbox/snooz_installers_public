@@ -273,12 +273,10 @@ jobs:
           fi
 
           echo "Found app bundle: $APP_PATH"
-          cp -r "$APP_PATH" "$INSTALL_DIR/"
-          hdiutil detach "$MOUNTED_VOLUME" 2>/dev/null || true
-
+          
           # Get the app name (it might not be exactly "Snooz.app")
           APP_NAME=$(basename "$APP_PATH")
-          MACOS_DIR="$INSTALL_DIR/$APP_NAME/Contents/MacOS"
+          MACOS_DIR="$APP_PATH/Contents/MacOS"
           
           # The executable name is the same as the app name (minus .app)
           EXECUTABLE_NAME="${APP_NAME%.app}"
@@ -295,14 +293,19 @@ jobs:
           fi
           
           echo "Found executable: $INSTALLED_EXE"
+          echo "Using app directly from mounted volume to preserve code signatures"
+          
+          # DO NOT detach the volume yet - we need it for execution and JSON extraction
+          # Create INSTALL_DIR for JSON files extraction
+          mkdir -p "$INSTALL_DIR"
 
           echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
 
-          # Extract JSON files
+          # Extract JSON files from the mounted app
           VERSION_UNDERSCORE="${{ inputs.package_version }}"
           VERSION_UNDERSCORE="${VERSION_UNDERSCORE//./_}"
           
-          CEAMS_TOOLS_DIR=$(find "$INSTALL_DIR" -type d -name "CEAMSTools_$VERSION_UNDERSCORE" | head -1)
+          CEAMS_TOOLS_DIR=$(find "$APP_PATH" -type d -name "CEAMSTools_$VERSION_UNDERSCORE" | head -1)
           if [ -z "$CEAMS_TOOLS_DIR" ]; then
             echo "CEAMSTools directory not found for version $VERSION_UNDERSCORE"
             exit 1
@@ -364,6 +367,17 @@ jobs:
         run: |
           mkdir -p validation-outputs
           echo "Validation outputs prepared for collection"
+
+      - name: Detach mounted DMG volume
+        shell: bash
+        if: always()
+        run: |
+          # Detach any mounted volumes containing "Snooz"
+          for volume in $(ls -d /Volumes/*nooz* 2>/dev/null); do
+            echo "Detaching: $volume"
+            hdiutil detach "$volume" 2>/dev/null || true
+          done
+          echo "DMG volumes detached"
 
       - name: Upload adapted JSON and validation logs as artifact
         if: always()
