@@ -16,8 +16,8 @@ on:
         default: SnoozToolbox/snooz-toolbox-ceams
       installer_tag:
         description: Installer release tag to validate
-        required: true
-        default: v1.0.1-rc2-macOS
+        required: false
+        default: ""
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
@@ -58,9 +58,10 @@ on:
         required: true
         type: string
       installer_tag:
-        description: Installer release tag to validate
-        required: true
+        description: Installer release tag to validate (if empty, auto-generated from arch)
+        required: false
         type: string
+        default: ""
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
@@ -200,8 +201,24 @@ jobs:
             echo "Missing secret GH_PAT"
             exit 1
           fi
+          
+          # Build installer tag if not provided
+          INSTALLER_TAG="${{ inputs.installer_tag }}"
+          if [ -z "$INSTALLER_TAG" ]; then
+            ARCH="${{ inputs.arch }}"
+            if [ "$ARCH" = "arm64" ]; then
+              INSTALLER_TAG="v1.0.1-rc2-macOS-ARM64"
+            elif [ "$ARCH" = "x64" ]; then
+              INSTALLER_TAG="v1.0.1-rc2-macOS-x64"
+            else
+              echo "Invalid architecture: $ARCH (expected 'arm64' or 'x64')"
+              exit 1
+            fi
+            echo "Auto-generated installer tag for $ARCH: $INSTALLER_TAG"
+          fi
+          
           mkdir -p installer
-          gh release download "${{ inputs.installer_tag }}" \
+          gh release download "$INSTALLER_TAG" \
             --repo "${{ inputs.installer_repo }}" \
             --pattern "${{ inputs.installer_asset_pattern }}" \
             --dir installer
@@ -210,10 +227,10 @@ jobs:
         shell: bash
         run: |
           echo "Private dataset release files:"
-          find private-dataset -type f | head -20
+          find private-dataset -type f 2>/dev/null || true
           echo ""
           echo "Installer files:"
-          find installer -type f
+          find installer -type f 2>/dev/null || true
 
       - name: Install Snooz and extract JSON files
         shell: bash
@@ -230,16 +247,29 @@ jobs:
 
           echo "Installing: $INSTALLER"
           hdiutil attach "$INSTALLER"
-          APP_PATH="/Volumes/Snooz/Snooz.app"
+          
+          # Find the mounted volume containing Snooz.app (volume name may vary)
+          MOUNTED_VOLUME=$(find /Volumes -maxdepth 1 -type d | xargs ls -d 2>/dev/null | grep -i snooz | head -1)
+          if [ -z "$MOUNTED_VOLUME" ]; then
+            echo "No mounted volume containing 'Snooz' found"
+            echo "Available volumes:"
+            ls -la /Volumes
+            exit 1
+          fi
+          
+          APP_PATH="$MOUNTED_VOLUME/Snooz.app"
+          echo "Searching for Snooz.app in mounted volume: $MOUNTED_VOLUME"
           
           if [ ! -d "$APP_PATH" ]; then
             echo "Snooz.app not found at $APP_PATH"
-            hdiutil detach "/Volumes/Snooz"
+            echo "Contents of $MOUNTED_VOLUME:"
+            ls -la "$MOUNTED_VOLUME"
+            hdiutil detach "$MOUNTED_VOLUME"
             exit 1
           fi
 
           cp -r "$APP_PATH" "$INSTALL_DIR/"
-          hdiutil detach "/Volumes/Snooz"
+          hdiutil detach "$MOUNTED_VOLUME"
 
           INSTALLED_EXE="$INSTALL_DIR/Snooz.app/Contents/MacOS/Snooz"
           if [ ! -f "$INSTALLED_EXE" ]; then
