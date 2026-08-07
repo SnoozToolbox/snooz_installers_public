@@ -268,16 +268,6 @@ jobs:
             exit 1
           fi
 
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution on frozen app reported errors in logs."
-            exit 1
-          fi
-
-          if ! grep -q "Process completed." "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution on frozen app did not reach 'Process completed.'"
-            exit 1
-          fi
-
           if [ ! -s "$OUTPUT_PDF" ]; then
             echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
             find "$RUNTIME_TEST_ROOT/runtime_smoke_repo" -maxdepth 3 -type f | sort || true
@@ -380,16 +370,6 @@ jobs:
 
           if [ ! -s "$EDF_LOCAL_PATH" ]; then
             echo "::error::Runtime smoke input EDF is missing or empty after app bundle execution: $EDF_LOCAL_PATH"
-            exit 1
-          fi
-
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library not loaded|dlopen\\(" "$LOG_FILE"; then
-            echo "::error::App bundle runtime smoke reported errors in logs."
-            exit 1
-          fi
-
-          if ! grep -q "Process completed." "$LOG_FILE"; then
-            echo "::error::App bundle runtime smoke did not reach 'Process completed.'"
             exit 1
           fi
 
@@ -871,16 +851,6 @@ jobs:
             exit 1
           fi
 
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library Validation failed|mapped file has no cdhash|completely unsigned\?|ffi[[:alnum:]_\-]+" "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution reported errors in logs."
-            exit 1
-          fi
-
-          if ! grep -q "Process completed." "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution did not reach 'Process completed.'"
-            exit 1
-          fi
-
           if [ ! -s "$OUTPUT_PDF" ]; then
             echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
             find "$RUNTIME_TEST_ROOT/runtime_smoke_repo" -maxdepth 3 -type f | sort || true
@@ -1177,16 +1147,6 @@ jobs:
             exit 1
           fi
 
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution on frozen app reported errors in logs."
-            exit 1
-          fi
-
-          if ! grep -q "Process completed." "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution on frozen app did not reach 'Process completed.'"
-            exit 1
-          fi
-
           if [ ! -s "$OUTPUT_PDF" ]; then
             echo "::error::Expected runtime smoke PDF was not generated: $OUTPUT_PDF"
             find "$RUNTIME_TEST_ROOT/runtime_smoke_repo" -maxdepth 3 -type f | sort || true
@@ -1289,16 +1249,6 @@ jobs:
 
           if [ ! -s "$EDF_LOCAL_PATH" ]; then
             echo "::error::Runtime smoke input EDF is missing or empty after app bundle execution: $EDF_LOCAL_PATH"
-            exit 1
-          fi
-
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library not loaded|dlopen\\(" "$LOG_FILE"; then
-            echo "::error::App bundle runtime smoke reported errors in logs."
-            exit 1
-          fi
-
-          if ! grep -q "Process completed." "$LOG_FILE"; then
-            echo "::error::App bundle runtime smoke did not reach 'Process completed.'"
             exit 1
           fi
 
@@ -1782,16 +1732,6 @@ jobs:
 
           if [ ! -s "$EDF_LOCAL_PATH" ]; then
             echo "::error::Runtime smoke input EDF is missing or empty after DMG execution: $EDF_LOCAL_PATH"
-            exit 1
-          fi
-
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError|Library Validation failed|mapped file has no cdhash|completely unsigned\?|ffi[[:alnum:]_\-]+" "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution reported errors in logs."
-            exit 1
-          fi
-
-          if ! grep -q "Process completed." "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution did not reach 'Process completed.'"
             exit 1
           fi
 

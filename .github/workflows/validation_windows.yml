@@ -509,45 +509,9 @@ jobs:
               Sort-Object LastWriteTime -Descending |
               Select-Object -First 1
 
-            $errorPatterns = @('process Interrupted', 'Traceback', 'Exception', 'AttributeError', 'Error:', 'Unhandled exception')
-            $detectedError = $false
-            $detectedPattern = $null
-
-            if ($null -ne $processLog) {
-              $processLogText = Get-Content -Raw -Path $processLog.FullName -ErrorAction SilentlyContinue
-              foreach ($pattern in $errorPatterns) {
-                if ($processLogText -match $pattern) {
-                  $detectedError = $true
-                  $detectedPattern = $pattern
-                  break
-                }
-              }
-            }
-
-            if (-not $detectedError) {
-              $execLogText = Get-Content -Raw -Path $execLog -ErrorAction SilentlyContinue
-              foreach ($pattern in $errorPatterns) {
-                if ($execLogText -match $pattern) {
-                  $detectedError = $true
-                  $detectedPattern = $pattern
-                  break
-                }
-              }
-            }
-
-            if ($detectedError) {
-              Write-Host "::error::Detected runtime error for ${toolName}: matched '$detectedPattern'"
-              if ($null -ne $processLog) {
-                Write-Host "--- Snooz process log (last 200 lines) ---"
-                Get-Content -Path $processLog.FullName -Tail 200 | ForEach-Object { Write-Host $_ }
-              }
-              Write-Host "--- Headless execution log (last 200 lines) ---"
-              Get-Content -Path $execLog -Tail 200 | ForEach-Object { Write-Host $_ }
-              Write-Host "::error::Headless execution failed for $toolName with runtime errors. Continuing to next scenario."
-              Add-Content -Path $runStatusTsv -Value "$toolName`tfail"
-              $toolStatus = "fail"
-            }
-            elseif ($appStatus -ne 0) {
+            # Snooz Toolbox now returns 0 on success and 1 on failure, so the exit
+            # code alone determines pass/fail (no more log-content parsing needed).
+            if ($appStatus -ne 0) {
               Write-Host "::error::Headless execution failed for $toolName with exit code $appStatus"
               if ($null -ne $processLog) {
                 Write-Host "--- Snooz process log (last 200 lines) ---"
