@@ -18,6 +18,14 @@ on:
         description: Installer asset name pattern (e.g. Snooz*.deb or SnoozSetup-portable-linux.zip)
         required: true
         default: "Snooz*.deb"
+      installer_type:
+        description: Installer type to test (deb or zip)
+        required: true
+        default: "deb"
+        type: choice
+        options:
+          - deb
+          - zip
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -57,6 +65,11 @@ on:
         description: Installer asset name pattern
         required: true
         type: string
+      installer_type:
+        description: Installer type to test (deb or zip)
+        required: true
+        type: string
+        default: "deb"
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -210,9 +223,27 @@ jobs:
       - name: Install Snooz and extract JSON files
         shell: bash
         run: |
-          INSTALLER=$(find installer -name "*.tar.gz" | head -1)
-          if [ -z "$INSTALLER" ]; then
-            echo "No installer tar.gz found"
+          INSTALLER_TYPE="${{ inputs.installer_type }}"
+          
+          # Find the installer based on requested type
+          if [ "$INSTALLER_TYPE" = "deb" ]; then
+            INSTALLER=$(find installer -name "*.deb" -type f | head -1)
+            if [ -z "$INSTALLER" ]; then
+              echo "No .deb installer found"
+              echo "Contents of installer directory:"
+              ls -la installer/ 2>/dev/null || echo "installer directory is empty"
+              exit 1
+            fi
+          elif [ "$INSTALLER_TYPE" = "zip" ]; then
+            INSTALLER=$(find installer -name "*.zip" -type f | head -1)
+            if [ -z "$INSTALLER" ]; then
+              echo "No .zip installer found"
+              echo "Contents of installer directory:"
+              ls -la installer/ 2>/dev/null || echo "installer directory is empty"
+              exit 1
+            fi
+          else
+            echo "Invalid installer_type: $INSTALLER_TYPE (expected 'deb' or 'zip')"
             exit 1
           fi
 
@@ -220,13 +251,42 @@ jobs:
           rm -rf "$INSTALL_DIR"
           mkdir -p "$INSTALL_DIR"
 
-          echo "Installing: $INSTALLER"
-          tar -xzf "$INSTALLER" -C "$INSTALL_DIR"
+          echo "Installing: $INSTALLER (type: $INSTALLER_TYPE)"
+          
+          # Extract based on file type
+          if [[ "$INSTALLER" == *.zip ]]; then
+            echo "Extracting ZIP archive..."
+            unzip -q "$INSTALLER" -d "$INSTALL_DIR"
+          elif [[ "$INSTALLER" == *.deb ]]; then
+            echo "Extracting DEB package..."
+            # Create temp dir for DEB extraction
+            DEB_TEMP="/tmp/deb_extract"
+            mkdir -p "$DEB_TEMP"
+            ar x "$INSTALLER" -C "$DEB_TEMP"
+            
+            # Extract data archive (can be data.tar.gz or data.tar.xz)
+            if [ -f "$DEB_TEMP/data.tar.gz" ]; then
+              tar -xzf "$DEB_TEMP/data.tar.gz" -C "$INSTALL_DIR"
+            elif [ -f "$DEB_TEMP/data.tar.xz" ]; then
+              tar -xJf "$DEB_TEMP/data.tar.xz" -C "$INSTALL_DIR"
+            else
+              echo "Could not find data archive in DEB package"
+              ls -la "$DEB_TEMP/"
+              exit 1
+            fi
+            rm -rf "$DEB_TEMP"
+          else
+            echo "Unexpected file type: $INSTALLER"
+            exit 1
+          fi
 
-          INSTALLED_EXE=$(find "$INSTALL_DIR" -type f -name "snooz" -o -name "Snooz" | head -1)
+          INSTALLED_EXE=$(find "$INSTALL_DIR" -type f \( -name "snooz" -o -name "Snooz" \) 2>/dev/null | head -1)
           if [ -z "$INSTALLED_EXE" ]; then
             echo "Expected installed executable not found"
-            find "$INSTALL_DIR" -type f -executable | head -5
+            echo "Searching for executable files in $INSTALL_DIR:"
+            find "$INSTALL_DIR" -type f -executable 2>/dev/null | head -10
+            echo "Searching for Snooz/snooz files anywhere:"
+            find "$INSTALL_DIR" -type f -iname "*snooz*" 2>/dev/null | head -10
             exit 1
           fi
 
