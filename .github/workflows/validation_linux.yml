@@ -269,15 +269,36 @@ jobs:
             exit 1
           fi
 
-          INSTALLED_EXE=$(find "$INSTALL_DIR" -type f \( -name "snooz" -o -name "Snooz" \) 2>/dev/null | head -1)
-          if [ -z "$INSTALLED_EXE" ]; then
-            echo "Expected installed executable not found"
-            echo "Searching for executable files in $INSTALL_DIR:"
-            find "$INSTALL_DIR" -type f -executable 2>/dev/null | head -10
-            echo "Searching for Snooz/snooz files anywhere:"
-            find "$INSTALL_DIR" -type f -iname "*snooz*" 2>/dev/null | head -10
+          # Find the main Snooz executable
+          # It's typically in /opt/Snooz Toolbox/ or /opt/snooz/
+          SNOOZ_APP_DIR=$(find "$INSTALL_DIR" -maxdepth 2 -type d -iname "*snooz*" | head -1)
+          if [ -z "$SNOOZ_APP_DIR" ]; then
+            echo "Could not find Snooz application directory"
+            echo "Directory structure:"
+            find "$INSTALL_DIR" -maxdepth 3 -type d
             exit 1
           fi
+          
+          echo "Found Snooz app directory: $SNOOZ_APP_DIR"
+          
+          # Look for the main executable (case-insensitive, matches snooz, Snooz, or Snooz toolbox, etc.)
+          INSTALLED_EXE=$(find "$SNOOZ_APP_DIR" -maxdepth 1 -type f -iname "*snooz*" ! -name "*.*" 2>/dev/null | grep -v "\.so\|\.py\|\.txt" | head -1)
+          
+          if [ -z "$INSTALLED_EXE" ]; then
+            # If not found, look for any executable in the directory
+            echo "Searching for executable in $SNOOZ_APP_DIR:"
+            ls -lh "$SNOOZ_APP_DIR" | head -20
+            
+            # Try to find any executable file (not a library)
+            INSTALLED_EXE=$(find "$SNOOZ_APP_DIR" -maxdepth 1 -type f -executable ! -name "*.*" 2>/dev/null | head -1)
+            
+            if [ -z "$INSTALLED_EXE" ]; then
+              echo "No executable found in $SNOOZ_APP_DIR"
+              exit 1
+            fi
+          fi
+          
+          echo "Using executable: $INSTALLED_EXE"
 
           chmod +x "$INSTALLED_EXE"
           echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
