@@ -408,11 +408,9 @@ jobs:
             throw "No JSON files found under $ceamsToolsDir"
           }
 
+          # Flatten into validation-json/*.json (matches Linux/macOS layout expected by adapt_scenario_json.py)
           foreach ($file in $jsonFiles) {
-            $relativePath = $file.FullName.Substring($ceamsToolsDir.Length).TrimStart('\')
-            $targetPath = Join-Path $jsonOutputDir $relativePath
-            $targetDir = Split-Path $targetPath -Parent
-            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+            $targetPath = Join-Path $jsonOutputDir $file.Name
             Copy-Item -Path $file.FullName -Destination $targetPath -Force
           }
 
