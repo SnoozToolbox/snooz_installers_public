@@ -1401,13 +1401,22 @@ jobs:
                       $compareArgs += @("--precision", "$(($comparison.precision).ToString())")
                     }
 
-                    & python @compareArgs
+                    # Capture output from comparison script
+                    $compareOutput = & python @compareArgs 2>&1
                     $compareStatus = $LASTEXITCODE
-                    if ($compareStatus -ne 0) {
+                    
+                    # Print comparison output
+                    Write-Host $compareOutput
+                    
+                    if ($compareStatus -eq 0) {
+                      $comparisonStatus = "pass"
+                      Write-Host "✓ Comparison PASSED for $toolName : $generatedFileName"
+                    }
+                    else {
                       $comparisonStatus = "fail"
-                      Write-Host "::error::$toolName output mismatch for $generatedFileName"
-                      Write-Host "Generated file: $generatedFile"
-                      Write-Host "Gold standard: $($goldReference.FullName)"
+                      Write-Host "::error::✗ Comparison FAILED for $toolName : $generatedFileName"
+                      Write-Host "::error::Generated file: $generatedFile"
+                      Write-Host "::error::Gold standard: $($goldReference.FullName)"
                       $toolValidationFailed = $true
                       break
                     }
@@ -1468,6 +1477,31 @@ jobs:
               validated_files |
             Export-Csv -Path $runSummaryTsvPath -NoTypeInformation -Encoding UTF8 -Delimiter "`t"
           Write-Host "Tool run summary TSV written to: $runSummaryTsvPath"
+
+          # Print comparison results summary
+          Write-Host ""
+          Write-Host "=========================================="
+          Write-Host "COMPARISON RESULTS SUMMARY"
+          Write-Host "=========================================="
+          foreach ($tool in ($toolRunSummary | Select-Object -Unique tool_name)) {
+            $toolEntries = $toolRunSummary | Where-Object { $_.tool_name -eq $tool.tool_name }
+            foreach ($entry in $toolEntries) {
+              if ($null -eq $entry.comparison_status -or $entry.comparison_status -eq "skipped-no-gold-standard-tag") {
+                Write-Host "  ⊘ $($entry.tool_name): SKIPPED (no gold standard tag)"
+              }
+              elseif ($entry.comparison_status -eq "skipped-no-comparisons-configured") {
+                Write-Host "  ⊘ $($entry.tool_name): SKIPPED (no comparisons configured)"
+              }
+              elseif ($entry.comparison_status -eq "pass") {
+                Write-Host "  ✓ $($entry.tool_name): PASS"
+              }
+              else {
+                Write-Host "  ✗ $($entry.tool_name): FAIL ($($entry.comparison_status))"
+              }
+            }
+          }
+          Write-Host "=========================================="
+          Write-Host ""
 
           Write-Host "Headless execution summary: success=$succeededCount failed=$($failedScenarios.Count) total=$($scenariosToRun.Count)"
           if ($failedScenarios.Count -gt 0) {
