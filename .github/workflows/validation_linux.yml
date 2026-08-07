@@ -474,6 +474,11 @@ jobs:
           done
           
           exit $overall_exit
+
+      - name: Upload adapted JSON and validation logs as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
           name: linux-validation-assets
           if-no-files-found: warn
           path: |
