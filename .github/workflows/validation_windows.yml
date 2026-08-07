@@ -1,4 +1,4 @@
-name: Validate installer (Windows)
+﻿name: Validate installer (Windows)
 
 permissions:
   contents: read
@@ -426,542 +426,18 @@ jobs:
       - name: Adapt extracted JSON files for validation workspaces
         shell: pwsh
         run: |
-          $sourceDir = "validation-json"
-          $workspaceDir = "validation-workspaces"
-          if (Test-Path $workspaceDir) {
-            Remove-Item -Path $workspaceDir -Recurse -Force
+          New-Item -ItemType Directory -Path "validation-workspaces" -Force | Out-Null
+
+          python ci/validation_tools/adapt_scenario_json.py `
+            --source-dir validation-json `
+            --workspace-dir validation-workspaces `
+            --adaptations-file ci/validation_tools/tool_json_adaptations.json `
+            --private-dataset-dir private-dataset `
+            --tools "${{ inputs.tools_to_process }}"
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Scenario JSON adaptation failed with exit code $LASTEXITCODE"
           }
-          New-Item -ItemType Directory -Path $workspaceDir -Force | Out-Null
-
-          $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
-          $toolsToProcess = @()
-          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
-            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-          }
-
-          $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
-          if (-not (Test-Path $toolTransformationsPath)) {
-            throw "Tool adaptations config not found: $toolTransformationsPath"
-          }
-          $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
-
-          if ($toolsToProcess.Count -eq 0) {
-            $toolsToProcess = @(
-              $toolTransformations.GetEnumerator() |
-                Where-Object {
-                  $_.Value -is [hashtable] -and
-                  $_.Value.ContainsKey("updates") -and
-                  $null -ne $_.Value.updates -and
-                  $_.Value.updates.Count -gt 0
-                } |
-                ForEach-Object { [string]$_.Key } |
-                Sort-Object
-            )
-
-            if ($toolsToProcess.Count -eq 0) {
-              throw "No tool definitions with updates found in tool_json_adaptations.json"
-            }
-
-            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json."
-          }
-
-          function Convert-ToJsonPath {
-            param([string]$PathValue)
-            return ($PathValue -replace '\\', '/')
-          }
-
-          Write-Host "Tools configured for this run:"
-          if ($toolsToProcess.Count -eq 0) {
-            Write-Host " - none (all others will be skipped)"
-          } else {
-            foreach ($toolName in $toolsToProcess) {
-              Write-Host " - $toolName"
-            }
-          }
-
-          if ($toolsToProcess.Count -gt 0) {
-            $missingToolDefinitions = @()
-            $toolsWithoutUpdates = @()
-
-            foreach ($toolName in $toolsToProcess) {
-              if (-not $toolTransformations.ContainsKey($toolName)) {
-                $missingToolDefinitions += $toolName
-                continue
-              }
-
-              $toolDefinition = $toolTransformations[$toolName]
-              if (-not $toolDefinition.ContainsKey("updates") -or $toolDefinition.updates.Count -eq 0) {
-                $toolsWithoutUpdates += $toolName
-              }
-            }
-
-            if ($missingToolDefinitions.Count -gt 0 -or $toolsWithoutUpdates.Count -gt 0) {
-              if ($missingToolDefinitions.Count -gt 0) {
-                Write-Host "::error::Missing tool adaptation definition(s) in tool_json_adaptations.json: $($missingToolDefinitions -join ', ')"
-              }
-              if ($toolsWithoutUpdates.Count -gt 0) {
-                Write-Host "::error::Tool adaptation definition(s) without updates in tool_json_adaptations.json: $($toolsWithoutUpdates -join ', ')"
-              }
-              throw "Invalid tool adaptation configuration for requested tool(s)."
-            }
-          }
-
-          function Resolve-ConfiguredValue {
-            param(
-              [hashtable]$Spec,
-              [string]$WorkspaceDir
-            )
-
-            function Convert-ToPythonLiteral {
-              param([object]$Value)
-
-              if ($null -eq $Value) {
-                return "None"
-              }
-
-              if ($Value -is [string]) {
-                $escaped = $Value.Replace("'", "\\'")
-                return "'$escaped'"
-              }
-
-              if ($Value -is [bool]) {
-                if ($Value) {
-                  return "True"
-                }
-                return "False"
-              }
-
-              if ($Value -is [System.Collections.IDictionary]) {
-                $parts = @()
-                foreach ($key in $Value.Keys) {
-                  $parts += "$(Convert-ToPythonLiteral $key): $(Convert-ToPythonLiteral $Value[$key])"
-                }
-                return "{$($parts -join ', ')}"
-              }
-
-              if ($Value -is [System.Collections.IEnumerable] -and -not ($Value -is [string])) {
-                $parts = @()
-                foreach ($item in $Value) {
-                  $parts += (Convert-ToPythonLiteral $item)
-                }
-                return "[$($parts -join ', ')]"
-              }
-
-              return [string]$Value
-            }
-
-            if ($null -eq $Spec -or -not $Spec.ContainsKey("kind")) {
-              throw "Invalid value specification: missing kind"
-            }
-
-            $kind = [string]$Spec.kind
-            $required = $true
-            if ($Spec.ContainsKey("required")) {
-              $required = [bool]$Spec.required
-            }
-
-            if ($kind -eq "literal") {
-              return [string]$Spec.value
-            }
-
-            if ($kind -eq "workspacePath") {
-              $relativePath = [string]$Spec.relativePath
-              if ([string]::IsNullOrWhiteSpace($relativePath)) {
-                throw "workspacePath specification requires relativePath"
-              }
-
-              $fullPath = Join-Path (Resolve-Path $WorkspaceDir).Path $relativePath
-              $parentDir = Split-Path -Path $fullPath -Parent
-              if (-not [string]::IsNullOrWhiteSpace($parentDir)) {
-                New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
-              }
-
-              return Convert-ToJsonPath -PathValue $fullPath
-            }
-
-            if ($kind -eq "workspaceFileContents") {
-              $relativePath = [string]$Spec.relativePath
-              if ([string]::IsNullOrWhiteSpace($relativePath)) {
-                throw "workspaceFileContents specification requires relativePath"
-              }
-
-              $fullPath = Join-Path (Resolve-Path $WorkspaceDir).Path $relativePath
-              if (-not (Test-Path $fullPath)) {
-                if ($required) {
-                  throw "workspaceFileContents target not found: $fullPath"
-                }
-                return $null
-              }
-
-              $content = Get-Content -Path $fullPath -Raw -ErrorAction Stop
-              return [string]$content
-            }
-
-            if ($kind -eq "workspaceFileJson") {
-              $relativePath = [string]$Spec.relativePath
-              if ([string]::IsNullOrWhiteSpace($relativePath)) {
-                throw "workspaceFileJson specification requires relativePath"
-              }
-
-              $fullPath = Join-Path (Resolve-Path $WorkspaceDir).Path $relativePath
-              if (-not (Test-Path $fullPath)) {
-                if ($required) {
-                  throw "workspaceFileJson target not found: $fullPath"
-                }
-                return $null
-              }
-
-              $raw = Get-Content -Path $fullPath -Raw -ErrorAction Stop
-              try {
-                $obj = ConvertFrom-Json -InputObject $raw -ErrorAction Stop
-                return $obj
-              }
-              catch {
-                throw "workspaceFileJson could not parse JSON from: $fullPath"
-              }
-            }
-
-            if ($kind -eq "workspaceFilePythonLiteral") {
-              $relativePath = [string]$Spec.relativePath
-              if ([string]::IsNullOrWhiteSpace($relativePath)) {
-                throw "workspaceFilePythonLiteral specification requires relativePath"
-              }
-
-              $fullPath = Join-Path (Resolve-Path $WorkspaceDir).Path $relativePath
-              if (-not (Test-Path $fullPath)) {
-                if ($required) {
-                  throw "workspaceFilePythonLiteral target not found: $fullPath"
-                }
-                return $null
-              }
-
-              $raw = Get-Content -Path $fullPath -Raw -ErrorAction Stop
-
-              # function Convert-PythonLiteralToJson {
-              #   param([string]$pyText)
-              #   $s = $pyText
-              #   $s = $s -replace "(?m)#.*$",""                     # remove line comments
-              #   $s = $s -replace "\bNone\b","null"
-              #   $s = $s -replace "\bTrue\b","true"
-              #   $s = $s -replace "\bFalse\b","false"
-              #   # Naive single->double quote swap
-              #   $s = $s -replace "'","\""
-              #   # Remove trailing commas before ] or } using .NET regex to avoid parser issues
-              #   $trimPattern = ',\s*(\]|\})'
-              #   $s = [regex]::Replace($s, $trimPattern, '$1')
-              #   return $s
-              # }
-
-              # $jsonText = Convert-PythonLiteralToJson -pyText $raw
-              # try {
-              #   $obj = ConvertFrom-Json -InputObject $jsonText -ErrorAction Stop
-              #   # Also write a .json copy into the validation workspace so other steps
-              #   # can reference the converted JSON file directly if needed.
-              #   try {
-              #     $destRelative = if ($relativePath -match "\.txt$") { $relativePath -replace "\.txt$",".json" } else { "$relativePath.json" }
-              #     $destFull = Join-Path (Resolve-Path $WorkspaceDir).Path $destRelative
-              #     $destParent = Split-Path -Path $destFull -Parent
-              #     if (-not (Test-Path $destParent)) { New-Item -ItemType Directory -Path $destParent -Force | Out-Null }
-              #     $obj | ConvertTo-Json -Depth 40 | Set-Content -Path $destFull -Encoding UTF8
-              #     Write-Host "Wrote converted JSON to: $destFull"
-              #   } catch {
-              #     Write-Host "Warning: failed to write converted JSON file: $($_.Exception.Message)"
-              #   }
-              #   return $obj
-              # } catch {
-              #   Write-Host "Warning: workspaceFilePythonLiteral could not parse converted JSON for: $fullPath; returning raw text"
-              #   return [string]$raw
-              # }
-            }
-
-            if ($kind -eq "privateDatasetPath") {
-              $relativePath = [string]$Spec.relativePath
-              if ([string]::IsNullOrWhiteSpace($relativePath)) {
-                throw "privateDatasetPath specification requires relativePath"
-              }
-
-              $output = if ($Spec.ContainsKey("output")) { [string]$Spec.output } else { "path" }
-
-              $fullPath = Join-Path (Resolve-Path "private-dataset").Path $relativePath
-              if (-not (Test-Path $fullPath)) {
-                if ($required) {
-                  throw "privateDatasetPath target not found: $fullPath"
-                }
-                return $null
-              }
-
-              $resolvedPath = Convert-ToJsonPath -PathValue $fullPath
-              if ($output -eq "list") {
-                return ,@($resolvedPath)
-              }
-              if ($output -eq "pythonListSingleQuoted") {
-                return "['$resolvedPath']"
-              }
-
-              return $resolvedPath
-            }
-
-            if ($kind -eq "findPath") {
-              $roots = @()
-              if ($Spec.ContainsKey("roots")) {
-                $roots = @($Spec.roots | ForEach-Object { [string]$_ })
-              }
-              if ($roots.Count -eq 0) {
-                throw "findPath specification requires at least one root"
-              }
-
-              $itemType = if ($Spec.ContainsKey("itemType")) { [string]$Spec.itemType } else { "Directory" }
-              $matchRegex = [string]$Spec.matchRegex
-              $pick = if ($Spec.ContainsKey("pick")) { [string]$Spec.pick } else { "first" }
-              $output = if ($Spec.ContainsKey("output")) { [string]$Spec.output } else { "path" }
-
-              $pathMatches = @()
-              foreach ($root in $roots) {
-                if (-not (Test-Path $root)) {
-                  continue
-                }
-
-                if ($itemType -eq "File") {
-                  $found = Get-ChildItem -Path $root -Recurse -File -ErrorAction SilentlyContinue
-                }
-                else {
-                  $found = Get-ChildItem -Path $root -Recurse -Directory -ErrorAction SilentlyContinue
-                }
-
-                if (-not [string]::IsNullOrWhiteSpace($matchRegex)) {
-                  $found = $found | Where-Object { $_.FullName -match $matchRegex }
-                }
-
-                $pathMatches += @($found)
-              }
-
-              $pathMatches = $pathMatches | Sort-Object FullName
-              if ($pathMatches.Count -eq 0) {
-                if ($required) {
-                  throw "No path matched for findPath roots=[$($roots -join ',')] regex='$matchRegex'"
-                }
-                return $null
-              }
-
-              $selectedPaths = @()
-              if ($pick -eq "all") {
-                $selectedPaths = @($pathMatches | Select-Object -ExpandProperty FullName)
-              }
-              else {
-                $selectedPaths = @($pathMatches[0].FullName)
-              }
-
-              $selectedPaths = @($selectedPaths | ForEach-Object { Convert-ToJsonPath -PathValue ([string]$_) })
-              if ($output -eq "list") {
-                return ,@($selectedPaths)
-              }
-              if ($output -eq "pythonDictByPath") {
-                if (-not $Spec.ContainsKey("dictionaryMap") -or $null -eq $Spec.dictionaryMap) {
-                  throw "findPath output=pythonDictByPath requires dictionaryMap"
-                }
-
-                $selectedPath = [string]$selectedPaths[0]
-                $escapedPath = $selectedPath.Replace("'", "\\'")
-                $pairs = @()
-                foreach ($mapKey in $Spec.dictionaryMap.Keys) {
-                  $mapValue = [string]$Spec.dictionaryMap[$mapKey]
-                  $escapedKey = ([string]$mapKey).Replace("'", "\\'")
-                  $escapedValue = $mapValue.Replace("'", "\\'")
-                  $pairs += "'$escapedKey': '$escapedValue'"
-                }
-
-                return "{'$escapedPath': {$($pairs -join ', ')}}"
-              }
-              if ($output -eq "pythonListSingleQuoted") {
-                $quoted = $selectedPaths | ForEach-Object { "'$_'" }
-                return "[$($quoted -join ',')]"
-              }
-
-              return $selectedPaths[0]
-            }
-
-            if ($kind -eq "pythonDictFromFileMapping") {
-              if (-not $Spec.ContainsKey("fileSpec")) {
-                throw "pythonDictFromFileMapping specification requires fileSpec"
-              }
-              if (-not $Spec.ContainsKey("mapping")) {
-                throw "pythonDictFromFileMapping specification requires mapping"
-              }
-
-              $resolvedFilePath = Resolve-ConfiguredValue -Spec $Spec.fileSpec -WorkspaceDir $WorkspaceDir
-              if ($null -eq $resolvedFilePath -or [string]::IsNullOrWhiteSpace([string]$resolvedFilePath)) {
-                if ($required) {
-                  throw "pythonDictFromFileMapping could not resolve file path"
-                }
-                return $null
-              }
-
-              $fileMapping = @{}
-              $fileMapping[[string]$resolvedFilePath] = $Spec.mapping
-              return (Convert-ToPythonLiteral $fileMapping)
-            }
-
-            throw "Unsupported value specification kind: $kind"
-          }
-
-          function Format-ValueForLog {
-            param([object]$Value)
-
-            if ($null -eq $Value) {
-              return "null"
-            }
-
-            if ($Value -is [string]) {
-              return [string]$Value
-            }
-
-            if ($Value -is [System.Collections.IEnumerable]) {
-              return (ConvertTo-Json -InputObject $Value -Depth 10 -Compress)
-            }
-
-            return [string]$Value
-          }
-
-          function Convert-ExtractedJson {
-            param(
-              [string]$SourcePath,
-              [string]$DestinationPath,
-              [string]$ToolName,
-              [string[]]$ToolsToProcess
-            )
-
-            function Update-NodeInputsByIdentifier {
-              param(
-                [hashtable]$JsonObject,
-                [string]$Identifier,
-                [string]$InputName,
-                [object]$InputValue
-              )
-
-              if (-not $JsonObject.ContainsKey("process_params") -or -not $JsonObject.process_params.ContainsKey("nodes")) {
-                return $false
-              }
-
-              $updated = $false
-              foreach ($node in $JsonObject.process_params.nodes) {
-                if ($node.identifier -ne $Identifier) {
-                  continue
-                }
-
-                if ($node.inputs.ContainsKey($InputName)) {
-
-                  # Preserve array-ness: only wrap values if the existing JSON value is
-                  # actually an array. Dictionaries (JSON objects) should remain objects.
-                  $existingVal = $node.inputs[$InputName].value
-
-                  $existingIsArray = $existingVal -is [System.Array]
-                  $inputIsArray    = $InputValue -is [System.Array]
-
-                  if ($existingIsArray -and -not $inputIsArray) {
-                    $InputValue = @($InputValue)
-                  }
-                  elseif (-not $existingIsArray -and $inputIsArray -and $InputValue.Count -eq 1) {
-                    $InputValue = $InputValue[0]
-                  }
-
-                  $node.inputs[$InputName].value = $InputValue
-                  $updated = $true
-                }
-              }
-
-              return $updated
-            }
-
-            $json = Get-Content -Path $SourcePath -Raw | ConvertFrom-Json -AsHashtable
-            if (-not $json.ContainsKey("metadata")) {
-              $json.metadata = @{}
-            }
-
-            # Use the JSON file basename as the stable identifier for step-by-step processing.
-            $shouldTransform = $false
-            if ($ToolsToProcess.Count -gt 0) {
-              $shouldTransform = $ToolsToProcess -contains $ToolName
-            }
-
-            if (-not $shouldTransform) {
-              return $false
-            }
-
-            $toolDefinition = @{}
-            if ($toolTransformations.ContainsKey($ToolName)) {
-              $toolDefinition = $toolTransformations[$ToolName]
-            }
-
-            $json.metadata.validationSource = "installed-package"
-            $json.metadata.validationTarget = "validation-workspaces"
-            $json.metadata.toolName = if ($toolDefinition.ContainsKey("targetToolName")) { [string]$toolDefinition.targetToolName } else { $ToolName }
-            if ($toolDefinition.ContainsKey("processingMode") -and -not [string]::IsNullOrWhiteSpace([string]$toolDefinition.processingMode)) {
-              $json.metadata.processingMode = [string]$toolDefinition.processingMode
-            }
-            elseif ($json.metadata.ContainsKey("processingMode")) {
-              $json.metadata.Remove("processingMode")
-            }
-
-            if ($toolDefinition.ContainsKey("updates")) {
-              foreach ($update in $toolDefinition.updates) {
-                $identifier = [string]$update.identifier
-                $inputName = [string]$update.inputName
-                $required = $true
-                if ($update.ContainsKey("required")) {
-                  $required = [bool]$update.required
-                }
-
-                if ([string]::IsNullOrWhiteSpace($identifier)) {
-                  throw "Invalid updates entry in ${ToolName}: missing identifier"
-                }
-                if ([string]::IsNullOrWhiteSpace($inputName)) {
-                  throw "Invalid updates entry in ${ToolName}: missing inputName"
-                }
-
-                if (-not $update.ContainsKey("value")) {
-                  throw "Invalid updates entry in ${ToolName}: missing value specification"
-                }
-
-                $resolvedInputValue = Resolve-ConfiguredValue -Spec $update.value -WorkspaceDir $workspaceDir
-                Write-Host "$ToolName update '$identifier.$inputName': $(Format-ValueForLog -Value $resolvedInputValue)"
-
-                $didUpdate = Update-NodeInputsByIdentifier -JsonObject $json -Identifier $identifier -InputName $inputName -InputValue $resolvedInputValue
-                if (-not $didUpdate -and $required) {
-                  throw "Unable to update node '$identifier' input '$inputName' in $SourcePath"
-                }
-              }
-            }
-
-            $destinationDir = Split-Path -Path $DestinationPath -Parent
-            New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
-
-            $json | ConvertTo-Json -Depth 20 | Set-Content -Path $DestinationPath -Encoding UTF8
-            return $true
-          }
-
-          $sourceRoot = (Resolve-Path $sourceDir).Path
-          Get-ChildItem -Path $sourceDir -Recurse -File -Filter "*.json" | ForEach-Object {
-            $relativePath = $_.FullName.Substring($sourceRoot.Length).TrimStart('\', '/')
-            $jsonFileName = [System.IO.Path]::GetFileNameWithoutExtension($_.Name)
-            if ($jsonFileName -eq "CEAMSTools") {
-              Write-Host "Catalog file kept for logging: $relativePath"
-              return
-            }
-
-            $shouldTransform = Convert-ExtractedJson -SourcePath $_.FullName -DestinationPath (Join-Path $workspaceDir $relativePath) -ToolName $jsonFileName -ToolsToProcess $toolsToProcess
-
-            if ($shouldTransform) {
-              Write-Host "Adapted: $relativePath"
-            } else {
-              Write-Host "Skipped: $relativePath"
-            }
-          }
-
-          Write-Host "Generated adaptive workspace JSON files:"
-          Get-ChildItem -Path $workspaceDir -Recurse -File -Filter "*.json" |
-            ForEach-Object { $_.FullName.Substring((Resolve-Path $workspaceDir).Path.Length).TrimStart('\', '/') } |
-            Sort-Object |
-            ForEach-Object { Write-Host " - $_" }
 
       - name: Adapt JSON paths for cross-platform validation
         shell: pwsh
@@ -973,655 +449,154 @@ jobs:
           }
           Write-Host "JSON paths successfully adapted."
 
-      - name: Run adapted headless scenarios and print failure logs
+      - name: Run adapted headless scenarios and validate each tool immediately
         shell: pwsh
         run: |
-          function Get-ToolVersionFromJson {
-            param([string]$ScenarioPath)
+          New-Item -ItemType Directory -Path "target/validation-logs" -Force | Out-Null
 
-            if (-not (Test-Path $ScenarioPath)) {
-              return "unknown"
-            }
-
-            try {
-              $scenarioJson = Get-Content -Path $ScenarioPath -Raw | ConvertFrom-Json
-              if ($null -ne $scenarioJson.tool_params -and -not [string]::IsNullOrWhiteSpace([string]$scenarioJson.tool_params.tool_version)) {
-                return [string]$scenarioJson.tool_params.tool_version
-              }
-            }
-            catch {
-              Write-Host "::warning::Unable to parse tool_version from $ScenarioPath"
-            }
-
-            return "unknown"
-          }
-
-          function Get-NormalizedLines {
-            param([string]$Path)
-            $raw = Get-Content -Path $Path -Raw
-            $normalized = $raw -replace "`r`n", "`n"
-            return $normalized -split "`n"
-          }
-
-          function Find-FirstFileByName {
-            param(
-              [string[]]$Roots,
-              [string]$FileName
-            )
-
-            foreach ($root in $Roots) {
-              if (-not (Test-Path $root)) {
-                continue
-              }
-
-              $candidate = Get-ChildItem -Path $root -Recurse -File -Filter $FileName -ErrorAction SilentlyContinue |
-                Sort-Object FullName |
-                Select-Object -First 1
-
-              if ($null -ne $candidate) {
-                return $candidate.FullName
-              }
-            }
-
-            return $null
+          $snoozExe = "$env:SNOOZ_INSTALLED_EXE"
+          if ([string]::IsNullOrWhiteSpace($snoozExe) -or -not (Test-Path $snoozExe)) {
+            throw "Installed executable path is missing or invalid: '$snoozExe'"
           }
 
           $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
-          $toolsToProcess = @()
+          $tools = @()
           if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
-            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+            $tools = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
           }
 
-          if ($toolsToProcess.Count -eq 0) {
-            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
-            if (-not (Test-Path $toolTransformationsPath)) {
-              throw "Tool adaptations config not found: $toolTransformationsPath"
-            }
-
-            $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
-            $toolsToProcess = @(
-              $toolTransformations.GetEnumerator() |
-                Where-Object {
-                  $_.Value -is [hashtable] -and
-                  $_.Value.ContainsKey("updates") -and
-                  $null -ne $_.Value.updates -and
-                  $_.Value.updates.Count -gt 0
-                } |
+          if ($tools.Count -eq 0) {
+            $adaptationsPath = "ci/validation_tools/tool_json_adaptations.json"
+            $adaptations = Get-Content -Path $adaptationsPath -Raw | ConvertFrom-Json -AsHashtable
+            $tools = @(
+              $adaptations.GetEnumerator() |
+                Where-Object { $_.Value -is [hashtable] -and $_.Value.ContainsKey("updates") -and $_.Value.updates.Count -gt 0 } |
                 ForEach-Object { [string]$_.Key } |
                 Sort-Object
             )
-
-            if ($toolsToProcess.Count -eq 0) {
-              throw "No tool definitions with updates found in tool_json_adaptations.json"
-            }
-
-            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json: $($toolsToProcess -join ', ')"
           }
 
-          if ([string]::IsNullOrWhiteSpace("$env:SNOOZ_INSTALLED_EXE") -or -not (Test-Path "$env:SNOOZ_INSTALLED_EXE")) {
-            throw "Installed executable path is missing or invalid: '$env:SNOOZ_INSTALLED_EXE'"
+          if ($tools.Count -eq 0) {
+            throw "No tools resolved to run."
           }
 
-          $workspaceRoot = "validation-workspaces"
-          if (-not (Test-Path $workspaceRoot)) {
-            throw "Validation workspace directory not found: $workspaceRoot"
-          }
+          Write-Host "Running scenarios for tools: $($tools -join ', ')"
+          Write-Host ""
 
-          $scenariosToRun = @()
-          foreach ($toolName in $toolsToProcess) {
-            $scenarioPath = Get-ChildItem -Path $workspaceRoot -Recurse -File -Filter "$toolName.json" -ErrorAction SilentlyContinue |
-              Sort-Object FullName |
-              Select-Object -First 1
-            if ($null -eq $scenarioPath) {
-              throw "Could not find adapted $toolName.json under $workspaceRoot"
-            }
+          $runStatusTsv = "target/validation-logs/run-status.tsv"
+          Set-Content -Path $runStatusTsv -Value $null
 
-            $scenariosToRun += [PSCustomObject]@{
-              ToolName = $toolName
-              ScenarioPath = $scenarioPath.FullName
-            }
-          }
+          # Annotation files accumulate across tool runs, so each tool must be
+          # compared against its gold standard right after it runs, before the
+          # next tool appends more annotations to the same file.
+          Remove-Item -Path "tool-run-summary.tsv" -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "validation-outputs" -Recurse -Force -ErrorAction SilentlyContinue
+          $overallExit = 0
 
-          $logDir = Join-Path "target" "validation-logs"
-          New-Item -ItemType Directory -Path $logDir -Force | Out-Null
-          $logDir = (Resolve-Path $logDir).Path
-          $toolRunSummary = @()
-          $failedScenarios = @()
-          $succeededCount = 0
-          $goldTag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
-          $toolValidationConfig = @{}
-          $toolValidationConfigPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_validations.json"
-          if (Test-Path $toolValidationConfigPath) {
-            $toolValidationConfig = Get-Content -Path $toolValidationConfigPath -Raw | ConvertFrom-Json -AsHashtable
-          }
-
-          foreach ($scenarioEntry in $scenariosToRun) {
-            $toolName = $scenarioEntry.ToolName
-            $scenarioPath = $scenarioEntry.ScenarioPath
-            $toolVersion = Get-ToolVersionFromJson -ScenarioPath $scenarioPath
-            $toolStatus = "fail"
-            $comparisonStatus = "not-configured"
-            $validatedFilesForTool = @()
-
-            Write-Host "Using adapted scenario JSON for ${toolName}: $scenarioPath"
-            # (no pre-created reports folder — outputs will be written in flat layout)
-
-            $learnNsrr01Tsv = Get-ChildItem -Path "private-dataset" -Recurse -File -Filter "learn-nsrr01.tsv" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($null -ne $learnNsrr01Tsv) {
-              Write-Host "Before ${toolName}: learn-nsrr01.tsv size = $($learnNsrr01Tsv.Length) bytes"
-            } else {
-              Write-Host "Before ${toolName}: learn-nsrr01.tsv not found under private-dataset"
-            }
-
-            Write-Host "Launching headless scenario: $env:SNOOZ_INSTALLED_EXE --f $scenarioPath"
-
-            $executionLogPath = Join-Path $logDir ("{0}-headless-exec.log" -f $toolName.ToLowerInvariant())
-            Set-Content -Path $executionLogPath -Value $null
-
-            & "$env:SNOOZ_INSTALLED_EXE" --f "$scenarioPath" 2>&1 | Tee-Object -FilePath $executionLogPath
-            $appStatus = $LASTEXITCODE
-
-            $learnNsrr01Tsv = Get-ChildItem -Path "private-dataset" -Recurse -File -Filter "learn-nsrr01.tsv" -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($null -ne $learnNsrr01Tsv) {
-              Write-Host "After ${toolName}: learn-nsrr01.tsv size = $($learnNsrr01Tsv.Length) bytes"
-            } else {
-              Write-Host "After ${toolName}: learn-nsrr01.tsv not found under private-dataset"
-            }
-
-            # Diagnostic: list TSVs under validation-workspaces (only if single tool for readability)
-            if ($toolsToProcess.Count -eq 1) {
-              Write-Host "Diagnostic: TSV files under validation-workspaces (top 50)"
-              if (Test-Path "validation-workspaces") {
-                Get-ChildItem -Path validation-workspaces -Recurse -File -Filter "*.tsv" |
-                  Sort-Object FullName |
-                  Select-Object -First 50 -ExpandProperty FullName | ForEach-Object { Write-Host " - $_" }
-              } else {
-                Write-Host " - validation-workspaces directory not present"
-              }
-            }
-            if ($null -eq $appStatus) {
-              $appStatus = 0
-            }
-
-            if ($appStatus -ne 0) {
-              $comparisonStatus = "fail"
-              $scenarioDir = Split-Path $scenarioPath -Parent
-              $snoozProcessLog = Get-ChildItem -Path $scenarioDir -Filter "*.log" -File -ErrorAction SilentlyContinue |
-                Sort-Object LastWriteTime -Descending |
-                Select-Object -First 1
-              if ($null -ne $snoozProcessLog) {
-                Write-Host "Detected Snooz process log: $($snoozProcessLog.FullName)"
-                Write-Host "--- Snooz process log (last 200 lines) ---"
-                Get-Content -Path $snoozProcessLog.FullName -Tail 200 | ForEach-Object { Write-Host $_ }
-              }
-              else {
-                Write-Host "::warning::No Snooz process log found next to adapted scenario JSON (pattern: $scenarioDir/*.log)"
-              }
-
-              Write-Host "Headless execution log file: $executionLogPath"
-              Write-Host "--- Headless execution log (last 200 lines) ---"
-              Get-Content -Path $executionLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
-
-              $failedScenarios += [PSCustomObject]@{
-                ToolName = $toolName
-                Status = $appStatus
-                ExecutionLog = $executionLogPath
-              }
-              $toolRunSummary += [PSCustomObject]@{
-                tool_name = $toolName
-                tool_version = $toolVersion
-                json_name = [System.IO.Path]::GetFileName($scenarioPath)
-                run_status = $toolStatus
-                comparison_status = $comparisonStatus
-                validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
-              }
-              Write-Host "::error::Headless execution failed for ${toolName} with status $appStatus. Continuing to next scenario."
+          foreach ($toolName in $tools) {
+            $scenario = "validation-workspaces/$toolName.json"
+            if (-not (Test-Path $scenario)) {
+              Write-Host "Warning: Scenario not found: $scenario"
               continue
             }
 
-            # Even when the executable returned exit code 0, inspect logs for internal errors.
-            $scenarioDir = Split-Path $scenarioPath -Parent
-            $snoozProcessLog = Get-ChildItem -Path $scenarioDir -Filter "*.log" -File -ErrorAction SilentlyContinue |
+            Write-Host "Running scenario: $toolName"
+            $execLog = "target/validation-logs/$toolName-exec.log"
+
+            & "$snoozExe" --f "$scenario" 2>&1 | Tee-Object -FilePath $execLog
+            $appStatus = $LASTEXITCODE
+
+            $scenarioDir = Split-Path $scenario -Parent
+            $processLog = Get-ChildItem -Path $scenarioDir -Filter "*.log" -File -ErrorAction SilentlyContinue |
               Sort-Object LastWriteTime -Descending |
               Select-Object -First 1
-            if ($null -ne $snoozProcessLog) {
-              $processLogPath = $snoozProcessLog.FullName
-            } else {
-              $processLogPath = $null
-            }
 
-            $errorPatterns = @('process Interrupted','Traceback','Exception','AttributeError','Error:','Unhandled exception')
-            $successPattern = 'process Total process time'
+            $errorPatterns = @('process Interrupted', 'Traceback', 'Exception', 'AttributeError', 'Error:', 'Unhandled exception')
             $detectedError = $false
-            $detectedLines = @()
+            $detectedPattern = $null
 
-            if ($processLogPath) {
-              $procLogText = Get-Content -Raw -Path $processLogPath -ErrorAction SilentlyContinue
-              foreach ($pat in $errorPatterns) {
-                if ($procLogText -match $pat) {
+            if ($null -ne $processLog) {
+              $processLogText = Get-Content -Raw -Path $processLog.FullName -ErrorAction SilentlyContinue
+              foreach ($pattern in $errorPatterns) {
+                if ($processLogText -match $pattern) {
                   $detectedError = $true
-                  $detectedLines += "ProcessLog: matched '$pat'"
+                  $detectedPattern = $pattern
+                  break
                 }
               }
             }
 
-            $execLogText = Get-Content -Raw -Path $executionLogPath -ErrorAction SilentlyContinue
-            foreach ($pat in $errorPatterns) {
-              if ($execLogText -match $pat) {
-                $detectedError = $true
-                $detectedLines += "ExecutionLog: matched '$pat'"
+            if (-not $detectedError) {
+              $execLogText = Get-Content -Raw -Path $execLog -ErrorAction SilentlyContinue
+              foreach ($pattern in $errorPatterns) {
+                if ($execLogText -match $pattern) {
+                  $detectedError = $true
+                  $detectedPattern = $pattern
+                  break
+                }
               }
             }
 
             if ($detectedError) {
-              $comparisonStatus = 'fail'
-              Write-Host "::error::Detected runtime error patterns for ${toolName}: $($detectedLines -join '; ')"
-              if ($processLogPath) {
+              Write-Host "::error::Detected runtime error for ${toolName}: matched '$detectedPattern'"
+              if ($null -ne $processLog) {
                 Write-Host "--- Snooz process log (last 200 lines) ---"
-                Get-Content -Path $processLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
+                Get-Content -Path $processLog.FullName -Tail 200 | ForEach-Object { Write-Host $_ }
               }
               Write-Host "--- Headless execution log (last 200 lines) ---"
-              Get-Content -Path $executionLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
-
-              $failedScenarios += [PSCustomObject]@{
-                ToolName = $toolName
-                Status = 'logged_error'
-                ExecutionLog = $executionLogPath
-              }
-              $toolRunSummary += [PSCustomObject]@{
-                tool_name = $toolName
-                tool_version = $toolVersion
-                json_name = [System.IO.Path]::GetFileName($scenarioPath)
-                run_status = $toolStatus
-                comparison_status = $comparisonStatus
-                validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
-              }
-              Write-Host "Marking ${toolName} as failed due to logged errors. Continuing to next scenario."
-              continue
+              Get-Content -Path $execLog -Tail 200 | ForEach-Object { Write-Host $_ }
+              Write-Host "::error::Headless execution failed for $toolName with runtime errors. Continuing to next scenario."
+              Add-Content -Path $runStatusTsv -Value "$toolName`tfail"
+              $toolStatus = "fail"
             }
-
-            # Require explicit success marker in logs to consider run successful.
-            $hasSuccess = $false
-            if ($processLogPath) {
-              if ($procLogText -match [regex]::Escape($successPattern)) { $hasSuccess = $true }
-            }
-            if (-not $hasSuccess) {
-              if ($execLogText -match [regex]::Escape($successPattern)) { $hasSuccess = $true }
-            }
-
-            if (-not $hasSuccess) {
-              $comparisonStatus = 'fail'
-              Write-Host "::error::No success marker ('$successPattern') found in logs for ${toolName}. Treating as failure."
-              if ($processLogPath) {
+            elseif ($appStatus -ne 0) {
+              Write-Host "::error::Headless execution failed for $toolName with exit code $appStatus"
+              if ($null -ne $processLog) {
                 Write-Host "--- Snooz process log (last 200 lines) ---"
-                Get-Content -Path $processLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
+                Get-Content -Path $processLog.FullName -Tail 200 | ForEach-Object { Write-Host $_ }
               }
               Write-Host "--- Headless execution log (last 200 lines) ---"
-              Get-Content -Path $executionLogPath -Tail 200 | ForEach-Object { Write-Host $_ }
-
-              $failedScenarios += [PSCustomObject]@{
-                ToolName = $toolName
-                Status = 'missing_success_marker'
-                ExecutionLog = $executionLogPath
-              }
-              $toolRunSummary += [PSCustomObject]@{
-                tool_name = $toolName
-                tool_version = $toolVersion
-                json_name = [System.IO.Path]::GetFileName($scenarioPath)
-                run_status = $toolStatus
-                comparison_status = $comparisonStatus
-                validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
-              }
-              Write-Host "Marking ${toolName} as failed due to missing success marker. Continuing to next scenario."
-              continue
-            }
-
-            # Config-driven validation of output artifacts per tool.
-            if ($toolValidationConfig.ContainsKey($toolName)) {
-              if ([string]::IsNullOrWhiteSpace($goldTag)) {
-                $comparisonStatus = "skipped-no-gold-standard-tag"
-                Write-Host "No gold_standard_tag provided; skipping $toolName output comparison."
-              }
-              else {
-                $compareScript = Join-Path (Resolve-Path ".").Path "ci/validation_tools/compare_outputs.py"
-                if (-not (Test-Path $compareScript)) {
-                  $comparisonStatus = "fail"
-                  $failedScenarios += [PSCustomObject]@{
-                    ToolName = $toolName
-                    Status = "validation_failed"
-                    ExecutionLog = $executionLogPath
-                  }
-                  $toolRunSummary += [PSCustomObject]@{
-                    tool_name = $toolName
-                    tool_version = $toolVersion
-                    json_name = [System.IO.Path]::GetFileName($scenarioPath)
-                    run_status = $toolStatus
-                    comparison_status = $comparisonStatus
-                    validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
-                  }
-                  Write-Host "::error::Comparison script not found: $compareScript"
-                  continue
-                }
-
-                $toolDefinition = $toolValidationConfig[$toolName]
-                if (-not $toolDefinition.ContainsKey("comparisons") -or $toolDefinition.comparisons.Count -eq 0) {
-                  $comparisonStatus = "skipped-no-comparisons-configured"
-                  Write-Host "::warning::No comparisons configured for $toolName in tool_validations.json"
-                }
-                else {
-                  $comparisonStatus = "running"
-                  $toolValidationFailed = $false
-                  foreach ($comparison in $toolDefinition.comparisons) {
-                    $fileName = if ($comparison.ContainsKey("fileName") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.fileName)) { [string]$comparison.fileName } else { "" }
-                    $generatedFileName = if ($comparison.ContainsKey("generatedFileName") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.generatedFileName)) { [string]$comparison.generatedFileName } else { $fileName }
-                    $goldFileName = if ($comparison.ContainsKey("goldFileName") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.goldFileName)) { [string]$comparison.goldFileName } else { $fileName }
-                    $fileType = if ($comparison.ContainsKey("fileType") -and -not [string]::IsNullOrWhiteSpace([string]$comparison.fileType)) { [string]$comparison.fileType } else { "generic" }
-                    $generatedRoots = @("validation-workspaces", "private-dataset")
-                    if ($comparison.ContainsKey("generatedSearchRoots") -and $comparison.generatedSearchRoots.Count -gt 0) {
-                      $generatedRoots = @($comparison.generatedSearchRoots | ForEach-Object { [string]$_ })
-                    }
-
-                    if ([string]::IsNullOrWhiteSpace($generatedFileName) -or [string]::IsNullOrWhiteSpace($goldFileName)) {
-                      Write-Host "::error::$toolName invalid comparison entry. Define fileName (or both generatedFileName and goldFileName)."
-                      $toolValidationFailed = $true
-                      break
-                    }
-
-                    $generatedFile = Find-FirstFileByName -Roots $generatedRoots -FileName $generatedFileName
-                    if ([string]::IsNullOrWhiteSpace($generatedFile)) {
-                      Write-Host "::error::$toolName generated file not found: $generatedFileName"
-                      Write-Host "Searched roots for ${toolName}:"
-                      foreach ($root in $generatedRoots) {
-                        Write-Host " - $root"
-                        if (Test-Path $root) {
-                          $tsvCandidates = Get-ChildItem -Path $root -Recurse -File -Filter "*.tsv" -ErrorAction SilentlyContinue |
-                            Sort-Object FullName |
-                            Select-Object -First 20
-                          if ($tsvCandidates.Count -gt 0) {
-                            Write-Host "   TSV candidates under ${root}:"
-                            foreach ($candidate in $tsvCandidates) {
-                              Write-Host "   - $($candidate.FullName)"
-                            }
-                          }
-                          else {
-                            Write-Host "   No TSV file found under $root"
-                          }
-                        }
-                        else {
-                          Write-Host "   Root does not exist"
-                        }
-                      }
-                      $toolValidationFailed = $true
-                      break
-                    }
-
-                    # Resolve generated file to a runner-native absolute path and verify it exists
-                    try {
-                      $generatedFileResolved = (Resolve-Path -Path $generatedFile -ErrorAction Stop).Path
-                    } catch {
-                      $generatedFileResolved = $generatedFile
-                    }
-
-                    if (-not (Test-Path $generatedFileResolved)) {
-                      Write-Host "::error::$toolName generated file path not accessible to runner: $generatedFileResolved"
-                      $toolValidationFailed = $true
-                      break
-                    }
-
-                    # Search for gold standard in tool-specific folder only
-                    $toolSpecificGoldDir = Join-Path "gold-standards" "extracted" $toolName
-                    
-                    if (-not (Test-Path $toolSpecificGoldDir)) {
-                      Write-Host "::error::$toolName gold-standard directory not found: $toolSpecificGoldDir"
-                      $toolValidationFailed = $true
-                      break
-                    }
-                    
-                    $goldReference = Get-ChildItem -Path $toolSpecificGoldDir -Recurse -File -Filter $goldFileName -ErrorAction SilentlyContinue |
-                      Sort-Object FullName |
-                      Select-Object -First 1
-                    
-                    if ($null -eq $goldReference) {
-                      Write-Host "::error::$toolName gold-standard file not found in $toolSpecificGoldDir`: $goldFileName"
-                      $toolValidationFailed = $true
-                      break
-                    }
-
-                    Write-Host "Comparing $toolName output file: $generatedFileName"
-                    Write-Host "Resolved generated path: $generatedFileResolved"
-                    $compareArgs = @(
-                      "$compareScript",
-                      "--tool-name", "$toolName",
-                      "--generated-file", "$generatedFileResolved",
-                      "--reference-file", "$($goldReference.FullName)",
-                      "--file-type", "$fileType",
-                      "--max-diff-lines", "50"
-                    )
-                    if ($comparison.ContainsKey("precision") -and $null -ne $comparison.precision -and -not [string]::IsNullOrWhiteSpace([string]$comparison.precision)) {
-                      $compareArgs += @("--precision", "$(($comparison.precision).ToString())")
-                    }
-
-                    # Capture output from comparison script
-                    $compareOutput = & python @compareArgs 2>&1
-                    $compareStatus = $LASTEXITCODE
-                    
-                    # Print comparison output
-                    Write-Host $compareOutput
-                    
-                    if ($compareStatus -eq 0) {
-                      $comparisonStatus = "pass"
-                      Write-Host "✓ Comparison PASSED for $toolName : $generatedFileName"
-                    }
-                    else {
-                      $comparisonStatus = "fail"
-                      Write-Host "::error::✗ Comparison FAILED for $toolName : $generatedFileName"
-                      Write-Host "::error::Generated file: $generatedFile"
-                      Write-Host "::error::Gold standard: $($goldReference.FullName)"
-                      $toolValidationFailed = $true
-                      break
-                    }
-
-                    if ($generatedFileName -ieq $goldFileName) {
-                      $validatedFilesForTool += $generatedFileName
-                    }
-                    else {
-                      $validatedFilesForTool += ("{0} (ref: {1})" -f $generatedFileName, $goldFileName)
-                    }
-                  }
-
-                  if ($toolValidationFailed) {
-                    $failedScenarios += [PSCustomObject]@{
-                      ToolName = $toolName
-                      Status = "validation_failed"
-                      ExecutionLog = $executionLogPath
-                    }
-                    $toolRunSummary += [PSCustomObject]@{
-                      tool_name = $toolName
-                      tool_version = $toolVersion
-                      run_status = $toolStatus
-                      comparison_status = $comparisonStatus
-                      validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
-                    }
-                    continue
-                  }
-
-                  $comparisonStatus = "pass"
-                  Write-Host "$toolName outputs match configured gold standards."
-                }
-              }
+              Get-Content -Path $execLog -Tail 200 | ForEach-Object { Write-Host $_ }
+              Add-Content -Path $runStatusTsv -Value "$toolName`tfail"
+              $toolStatus = "fail"
             }
             else {
-              $comparisonStatus = "not-configured"
+              Write-Host "Headless execution succeeded for $toolName."
+              Add-Content -Path $runStatusTsv -Value "$toolName`tpass"
+              $toolStatus = "pass"
             }
 
-            Write-Host "Headless execution succeeded for ${toolName}."
+            # Validate this tool's outputs now, while its annotation file is still
+            # in the state produced by this run (before the next tool modifies it).
+            $singleStatusTsv = "target/validation-logs/$toolName-status.tsv"
+            $singleStatusJson = "target/validation-logs/$toolName-status.json"
+            Set-Content -Path $singleStatusTsv -Value "$toolName`t$toolStatus"
+
+            python ci/validation_tools/build_run_status_json.py `
+              --input "$singleStatusTsv" `
+              --output "$singleStatusJson" `
+              --exec-log-dir "target/validation-logs"
+
+            python ci/validation_tools/compare_and_summarize.py `
+              --run-status-file "$singleStatusJson" `
+              --tool-validations-file ci/validation_tools/tool_validations.json `
+              --gold-standards-dir gold-standards/extracted `
+              --gold-standard-tag "${{ inputs.gold_standard_tag }}" `
+              --compare-script ci/validation_tools/compare_outputs.py `
+              --workspace-dir validation-workspaces `
+              --output-summary-tsv tool-run-summary.tsv `
+              --output-dir validation-outputs `
+              --append
+            $compareStatus = $LASTEXITCODE
+            if ($compareStatus -ne 0) {
+              $overallExit = 1
+            }
+
             Write-Host "=========================================="
             Write-Host ""
-            $toolStatus = "pass"
-            $toolRunSummary += [PSCustomObject]@{
-              tool_name = $toolName
-              tool_version = $toolVersion
-              json_name = [System.IO.Path]::GetFileName($scenarioPath)
-              run_status = $toolStatus
-              comparison_status = $comparisonStatus
-              validated_files = if ($validatedFilesForTool.Count -gt 0) { $validatedFilesForTool -join '; ' } else { 'none' }
-            }
-            $succeededCount++
           }
 
-          $runSummaryTsvPath = Join-Path $logDir "tool-run-summary.tsv"
-          $toolRunSummary |
-            Select-Object tool_name, tool_version, json_name,
-              @{Name='run_status';Expression={ if ($_.run_status -eq 'pass') { 'pass' } else { 'fail' }}},
-              @{Name='comparison_status';Expression={ if ($_.comparison_status -eq 'pass') { 'pass' } else { $_.comparison_status }}},
-              validated_files |
-            Export-Csv -Path $runSummaryTsvPath -NoTypeInformation -Encoding UTF8 -Delimiter "`t"
-          Write-Host "Tool run summary TSV written to: $runSummaryTsvPath"
-
-          # Print comparison results summary
-          Write-Host ""
-          Write-Host "=========================================="
-          Write-Host "COMPARISON RESULTS SUMMARY"
-          Write-Host "=========================================="
-          foreach ($tool in ($toolRunSummary | Select-Object -Unique tool_name)) {
-            $toolEntries = $toolRunSummary | Where-Object { $_.tool_name -eq $tool.tool_name }
-            foreach ($entry in $toolEntries) {
-              if ($null -eq $entry.comparison_status -or $entry.comparison_status -eq "skipped-no-gold-standard-tag") {
-                Write-Host "  ⊘ $($entry.tool_name): SKIPPED (no gold standard tag)"
-              }
-              elseif ($entry.comparison_status -eq "skipped-no-comparisons-configured") {
-                Write-Host "  ⊘ $($entry.tool_name): SKIPPED (no comparisons configured)"
-              }
-              elseif ($entry.comparison_status -eq "pass") {
-                Write-Host "  ✓ $($entry.tool_name): PASS"
-              }
-              else {
-                Write-Host "  ✗ $($entry.tool_name): FAIL ($($entry.comparison_status))"
-              }
-            }
-          }
-          Write-Host "=========================================="
-          Write-Host ""
-
-          Write-Host "Headless execution summary: success=$succeededCount failed=$($failedScenarios.Count) total=$($scenariosToRun.Count)"
-          if ($failedScenarios.Count -gt 0) {
-            Write-Host "Failed scenarios:"
-            foreach ($failure in $failedScenarios) {
-              Write-Host " - $($failure.ToolName): status=$($failure.Status), log=$($failure.ExecutionLog)"
-            }
-            throw "$($failedScenarios.Count) headless scenario(s) failed. See summary above."
-          }
-
-      - name: Collect evaluated files by tool
-        shell: pwsh
-        if: always()
-        run: |
-          $validationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_validations.json"
-          if (-not (Test-Path $validationsPath)) {
-            Write-Host "tool_validations.json not found; skipping file collection."
-            exit 0
-          }
-
-          $validations = Get-Content -Path $validationsPath -Raw | ConvertFrom-Json -AsHashtable
-
-          $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
-          $toolsToProcess = @()
-          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
-            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-          }
-
-          if ($toolsToProcess.Count -eq 0) {
-            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
-            if (Test-Path $toolTransformationsPath) {
-              $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
-              $toolsToProcess = @(
-                $toolTransformations.GetEnumerator() |
-                  Where-Object {
-                    $_.Value -is [hashtable] -and
-                    $_.Value.ContainsKey("updates") -and
-                    $null -ne $_.Value.updates -and
-                    $_.Value.updates.Count -gt 0
-                  } |
-                  ForEach-Object { [string]$_.Key } |
-                  Sort-Object
-              )
-            }
-          }
-
-          if ($toolsToProcess.Count -eq 0) {
-            Write-Host "No tools to process; skipping file collection."
-            exit 0
-          }
-
-          $outputBaseDir = "validation-outputs"
-          if (Test-Path $outputBaseDir) {
-            Remove-Item -Path $outputBaseDir -Recurse -Force
-          }
-          New-Item -ItemType Directory -Path $outputBaseDir -Force | Out-Null
-
-          foreach ($toolName in $toolsToProcess) {
-            if (-not $validations.ContainsKey($toolName)) {
-              Write-Host "Tool $toolName not found in tool_validations.json; skipping."
-              continue
-            }
-
-            $toolConfig = $validations[$toolName]
-            if (-not $toolConfig.ContainsKey("comparisons") -or $toolConfig.comparisons.Count -eq 0) {
-              Write-Host "Tool $toolName has no comparisons defined; skipping."
-              continue
-            }
-
-            $toolOutputDir = Join-Path $outputBaseDir $toolName
-            New-Item -ItemType Directory -Path $toolOutputDir -Force | Out-Null
-
-            foreach ($comparison in $toolConfig.comparisons) {
-              $fileName = $comparison.fileName
-              $generatedSearchRoots = $comparison.generatedSearchRoots
-              if ($null -eq $generatedSearchRoots -or $generatedSearchRoots.Count -eq 0) {
-                $generatedSearchRoots = @("validation-workspaces", "private-dataset")
-              }
-
-              # Find generated file in search roots
-              $generatedFile = $null
-              foreach ($root in $generatedSearchRoots) {
-                $found = Get-ChildItem -Path $root -Recurse -File -Filter $fileName -ErrorAction SilentlyContinue |
-                  Sort-Object FullName |
-                  Select-Object -First 1
-                if ($null -ne $found) {
-                  $generatedFile = $found.FullName
-                  break
-                }
-              }
-
-              if ($null -ne $generatedFile) {
-                $destGenFile = Join-Path $toolOutputDir ("generated_" + (Split-Path $generatedFile -Leaf))
-                Copy-Item -Path $generatedFile -Destination $destGenFile -Force
-                Write-Host "Copied generated: $generatedFile -> $destGenFile"
-              } else {
-                Write-Host "::warning::Generated file not found for ${toolName}: $fileName"
-              }
-
-              # Find and copy gold standard reference - search in tool-specific folder only
-              $toolSpecificGoldDir = Join-Path "gold-standards" "extracted" $toolName
-              $goldFile = $null
-              
-              if (Test-Path $toolSpecificGoldDir) {
-                $goldFile = Get-ChildItem -Path $toolSpecificGoldDir -Recurse -File -Filter $fileName -ErrorAction SilentlyContinue |
-                  Sort-Object FullName |
-                  Select-Object -First 1
-              }
-              
-              if ($null -eq $goldFile) {
-                Write-Host "::error::Gold standard file not found for ${toolName}: $fileName in $toolSpecificGoldDir"
-              } else {
-                $destGoldFile = Join-Path $toolOutputDir ("reference_" + (Split-Path $goldFile -Leaf))
-                Copy-Item -Path $goldFile.FullName -Destination $destGoldFile -Force
-                Write-Host "Copied reference: $($goldFile.FullName) -> $destGoldFile"
-              }
-            }
-          }
-
-          Write-Host "Collected evaluated files in: $outputBaseDir"
+          exit $overallExit
 
       - name: Upload adapted JSON and validation logs as artifact
         if: always()
@@ -1633,5 +608,5 @@ jobs:
             validation-workspaces/**/*.json
             validation-workspaces/**/*.log
             target/validation-logs/**/*.log
-            target/validation-logs/tool-run-summary.tsv
+            tool-run-summary.tsv
             validation-outputs/**/*
