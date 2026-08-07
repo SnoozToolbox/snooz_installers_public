@@ -269,35 +269,28 @@ jobs:
             exit 1
           fi
 
-          # Find the main Snooz executable
-          # DEB packages typically install to /opt or /usr
-          # Look for the application directory (NOT the install root)
-          SNOOZ_APP_DIR=$(find "$INSTALL_DIR/opt" "$INSTALL_DIR/usr/local/opt" "$INSTALL_DIR/usr/bin" -maxdepth 2 -type d -iname "*snooz*" 2>/dev/null | grep -v "^\.$" | head -1)
+          # The DEB package installs to /opt/Snooz Toolbox/
+          SNOOZ_APP_DIR="$INSTALL_DIR/opt/Snooz Toolbox"
           
-          if [ -z "$SNOOZ_APP_DIR" ]; then
-            echo "Could not find Snooz application directory in standard locations"
-            echo "Full directory structure under $INSTALL_DIR:"
-            find "$INSTALL_DIR" -maxdepth 4 -type d | head -30
+          if [ ! -d "$SNOOZ_APP_DIR" ]; then
+            echo "Snooz application directory not found at: $SNOOZ_APP_DIR"
+            echo "Available directories under $INSTALL_DIR/opt:"
+            ls -la "$INSTALL_DIR/opt" 2>/dev/null || echo "No opt directory found"
             exit 1
           fi
           
           echo "Found Snooz app directory: $SNOOZ_APP_DIR"
           
-          # Look for the main executable (case-insensitive, matches snooz, Snooz, or Snooz toolbox, etc.)
-          INSTALLED_EXE=$(find "$SNOOZ_APP_DIR" -maxdepth 1 -type f -iname "*snooz*" ! -name "*.*" 2>/dev/null | grep -v "\.so\|\.py\|\.txt" | head -1)
-          
-          if [ -z "$INSTALLED_EXE" ]; then
-            # If not found, look for any executable in the directory
-            echo "Searching for executable in $SNOOZ_APP_DIR:"
+          # The main executable is "Snooz Toolbox"
+          INSTALLED_EXE="$SNOOZ_APP_DIR/Snooz Toolbox"
+          if [ ! -f "$INSTALLED_EXE" ]; then
+            echo "Executable not found at: $INSTALLED_EXE"
+            echo "Contents of $SNOOZ_APP_DIR:"
             ls -lh "$SNOOZ_APP_DIR" | head -20
-            
-            # Try to find any executable file (not a library)
-            INSTALLED_EXE=$(find "$SNOOZ_APP_DIR" -maxdepth 1 -type f -executable ! -name "*.*" 2>/dev/null | head -1)
-            
-            if [ -z "$INSTALLED_EXE" ]; then
-              echo "No executable found in $SNOOZ_APP_DIR"
-              exit 1
-            fi
+            exit 1
+          fi
+          
+          echo "Found executable: $INSTALLED_EXE"
           fi
           
           echo "Using executable: $INSTALLED_EXE"

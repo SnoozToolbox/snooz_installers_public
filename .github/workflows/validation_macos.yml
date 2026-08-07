@@ -280,23 +280,14 @@ jobs:
           APP_NAME=$(basename "$APP_PATH")
           MACOS_DIR="$INSTALL_DIR/$APP_NAME/Contents/MacOS"
           
-          # Look for any executable in the MacOS directory (the executable name may vary)
-          if [ ! -d "$MACOS_DIR" ]; then
-            echo "MacOS directory not found: $MACOS_DIR"
+          # The executable name is the same as the app name (minus .app)
+          EXECUTABLE_NAME="${APP_NAME%.app}"
+          INSTALLED_EXE="$MACOS_DIR/$EXECUTABLE_NAME"
+          
+          if [ ! -f "$INSTALLED_EXE" ]; then
+            echo "Executable not found at expected location: $INSTALLED_EXE"
             exit 1
           fi
-          
-          echo "Searching for executable in: $MACOS_DIR"
-          ls -lh "$MACOS_DIR"
-          
-          # Get the first executable file (usually the main binary)
-          INSTALLED_EXE=$(ls -1 "$MACOS_DIR" | head -1)
-          if [ -z "$INSTALLED_EXE" ]; then
-            echo "No files found in MacOS directory"
-            exit 1
-          fi
-          
-          INSTALLED_EXE="$MACOS_DIR/$INSTALLED_EXE"
           
           if [ ! -x "$INSTALLED_EXE" ]; then
             echo "File is not executable: $INSTALLED_EXE"
