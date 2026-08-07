@@ -259,22 +259,11 @@ jobs:
             unzip -q "$INSTALLER" -d "$INSTALL_DIR"
           elif [[ "$INSTALLER" == *.deb ]]; then
             echo "Extracting DEB package..."
-            # Create temp dir for DEB extraction
-            DEB_TEMP="/tmp/deb_extract"
-            mkdir -p "$DEB_TEMP"
-            ar x "$INSTALLER" -C "$DEB_TEMP"
-            
-            # Extract data archive (can be data.tar.gz or data.tar.xz)
-            if [ -f "$DEB_TEMP/data.tar.gz" ]; then
-              tar -xzf "$DEB_TEMP/data.tar.gz" -C "$INSTALL_DIR"
-            elif [ -f "$DEB_TEMP/data.tar.xz" ]; then
-              tar -xJf "$DEB_TEMP/data.tar.xz" -C "$INSTALL_DIR"
-            else
-              echo "Could not find data archive in DEB package"
-              ls -la "$DEB_TEMP/"
+            dpkg -x "$INSTALLER" "$INSTALL_DIR"
+            if [ $? -ne 0 ]; then
+              echo "Failed to extract DEB package"
               exit 1
             fi
-            rm -rf "$DEB_TEMP"
           else
             echo "Unexpected file type: $INSTALLER"
             exit 1
