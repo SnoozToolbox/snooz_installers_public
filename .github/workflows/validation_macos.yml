@@ -322,25 +322,17 @@ jobs:
         run: |
           mkdir -p validation-workspaces
           
-          # Extract list of actual tools from tool_json_adaptations.json
-          TOOLS=$(python3 -c 'import json,sys; data=json.load(open("ci/validation_tools/tool_json_adaptations.json")); print(" ".join(sorted([k for k,v in data.items() if isinstance(v,dict) and v.get("updates")])))' 2>/dev/null)
+          python3 ci/validation_tools/adapt_scenario_json.py \
+            --source-dir validation-json \
+            --workspace-dir validation-workspaces \
+            --adaptations-file ci/validation_tools/tool_json_adaptations.json \
+            --private-dataset-dir private-dataset \
+            --tools "${{ inputs.tools_to_process }}"
           
-          if [ -z "$TOOLS" ]; then
-            echo "Error: Could not extract tool list from tool_json_adaptations.json"
+          if [ $? -ne 0 ]; then
+            echo "::error::Scenario JSON adaptation failed"
             exit 1
           fi
-          
-          echo "Copying validation workspace files for tools: $TOOLS"
-          for TOOL in $TOOLS; do
-            if [ -f "validation-json/${TOOL}.json" ]; then
-              cp "validation-json/${TOOL}.json" "validation-workspaces/"
-              echo "  ✓ Copied: ${TOOL}.json"
-            else
-              echo "  ✗ Warning: ${TOOL}.json not found in validation-json"
-            fi
-          done
-          
-          echo "Validation workspaces prepared with $(ls validation-workspaces/*.json 2>/dev/null | wc -l) tool(s)"
 
       - name: Adapt JSON paths for cross-platform validation
         shell: bash

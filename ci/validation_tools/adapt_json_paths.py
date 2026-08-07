@@ -74,47 +74,35 @@ def main():
     
     print(f"Adapting JSON files using workspace root: {workspace_root}\n")
     
-    # Directories to scan for JSON files
-    directories_to_scan = [
-        Path(__file__).parent,  # ci/validation_tools/
-        Path(__file__).parent.parent.parent / "validation-workspaces"  # validation-workspaces/ (Linux/macOS)
-    ]
+    # Only scan validation-workspaces directory for actual scenario JSON files
+    # Configuration files in ci/validation_tools/ should NOT be adapted
+    validation_workspace_dir = Path(__file__).parent.parent.parent / "validation-workspaces"
     
-    all_json_files = {}
-    total_files = 0
-    total_replacements = 0
-    
-    for scan_dir in directories_to_scan:
-        if not scan_dir.exists():
-            continue
-        
-        # Find all JSON files (non-recursive for config dir, recursive for validation-workspaces)
-        is_validation_dir = "validation-workspaces" in str(scan_dir)
-        if is_validation_dir:
-            json_files = list(scan_dir.glob('**/*.json'))
-        else:
-            json_files = list(scan_dir.glob('*.json'))
-        
-        if not json_files:
-            continue
-        
-        print(f"\n[{scan_dir.name}]")
-        print(f"Found {len(json_files)} JSON file(s):")
-        
-        for json_file in sorted(json_files):
-            relative_path = json_file.relative_to(scan_dir.parent) if is_validation_dir else json_file.name
-            print(f"  - {relative_path}")
-            
-            changed, replacements = adapt_json_file(str(json_file), workspace_root)
-            if changed:
-                total_replacements += replacements
-            total_files += 1
-    
-    if total_files == 0:
-        print(f"\n[WARNING] No JSON files found in any scan directory")
+    if not validation_workspace_dir.exists():
+        print(f"[WARNING] validation-workspaces directory not found at {validation_workspace_dir}")
+        print("This is expected on Windows where PowerShell handles JSON adaptation separately.")
         return 0
     
-    print(f"\n[OK] Successfully adapted {total_files} file(s) with {total_replacements} total replacement(s)")
+    # Find all JSON files in validation-workspaces (recursive)
+    json_files = sorted(validation_workspace_dir.glob('**/*.json'))
+    
+    if not json_files:
+        print(f"[WARNING] No JSON files found in {validation_workspace_dir}")
+        return 0
+    
+    print(f"[validation-workspaces]")
+    print(f"Found {len(json_files)} JSON scenario file(s):")
+    
+    total_replacements = 0
+    for json_file in json_files:
+        relative_path = json_file.relative_to(validation_workspace_dir.parent)
+        print(f"  - {relative_path}")
+        
+        changed, replacements = adapt_json_file(str(json_file), workspace_root)
+        if changed:
+            total_replacements += replacements
+    
+    print(f"\n[OK] Successfully adapted {len(json_files)} scenario file(s) with {total_replacements} total replacement(s)")
     return 0
 
 
