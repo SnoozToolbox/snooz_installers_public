@@ -249,7 +249,10 @@ jobs:
           hdiutil attach "$INSTALLER"
           
           # Find the mounted volume containing Snooz.app (volume name may vary)
-          MOUNTED_VOLUME=$(find /Volumes -maxdepth 1 -type d | xargs ls -d 2>/dev/null | grep -i snooz | head -1)
+          # Wait a moment for the volume to be fully mounted
+          sleep 2
+          
+          MOUNTED_VOLUME=$(ls -d /Volumes/*nooz* 2>/dev/null | head -1)
           if [ -z "$MOUNTED_VOLUME" ]; then
             echo "No mounted volume containing 'Snooz' found"
             echo "Available volumes:"
@@ -257,25 +260,38 @@ jobs:
             exit 1
           fi
           
-          APP_PATH="$MOUNTED_VOLUME/Snooz.app"
-          echo "Searching for Snooz.app in mounted volume: $MOUNTED_VOLUME"
+          echo "Found mounted volume: $MOUNTED_VOLUME"
           
-          if [ ! -d "$APP_PATH" ]; then
-            echo "Snooz.app not found at $APP_PATH"
+          # Look for Snooz.app in the volume
+          APP_PATH=$(find "$MOUNTED_VOLUME" -maxdepth 1 -name "*.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Snooz.app not found in $MOUNTED_VOLUME"
             echo "Contents of $MOUNTED_VOLUME:"
             ls -la "$MOUNTED_VOLUME"
-            hdiutil detach "$MOUNTED_VOLUME"
+            hdiutil detach "$MOUNTED_VOLUME" 2>/dev/null || true
             exit 1
           fi
 
+          echo "Found app bundle: $APP_PATH"
           cp -r "$APP_PATH" "$INSTALL_DIR/"
-          hdiutil detach "$MOUNTED_VOLUME"
+          hdiutil detach "$MOUNTED_VOLUME" 2>/dev/null || true
 
-          INSTALLED_EXE="$INSTALL_DIR/Snooz.app/Contents/MacOS/Snooz"
+          # Get the app name (it might not be exactly "Snooz.app")
+          APP_NAME=$(basename "$APP_PATH")
+          INSTALLED_EXE="$INSTALL_DIR/$APP_NAME/Contents/MacOS/Snooz"
+          
           if [ ! -f "$INSTALLED_EXE" ]; then
-            echo "Expected installed executable not found"
-            find "$INSTALL_DIR" -type f -name "Snooz" | head -5
-            exit 1
+            echo "Expected executable not found at $INSTALLED_EXE"
+            echo "Contents of $INSTALL_DIR/$APP_NAME/Contents/MacOS/:"
+            ls -la "$INSTALL_DIR/$APP_NAME/Contents/MacOS/" 2>/dev/null || echo "Directory not found"
+            
+            # Look for any executable in the MacOS directory
+            INSTALLED_EXE=$(find "$INSTALL_DIR/$APP_NAME/Contents/MacOS/" -type f -executable 2>/dev/null | head -1)
+            if [ -z "$INSTALLED_EXE" ]; then
+              echo "No executable found in app bundle"
+              exit 1
+            fi
+            echo "Found executable: $INSTALLED_EXE"
           fi
 
           echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
