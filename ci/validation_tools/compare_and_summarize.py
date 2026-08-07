@@ -29,6 +29,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 
 def find_first_file_by_name(roots, file_name):
     for root in roots:
