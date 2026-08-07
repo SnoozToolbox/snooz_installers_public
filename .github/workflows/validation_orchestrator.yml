@@ -10,10 +10,18 @@ on:
         description: Installer release repository (owner/name)
         required: true
         default: SnoozToolbox/snooz-toolbox-ceams
-      installer_tag:
-        description: Installer release tag to validate
+      installer_tag_windows:
+        description: Windows installer release tag to validate
         required: true
         default: v1.0.1-rc2-Windows
+      installer_tag_linux:
+        description: Linux installer release tag to validate
+        required: true
+        default: v1.0.1-rc1-Linux
+      installer_tag_macos:
+        description: macOS installer release tag to validate (leave empty to auto-derive per architecture)
+        required: false
+        default: ""
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -44,7 +52,7 @@ jobs:
     uses: ./.github/workflows/validation_windows.yml
     with:
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag }}
+      installer_tag: ${{ inputs.installer_tag_windows }}
       installer_asset_pattern: "Snooz*.exe"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
@@ -59,7 +67,7 @@ jobs:
     with:
       arch: x64
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag }}
+      installer_tag: ${{ inputs.installer_tag_macos }}
       installer_asset_pattern: "Snooz*.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
@@ -74,7 +82,7 @@ jobs:
     with:
       arch: arm64
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag }}
+      installer_tag: ${{ inputs.installer_tag_macos }}
       installer_asset_pattern: "Snooz*.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
@@ -88,8 +96,9 @@ jobs:
     uses: ./.github/workflows/validation_linux.yml
     with:
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag }}
-      installer_asset_pattern: "Snooz*.tar.gz"
+      installer_tag: ${{ inputs.installer_tag_linux }}
+      installer_asset_pattern: "Snooz*.deb"
+      installer_type: "deb"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
