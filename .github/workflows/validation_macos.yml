@@ -278,21 +278,32 @@ jobs:
 
           # Get the app name (it might not be exactly "Snooz.app")
           APP_NAME=$(basename "$APP_PATH")
-          INSTALLED_EXE="$INSTALL_DIR/$APP_NAME/Contents/MacOS/Snooz"
+          MACOS_DIR="$INSTALL_DIR/$APP_NAME/Contents/MacOS"
           
-          if [ ! -f "$INSTALLED_EXE" ]; then
-            echo "Expected executable not found at $INSTALLED_EXE"
-            echo "Contents of $INSTALL_DIR/$APP_NAME/Contents/MacOS/:"
-            ls -la "$INSTALL_DIR/$APP_NAME/Contents/MacOS/" 2>/dev/null || echo "Directory not found"
-            
-            # Look for any executable in the MacOS directory
-            INSTALLED_EXE=$(find "$INSTALL_DIR/$APP_NAME/Contents/MacOS/" -type f -executable 2>/dev/null | head -1)
-            if [ -z "$INSTALLED_EXE" ]; then
-              echo "No executable found in app bundle"
-              exit 1
-            fi
-            echo "Found executable: $INSTALLED_EXE"
+          # Look for any executable in the MacOS directory (the executable name may vary)
+          if [ ! -d "$MACOS_DIR" ]; then
+            echo "MacOS directory not found: $MACOS_DIR"
+            exit 1
           fi
+          
+          echo "Searching for executable in: $MACOS_DIR"
+          ls -lh "$MACOS_DIR"
+          
+          # Get the first executable file (usually the main binary)
+          INSTALLED_EXE=$(ls -1 "$MACOS_DIR" | head -1)
+          if [ -z "$INSTALLED_EXE" ]; then
+            echo "No files found in MacOS directory"
+            exit 1
+          fi
+          
+          INSTALLED_EXE="$MACOS_DIR/$INSTALLED_EXE"
+          
+          if [ ! -x "$INSTALLED_EXE" ]; then
+            echo "File is not executable: $INSTALLED_EXE"
+            exit 1
+          fi
+          
+          echo "Found executable: $INSTALLED_EXE"
 
           echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
 
