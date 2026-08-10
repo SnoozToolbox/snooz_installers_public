@@ -20,12 +20,12 @@ on:
         default: v1.0.1-rc3
       installer_tag_macos_x64:
         description: macOS x64 installer release tag to validate (leave empty to auto-derive)
-        required: false
-        default: ""
+        required: true
+        default: "v1.0.1-rc3"
       installer_tag_macos_arm64:
         description: macOS arm64 installer release tag to validate (leave empty to auto-derive)
-        required: false
-        default: ""
+        required: true
+        default: "v1.0.1-rc3"
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -111,11 +111,64 @@ jobs:
       gold_standard_tag: ${{ inputs.gold_standard_tag }}
     secrets: inherit
 
-  summary:
+  consolidate_results:
     needs: [validate_windows, validate_macos_x64, validate_macos_arm64, validate_linux]
     runs-on: ubuntu-latest
     if: always()
     steps:
+      - name: Download validation artifacts from all platforms
+        uses: actions/download-artifact@v4
+        with:
+          path: all-platform-artifacts
+
+      - name: Merge tool-run-summary.tsv from all platforms
+        shell: bash
+        run: |
+          mkdir -p consolidated-results
+          consolidated_summary="consolidated-results/tool-run-summary-all-platforms.tsv"
+          
+          # Create header: OS, Tool, Status
+          echo -e "OS\tTool\tStatus" > "$consolidated_summary"
+          
+          # Function to append OS-specific summary
+          process_platform() {
+            local os_name=$1
+            local artifact_dir=$2
+            
+            if [ -d "$artifact_dir" ]; then
+              local summary_file=$(find "$artifact_dir" -name "tool-run-summary.tsv" -type f | head -1)
+              if [ -f "$summary_file" ]; then
+                # Skip header line (line 1) and prepend OS name to each data line
+                tail -n +2 "$summary_file" | while IFS=$'\t' read -r tool status; do
+                  if [ -n "$tool" ]; then
+                    echo -e "$os_name\t$tool\t$status" >> "$consolidated_summary"
+                  fi
+                done
+              else
+                echo "Warning: No tool-run-summary.tsv found in $artifact_dir"
+              fi
+            else
+              echo "Warning: Artifact directory not found: $artifact_dir"
+            fi
+          }
+          
+          # Process each platform
+          process_platform "Windows" "all-platform-artifacts/windows-validation-assets"
+          process_platform "macOS-x64" "all-platform-artifacts/macos-x64-validation-assets"
+          process_platform "macOS-arm64" "all-platform-artifacts/macos-arm64-validation-assets"
+          process_platform "Linux" "all-platform-artifacts/linux-validation-assets"
+          
+          echo "Consolidated tool-run-summary.tsv:"
+          cat "$consolidated_summary"
+
+      - name: Upload consolidated summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-summary-consolidated
+          if-no-files-found: warn
+          path: consolidated-results/tool-run-summary-all-platforms.tsv
+
       - name: Report platform validation summary
         run: |
           echo "✓ Windows validation: ${{ needs.validate_windows.result }}"
