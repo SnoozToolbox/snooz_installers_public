@@ -126,22 +126,59 @@ jobs:
         run: |
           mkdir -p consolidated-results
           consolidated_summary="consolidated-results/tool-run-summary-all-platforms.tsv"
-          
-          # Create header: OS, Tool, Status
-          echo -e "OS\tTool\tStatus" > "$consolidated_summary"
-          
-          # Function to append OS-specific summary
+
+          # Desired header: OS, Tool, Version, Scenario, Run Status, Comparison Status, Validated Files
+          echo -e "OS\tTool\tVersion\tScenario\tRun Status\tComparison Status\tValidated Files" > "$consolidated_summary"
+
+          # Function to append OS-specific summary with mapped columns
           process_platform() {
             local os_name=$1
             local artifact_dir=$2
-            
+
             if [ -d "$artifact_dir" ]; then
               local summary_file=$(find "$artifact_dir" -name "tool-run-summary.tsv" -type f | head -1)
               if [ -f "$summary_file" ]; then
-                # Skip header line (line 1) and prepend OS name to each data line
-                tail -n +2 "$summary_file" | while IFS=$'\t' read -r tool status; do
-                  if [ -n "$tool" ]; then
-                    echo -e "$os_name\t$tool\t$status" >> "$consolidated_summary"
+                # Read header and determine column indices (tab-separated)
+                IFS=$'\t' read -r -a header_cols < <(head -n1 "$summary_file")
+                declare -A idx
+                for i in "${!header_cols[@]}"; do
+                  col="${header_cols[$i]}"
+                  idx["$col"]=$((i+1))
+                done
+
+                # Helper to get column by name with fallback to empty
+                get_col() {
+                  local line="$1"
+                  local colname="$2"
+                  local pos=${idx["$colname"]}
+                  if [ -n "$pos" ]; then
+                    echo "$line" | awk -F"\t" -v p=$pos '{print $p}'
+                  else
+                    echo ""
+                  fi
+                }
+
+                # Process data lines (skip header)
+                tail -n +2 "$summary_file" | while IFS= read -r line || [ -n "$line" ]; do
+                  # Extract expected source columns
+                  tool_name=$(get_col "$line" "tool_name")
+                  tool_version=$(get_col "$line" "tool_version")
+                  json_name=$(get_col "$line" "json_name")
+                  run_status=$(get_col "$line" "run_status")
+                  comparison_status=$(get_col "$line" "comparison_status")
+                  validated_files=$(get_col "$line" "validated_files")
+
+                  # If the file used different header names, try common fallbacks
+                  if [ -z "$tool_name" ]; then
+                    tool_name=$(get_col "$line" "Tool")
+                  fi
+                  if [ -z "$run_status" ]; then
+                    run_status=$(get_col "$line" "status")
+                  fi
+
+                  # Append mapped row (use json_name as Scenario)
+                  if [ -n "$tool_name" ]; then
+                    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$os_name" "$tool_name" "$tool_version" "$json_name" "$run_status" "$comparison_status" "$validated_files" >> "$consolidated_summary"
                   fi
                 done
               else
@@ -151,13 +188,13 @@ jobs:
               echo "Warning: Artifact directory not found: $artifact_dir"
             fi
           }
-          
+
           # Process each platform
           process_platform "Windows" "all-platform-artifacts/windows-validation-assets"
           process_platform "macOS-x64" "all-platform-artifacts/macos-x64-validation-assets"
           process_platform "macOS-arm64" "all-platform-artifacts/macos-arm64-validation-assets"
           process_platform "Linux" "all-platform-artifacts/linux-validation-assets"
-          
+
           echo "Consolidated tool-run-summary.tsv:"
           cat "$consolidated_summary"
 
