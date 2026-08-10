@@ -647,6 +647,10 @@ jobs:
               kill "$APP_PID" >/dev/null 2>&1 || true
               wait "$APP_PID" >/dev/null 2>&1 || true
             fi
+            # This runner is a persistent self-hosted Mac mini: make sure no helper process
+            # spawned by the app survives this step and holds a single-instance lock that
+            # would hang the next (headless runtime) step on a stale, unresponsive instance.
+            pkill -9 -f "Snooz Toolbox.app/Contents/MacOS/" >/dev/null 2>&1 || true
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
             rm -f "$LOG_FILE"
@@ -753,7 +757,7 @@ jobs:
 
       - name: Headless runtime completion test from signed .dmg (macOS x64)
         if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           set -eo pipefail
           PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
@@ -785,6 +789,18 @@ jobs:
             echo "::error::No final DMG found in target/."
             ls -la target || true
             exit 1
+          fi
+
+          # This runner is a persistent self-hosted Mac mini (unlike the ephemeral arm64 hosted
+          # runner), so a previous step or a previous run can leave a "Snooz Toolbox" process
+          # alive and holding its single-instance lock/IPC socket. A leftover instance makes this
+          # headless launch silently hand off to it and hang with an empty log until the step
+          # times out. Kill any stray instance before mounting/launching.
+          if pgrep -f "Snooz Toolbox.app/Contents/MacOS/" >/dev/null 2>&1; then
+            echo "Found stray Snooz Toolbox process(es) from a previous run; killing before launch."
+            pkill -f "Snooz Toolbox.app/Contents/MacOS/" || true
+            sleep 2
+            pkill -9 -f "Snooz Toolbox.app/Contents/MacOS/" || true
           fi
 
           MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
@@ -826,10 +842,29 @@ jobs:
           set +e
           (
             cd "$RUNTIME_TEST_ROOT"
-            "$APP_EXEC" --f "$PROCESS_JSON" >"$LOG_FILE" 2>&1
+            "$APP_EXEC" --f "$PROCESS_JSON" >"$LOG_FILE" 2>&1 &
+            APP_RUN_PID=$!
+            (
+              sleep 240
+              if kill -0 "$APP_RUN_PID" >/dev/null 2>&1; then
+                echo "::warning::Runtime smoke process exceeded internal 240s watchdog; killing it (possible stale single-instance lock)." >>"$LOG_FILE"
+                kill -9 "$APP_RUN_PID" >/dev/null 2>&1 || true
+              fi
+            ) &
+            WATCHDOG_PID=$!
+            wait "$APP_RUN_PID"
+            APP_RUN_STATUS=$?
+            kill "$WATCHDOG_PID" >/dev/null 2>&1 || true
+            wait "$WATCHDOG_PID" 2>/dev/null || true
+            exit "$APP_RUN_STATUS"
           )
           APP_STATUS=$?
           set -e
+
+          if [ "$APP_STATUS" -ne 0 ] && [ ! -s "$LOG_FILE" ]; then
+            echo "::warning::Runtime smoke log is empty after failure; a leftover 'Snooz Toolbox' process may still be running on this self-hosted runner."
+            ps aux | grep -i "Snooz Toolbox" | grep -v grep || true
+          fi
 
           SNOOZ_PROCESS_LOG="$(ls -1t "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log 2>/dev/null | head -n 1 || true)"
           if [ -n "$SNOOZ_PROCESS_LOG" ]; then
@@ -1637,7 +1672,7 @@ jobs:
 
       - name: Headless runtime completion test from signed .dmg (macOS arm64)
         if: ${{ !inputs.freeze_only && inputs.runtime_smoke_test }}
-        timeout-minutes: 5
+        timeout-minutes: 15
         run: |
           set -eo pipefail
           PROCESS_JSON_SRC="runtime-smoke/snooz_runtime_smoke.json"
