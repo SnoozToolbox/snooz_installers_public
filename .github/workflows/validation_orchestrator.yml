@@ -13,11 +13,11 @@ on:
       installer_tag_windows:
         description: Windows installer release tag to validate
         required: true
-        default: v1.0.1-rc2-Windows
+        default: v1.0.1-rc3
       installer_tag_linux:
         description: Linux installer release tag to validate
         required: true
-        default: v1.0.1-rc1-Linux
+        default: v1.0.1-rc3
       installer_tag_macos_x64:
         description: macOS x64 installer release tag to validate (leave empty to auto-derive)
         required: false
@@ -72,7 +72,7 @@ jobs:
       arch: x64
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_macos_x64 }}
-      installer_asset_pattern: "Snooz*.dmg"
+      installer_asset_pattern: "Snooz*-x64.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
@@ -87,7 +87,7 @@ jobs:
       arch: arm64
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_macos_arm64 }}
-      installer_asset_pattern: "Snooz*.dmg"
+      installer_asset_pattern: "Snooz*-arm64.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
