@@ -137,16 +137,80 @@ Use the generated base64 content as the value of the GitHub secret `APPLE_DEVELO
 - Copy the generated value.
 - Save it in the GitHub secret `APPLE_NOTARY_APP_PASSWORD`.
 
-### 5. Run macOS x64 build on the self-hosted Mac mini
+### 5. Set up the self-hosted runner on the Mac mini
 
-1. Connect to the Mac mini.
-2. Open a terminal.
-3. Start the GitHub Actions runner:
+#### 5a. Create a new self-hosted runner
+
+1. Go to the GitHub repository: https://github.com/SnoozToolbox/snooz_installers_public
+2. Click **Settings** (top-right corner of the repo).
+3. In the left sidebar, click **Actions** → **Runners**.
+4. Click the **New self-hosted runner** button (green, top-right).
+5. Select the following configuration:
+   - **Runner image**: macOS
+   - **Architecture**: x64
+6. Copy the download and setup commands (they will be displayed on the screen).
+
+#### 5b. Download and configure the runner on the Mac mini
+
+1. Connect to the Mac mini via SSH or open a terminal on it directly.
+2. Create a directory for the runner:
+
+```bash
+mkdir -p ~/Documents/actions-runner
+cd ~/Documents/actions-runner
+```
+
+3. Download the runner from the GitHub instructions (replace the URL with the one from step 5a):
+
+```bash
+curl -o actions-runner-osx-x64-X.XXX.X.tar.gz -L https://github.com/actions/runner/releases/download/vX.XXX.X/actions-runner-osx-x64-X.XXX.X.tar.gz
+```
+
+4. Extract the runner:
+
+```bash
+tar xzf actions-runner-osx-x64-*.tar.gz
+```
+
+5. Configure the runner (use the token from the GitHub Actions setup page):
+
+```bash
+./config.sh --url https://github.com/SnoozToolbox/snooz_installers_public --token AAXXXXXXXXXXXXXXXXXX
+```
+
+Replace `AAXXXXXXXXXXXXXXXXXX` with the actual token provided by GitHub.
+
+The runner will prompt you for:
+- **Runner name**: Use a descriptive name (e.g., `Macmini`)
+- **Work directory**: Press Enter to accept the default (`_work`)
+- **Labels**: Press Enter to accept the default labels: `self-hosted`, `macOS`, `X64`
+
+These default labels are exactly what you need. In your GitHub Actions workflow YAML, reference the runner using:
+```yaml
+runs-on: [self-hosted, macOS, X64]
+```
+
+#### 5c. Run the self-hosted runner
+
+**Recommended approach: Run in interactive mode**
+
+1. Start the runner in interactive mode:
 
 ```bash
 cd ~/Documents/actions-runner
 ./run.sh
 ```
+
+2. Keep this terminal window open. The runner should display:
+
+```
+Current runner version: '2.336.0'
+Listening for Jobs
+```
+
+3. Once the runner is running and listening, it will appear as `idle` in the **Actions** → **Runners** section on GitHub, and it will be ready to execute jobs.
+
+4. To stop the runner, press `Ctrl+C` in the terminal.
 
 ## Full list of required secrets
 
