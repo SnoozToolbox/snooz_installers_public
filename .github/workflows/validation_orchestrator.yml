@@ -116,13 +116,13 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     steps:
+      - name: Checkout repository (needed to run merge script)
+        uses: actions/checkout@v4
+
       - name: Download validation artifacts from all platforms
         uses: actions/download-artifact@v4
         with:
           path: all-platform-artifacts
-
-      - name: Checkout repository (needed to run merge script)
-        uses: actions/checkout@v4
 
       - name: Debug - list artifact contents
         shell: bash
