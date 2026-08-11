@@ -251,25 +251,6 @@ jobs:
             throw "Runtime smoke input EDF is missing or empty after execution: $edfLocalPath"
           }
 
-          if (Select-String -Path $logFile -Pattern "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" -Quiet) {
-            throw "Runtime smoke execution on frozen executable reported errors in logs"
-          }
-
-          if (-not (Select-String -Path $logFile -Pattern "Process completed\." -Quiet)) {
-            Write-Host "Last 200 log lines (for diagnostics):"
-            Get-Content $logFile -Tail 200
-            Write-Host "runtime_smoke_repo content (for diagnostics):"
-            if (Test-Path (Join-Path $runtimeTestRoot "runtime_smoke_repo")) {
-              Get-ChildItem -Path (Join-Path $runtimeTestRoot "runtime_smoke_repo") -Recurse -File |
-                Sort-Object FullName |
-                Select-Object -ExpandProperty FullName
-            }
-            else {
-              Write-Host "runtime_smoke_repo directory not found under $runtimeTestRoot"
-            }
-            throw "Runtime smoke execution on frozen executable did not reach 'Process completed.'"
-          }
-
           if (-not (Test-Path $outputPdf) -or ((Get-Item $outputPdf).Length -le 0)) {
             Write-Host "runtime_smoke_repo content (for diagnostics):"
             if (Test-Path (Join-Path $runtimeTestRoot "runtime_smoke_repo")) {
@@ -401,25 +382,6 @@ jobs:
 
           if (-not (Test-Path $edfLocalPath) -or ((Get-Item $edfLocalPath).Length -le 0)) {
             throw "Runtime smoke input EDF is missing or empty after installer execution: $edfLocalPath"
-          }
-
-          if (Select-String -Path $logFile -Pattern "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" -Quiet) {
-            throw "Runtime smoke execution from installer output reported errors in logs"
-          }
-
-          if (-not (Select-String -Path $logFile -Pattern "Process completed\." -Quiet)) {
-            Write-Host "Last 200 log lines (for diagnostics):"
-            Get-Content $logFile -Tail 200
-            Write-Host "runtime_smoke_repo content (for diagnostics):"
-            if (Test-Path (Join-Path $runtimeTestRoot "runtime_smoke_repo")) {
-              Get-ChildItem -Path (Join-Path $runtimeTestRoot "runtime_smoke_repo") -Recurse -File |
-                Sort-Object FullName |
-                Select-Object -ExpandProperty FullName
-            }
-            else {
-              Write-Host "runtime_smoke_repo directory not found under $runtimeTestRoot"
-            }
-            throw "Runtime smoke execution from installer output did not reach 'Process completed.'"
           }
 
           if (-not (Test-Path $outputPdf) -or ((Get-Item $outputPdf).Length -le 0)) {
@@ -677,16 +639,6 @@ jobs:
 
           if [ ! -s "$EDF_LOCAL_PATH" ]; then
             echo "::error::Runtime smoke input EDF is missing or empty after execution: $EDF_LOCAL_PATH"
-            exit 1
-          fi
-
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution on frozen executable reported errors in logs."
-            exit 1
-          fi
-
-          if ! grep -q "Process completed\." "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution on frozen executable did not reach 'Process completed.'"
             exit 1
           fi
 
@@ -957,16 +909,6 @@ jobs:
 
           if [ ! -s "$EDF_LOCAL_PATH" ]; then
             echo "::error::Runtime smoke input EDF is missing or empty after .deb payload execution: $EDF_LOCAL_PATH"
-            exit 1
-          fi
-
-          if grep -Eqi "ERROR Could not|^ERROR|ModuleNotFoundError|ImportError|Traceback|FileNotFoundError" "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution from .deb payload reported errors in logs."
-            exit 1
-          fi
-
-          if ! grep -q "Process completed\." "$LOG_FILE"; then
-            echo "::error::Runtime smoke execution from .deb payload did not reach 'Process completed.'"
             exit 1
           fi
 

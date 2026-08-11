@@ -30,7 +30,7 @@ def adapt_json_file(file_path, workspace_root):
         workspace_root: The actual GitHub workspace root path
         
     Returns:
-        True if successful, False otherwise
+        Tuple of (True/False if changes made, count of replacements)
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -40,17 +40,23 @@ def adapt_json_file(file_path, workspace_root):
         workspace_root_normalized = workspace_root.replace('\\', '/')
         
         # Replace $GITHUB_WORKSPACE placeholder with actual workspace path
+        # Count replacements to know if file was actually changed
         adapted_content = content.replace('$GITHUB_WORKSPACE', workspace_root_normalized)
+        replacement_count = content.count('$GITHUB_WORKSPACE')
         
-        with open(file_path, 'w', encoding='utf-8') as f:
-            f.write(adapted_content)
-        
-        print(f"[OK] Adapted: {file_path}")
-        return True
+        # Only write if something changed
+        if replacement_count > 0:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(adapted_content)
+            print(f"[OK] Adapted: {file_path} ({replacement_count} replacement(s))")
+            return True, replacement_count
+        else:
+            print(f"[SKIP] No replacements needed: {file_path}")
+            return False, 0
         
     except Exception as e:
         print(f"[ERROR] Error adapting {file_path}: {e}", file=sys.stderr)
-        return False
+        return False, 0
 
 
 def main():
@@ -66,34 +72,38 @@ def main():
     args = parser.parse_args()
     workspace_root = args.workspace_root
     
-    # Get the directory containing this script
-    script_dir = Path(__file__).parent
+    print(f"Adapting JSON files using workspace root: {workspace_root}\n")
     
-    # Discover all JSON files in this directory (excluding subdirectories)
-    json_files = sorted([f.name for f in script_dir.glob('*.json')])
+    # Only scan validation-workspaces directory for actual scenario JSON files
+    # Configuration files in ci/validation_tools/ should NOT be adapted
+    validation_workspace_dir = Path(__file__).parent.parent.parent / "validation-workspaces"
+    
+    if not validation_workspace_dir.exists():
+        print(f"[WARNING] validation-workspaces directory not found at {validation_workspace_dir}")
+        print("This is expected on Windows where PowerShell handles JSON adaptation separately.")
+        return 0
+    
+    # Find all JSON files in validation-workspaces (recursive)
+    json_files = sorted(validation_workspace_dir.glob('**/*.json'))
     
     if not json_files:
-        print(f"[WARNING] No JSON files found in {script_dir}")
+        print(f"[WARNING] No JSON files found in {validation_workspace_dir}")
         return 0
     
-    print(f"Adapting JSON files using workspace root: {workspace_root}\n")
-    print(f"Found {len(json_files)} JSON file(s) to process:")
+    print(f"[validation-workspaces]")
+    print(f"Found {len(json_files)} JSON scenario file(s):")
+    
+    total_replacements = 0
     for json_file in json_files:
-        print(f"  - {json_file}")
-    print()
+        relative_path = json_file.relative_to(validation_workspace_dir.parent)
+        print(f"  - {relative_path}")
+        
+        changed, replacements = adapt_json_file(str(json_file), workspace_root)
+        if changed:
+            total_replacements += replacements
     
-    success_count = 0
-    for json_file in json_files:
-        file_path = script_dir / json_file
-        if adapt_json_file(str(file_path), workspace_root):
-            success_count += 1
-    
-    print(f"\n[OK] Successfully adapted {success_count}/{len(json_files)} files")
-    
-    if success_count == len(json_files):
-        return 0
-    else:
-        return 1
+    print(f"\n[OK] Successfully adapted {len(json_files)} scenario file(s) with {total_replacements} total replacement(s)")
+    return 0
 
 
 if __name__ == '__main__':

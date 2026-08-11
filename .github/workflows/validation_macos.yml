@@ -16,8 +16,8 @@ on:
         default: SnoozToolbox/snooz-toolbox-ceams
       installer_tag:
         description: Installer release tag to validate
-        required: true
-        default: v1.0.1-rc2-macOS
+        required: false
+        default: ""
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
@@ -58,9 +58,10 @@ on:
         required: true
         type: string
       installer_tag:
-        description: Installer release tag to validate
-        required: true
+        description: Installer release tag to validate (if empty, auto-generated from arch)
+        required: false
         type: string
+        default: ""
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
@@ -200,8 +201,24 @@ jobs:
             echo "Missing secret GH_PAT"
             exit 1
           fi
+          
+          # Build installer tag if not provided
+          INSTALLER_TAG="${{ inputs.installer_tag }}"
+          if [ -z "$INSTALLER_TAG" ]; then
+            ARCH="${{ inputs.arch }}"
+            if [ "$ARCH" = "arm64" ]; then
+              INSTALLER_TAG="v1.0.1-rc2-macOS-ARM64"
+            elif [ "$ARCH" = "x64" ]; then
+              INSTALLER_TAG="v1.0.1-rc2-macOS-x64"
+            else
+              echo "Invalid architecture: $ARCH (expected 'arm64' or 'x64')"
+              exit 1
+            fi
+            echo "Auto-generated installer tag for $ARCH: $INSTALLER_TAG"
+          fi
+          
           mkdir -p installer
-          gh release download "${{ inputs.installer_tag }}" \
+          gh release download "$INSTALLER_TAG" \
             --repo "${{ inputs.installer_repo }}" \
             --pattern "${{ inputs.installer_asset_pattern }}" \
             --dir installer
@@ -232,7 +249,10 @@ jobs:
           hdiutil attach "$INSTALLER"
           
           # Find the mounted volume containing Snooz.app (volume name may vary)
-          MOUNTED_VOLUME=$(find /Volumes -maxdepth 1 -type d | xargs ls -d 2>/dev/null | grep -i snooz | head -1)
+          # Wait a moment for the volume to be fully mounted
+          sleep 2
+          
+          MOUNTED_VOLUME=$(ls -d /Volumes/*nooz* 2>/dev/null | head -1)
           if [ -z "$MOUNTED_VOLUME" ]; then
             echo "No mounted volume containing 'Snooz' found"
             echo "Available volumes:"
@@ -240,34 +260,52 @@ jobs:
             exit 1
           fi
           
-          APP_PATH="$MOUNTED_VOLUME/Snooz.app"
-          echo "Searching for Snooz.app in mounted volume: $MOUNTED_VOLUME"
+          echo "Found mounted volume: $MOUNTED_VOLUME"
           
-          if [ ! -d "$APP_PATH" ]; then
-            echo "Snooz.app not found at $APP_PATH"
+          # Look for Snooz.app in the volume
+          APP_PATH=$(find "$MOUNTED_VOLUME" -maxdepth 1 -name "*.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Snooz.app not found in $MOUNTED_VOLUME"
             echo "Contents of $MOUNTED_VOLUME:"
             ls -la "$MOUNTED_VOLUME"
-            hdiutil detach "$MOUNTED_VOLUME"
+            hdiutil detach "$MOUNTED_VOLUME" 2>/dev/null || true
             exit 1
           fi
 
-          cp -r "$APP_PATH" "$INSTALL_DIR/"
-          hdiutil detach "$MOUNTED_VOLUME"
-
-          INSTALLED_EXE="$INSTALL_DIR/Snooz.app/Contents/MacOS/Snooz"
+          echo "Found app bundle: $APP_PATH"
+          
+          # Get the app name (it might not be exactly "Snooz.app")
+          APP_NAME=$(basename "$APP_PATH")
+          MACOS_DIR="$APP_PATH/Contents/MacOS"
+          
+          # The executable name is the same as the app name (minus .app)
+          EXECUTABLE_NAME="${APP_NAME%.app}"
+          INSTALLED_EXE="$MACOS_DIR/$EXECUTABLE_NAME"
+          
           if [ ! -f "$INSTALLED_EXE" ]; then
-            echo "Expected installed executable not found"
-            find "$INSTALL_DIR" -type f -name "Snooz" | head -5
+            echo "Executable not found at expected location: $INSTALLED_EXE"
             exit 1
           fi
+          
+          if [ ! -x "$INSTALLED_EXE" ]; then
+            echo "File is not executable: $INSTALLED_EXE"
+            exit 1
+          fi
+          
+          echo "Found executable: $INSTALLED_EXE"
+          echo "Using app directly from mounted volume to preserve code signatures"
+          
+          # DO NOT detach the volume yet - we need it for execution and JSON extraction
+          # Create INSTALL_DIR for JSON files extraction
+          mkdir -p "$INSTALL_DIR"
 
           echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
 
-          # Extract JSON files
+          # Extract JSON files from the mounted app
           VERSION_UNDERSCORE="${{ inputs.package_version }}"
           VERSION_UNDERSCORE="${VERSION_UNDERSCORE//./_}"
           
-          CEAMS_TOOLS_DIR=$(find "$INSTALL_DIR" -type d -name "CEAMSTools_$VERSION_UNDERSCORE" | head -1)
+          CEAMS_TOOLS_DIR=$(find "$APP_PATH" -type d -name "CEAMSTools_$VERSION_UNDERSCORE" | head -1)
           if [ -z "$CEAMS_TOOLS_DIR" ]; then
             echo "CEAMSTools directory not found for version $VERSION_UNDERSCORE"
             exit 1
@@ -283,8 +321,18 @@ jobs:
         shell: bash
         run: |
           mkdir -p validation-workspaces
-          cp -r validation-json/* validation-workspaces/ 2>/dev/null || true
-          echo "Validation workspaces prepared"
+          
+          python3 ci/validation_tools/adapt_scenario_json.py \
+            --source-dir validation-json \
+            --workspace-dir validation-workspaces \
+            --adaptations-file ci/validation_tools/tool_json_adaptations.json \
+            --private-dataset-dir private-dataset \
+            --tools "${{ inputs.tools_to_process }}"
+          
+          if [ $? -ne 0 ]; then
+            echo "::error::Scenario JSON adaptation failed"
+            exit 1
+          fi
 
       - name: Adapt JSON paths for cross-platform validation
         shell: bash
@@ -297,7 +345,7 @@ jobs:
           fi
           echo "JSON paths successfully adapted."
 
-      - name: Run adapted headless scenarios and print failure logs
+      - name: Run adapted headless scenarios and validate each tool immediately
         shell: bash
         run: |
           mkdir -p target/validation-logs
@@ -308,27 +356,107 @@ jobs:
             exit 1
           fi
 
-          for scenario in validation-workspaces/*.json; do
-            TOOL_NAME=$(basename "$scenario" .json)
+          # Extract list of actual tools from tool_json_adaptations.json
+          TOOLS=$(python3 -c 'import json,sys; data=json.load(open("ci/validation_tools/tool_json_adaptations.json")); print(" ".join(sorted([k for k,v in data.items() if isinstance(v,dict) and v.get("updates")])))' 2>/dev/null)
+          
+          if [ -z "$TOOLS" ]; then
+            echo "Warning: Could not extract tool list from tool_json_adaptations.json"
+            TOOLS=$(ls validation-workspaces/*.json | xargs -n1 basename -s .json | grep -v -E '^(CEAMSTools|tool_|adaptations)' | sort)
+          fi
+          
+          echo "Running scenarios for tools: $TOOLS"
+          echo ""
+          
+          run_status_tsv="target/validation-logs/run-status.tsv"
+          : > "$run_status_tsv"
+          # Annotation files accumulate across tool runs, so each tool must be
+          # compared against its gold standard right after it runs, before the
+          # next tool appends more annotations to the same file.
+          rm -f tool-run-summary.tsv
+          rm -rf validation-outputs
+          overall_exit=0
+          
+          for TOOL_NAME in $TOOLS; do
+            scenario="validation-workspaces/${TOOL_NAME}.json"
+            
+            if [ ! -f "$scenario" ]; then
+              echo "Warning: Scenario not found: $scenario"
+              continue
+            fi
+            
             echo "Running scenario: $TOOL_NAME"
+            exec_log="target/validation-logs/${TOOL_NAME}-exec.log"
             
-            "$SNOOZ_EXE" --f "$scenario" 2>&1 | tee "target/validation-logs/${TOOL_NAME}-exec.log"
+            # Run executable and capture exit code properly (don't use pipe with tee)
+            "$SNOOZ_EXE" --f "$scenario" > "$exec_log" 2>&1
+            app_status=$?
             
-            if [ $? -ne 0 ]; then
-              echo "::error::Headless execution failed for $TOOL_NAME"
+            # Also display output to console
+            cat "$exec_log"
+            
+            # Locate the Snooz process log (generated by the app) for diagnostics
+            scenario_dir=$(dirname "$scenario")
+            process_log=$(ls -t "$scenario_dir"/*.log 2>/dev/null | head -1)
+            
+            # Snooz Toolbox now returns 0 on success and 1 on failure, so the exit
+            # code alone determines pass/fail (no more log-content parsing needed).
+            if [ $app_status -ne 0 ]; then
+              echo "::error::Headless execution failed for $TOOL_NAME with exit code $app_status"
+              if [ -n "$process_log" ] && [ -f "$process_log" ]; then
+                echo "--- Snooz process log (last 200 lines) ---"
+                tail -200 "$process_log"
+              fi
+              echo "--- Headless execution log (last 200 lines) ---"
+              tail -200 "$exec_log"
+              printf '%s\tfail\n' "$TOOL_NAME" >> "$run_status_tsv"
+              tool_status="fail"
             else
               echo "Headless execution succeeded for $TOOL_NAME."
-              echo "=========================================="
-              echo ""
+              printf '%s\tpass\n' "$TOOL_NAME" >> "$run_status_tsv"
+              tool_status="pass"
             fi
-          done
 
-      - name: Collect evaluated files by tool
+            # Validate this tool's outputs now, while its annotation file is still
+            # in the state produced by this run (before the next tool modifies it).
+            single_status_tsv="target/validation-logs/${TOOL_NAME}-status.tsv"
+            single_status_json="target/validation-logs/${TOOL_NAME}-status.json"
+            printf '%s\t%s\n' "$TOOL_NAME" "$tool_status" > "$single_status_tsv"
+            python3 ci/validation_tools/build_run_status_json.py \
+              --input "$single_status_tsv" \
+              --output "$single_status_json" \
+              --exec-log-dir target/validation-logs
+
+            python3 ci/validation_tools/compare_and_summarize.py \
+              --run-status-file "$single_status_json" \
+              --tool-validations-file ci/validation_tools/tool_validations.json \
+              --gold-standards-dir gold-standards/extracted \
+              --gold-standard-tag "${{ inputs.gold_standard_tag }}" \
+              --compare-script ci/validation_tools/compare_outputs.py \
+              --workspace-dir validation-workspaces \
+              --output-summary-tsv tool-run-summary.tsv \
+              --output-dir validation-outputs \
+              --append
+            compare_status=$?
+            if [ $compare_status -ne 0 ]; then
+              overall_exit=1
+            fi
+
+            echo "=========================================="
+            echo ""
+          done
+          
+          exit $overall_exit
+
+      - name: Detach mounted DMG volume
         shell: bash
         if: always()
         run: |
-          mkdir -p validation-outputs
-          echo "Validation outputs prepared for collection"
+          # Detach any mounted volumes containing "Snooz"
+          for volume in $(ls -d /Volumes/*nooz* 2>/dev/null); do
+            echo "Detaching: $volume"
+            hdiutil detach "$volume" 2>/dev/null || true
+          done
+          echo "DMG volumes detached"
 
       - name: Upload adapted JSON and validation logs as artifact
         if: always()
@@ -339,5 +467,5 @@ jobs:
           path: |
             validation-workspaces/**/*.json
             validation-workspaces/**/*.log
-            target/validation-logs/**/*.log
+            tool-run-summary.tsv
             validation-outputs/**/*

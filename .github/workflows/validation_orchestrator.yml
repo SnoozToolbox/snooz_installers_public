@@ -10,10 +10,22 @@ on:
         description: Installer release repository (owner/name)
         required: true
         default: SnoozToolbox/snooz-toolbox-ceams
-      installer_tag:
-        description: Installer release tag to validate
+      installer_tag_windows:
+        description: Windows installer release tag to validate
         required: true
-        default: v1.0.1-rc2-Windows
+        default: v1.0.1-rc3
+      installer_tag_linux:
+        description: Linux installer release tag to validate
+        required: true
+        default: v1.0.1-rc3
+      installer_tag_macos_x64:
+        description: macOS x64 installer release tag to validate (leave empty to auto-derive)
+        required: true
+        default: "v1.0.1-rc3"
+      installer_tag_macos_arm64:
+        description: macOS arm64 installer release tag to validate (leave empty to auto-derive)
+        required: true
+        default: "v1.0.1-rc3"
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -44,7 +56,7 @@ jobs:
     uses: ./.github/workflows/validation_windows.yml
     with:
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag }}
+      installer_tag: ${{ inputs.installer_tag_windows }}
       installer_asset_pattern: "Snooz*.exe"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
@@ -59,8 +71,8 @@ jobs:
     with:
       arch: x64
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag }}
-      installer_asset_pattern: "Snooz*.dmg"
+      installer_tag: ${{ inputs.installer_tag_macos_x64 }}
+      installer_asset_pattern: "Snooz*-x64.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
@@ -74,8 +86,8 @@ jobs:
     with:
       arch: arm64
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag }}
-      installer_asset_pattern: "Snooz*.dmg"
+      installer_tag: ${{ inputs.installer_tag_macos_arm64 }}
+      installer_asset_pattern: "Snooz*-arm64.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
@@ -88,8 +100,9 @@ jobs:
     uses: ./.github/workflows/validation_linux.yml
     with:
       installer_repo: ${{ inputs.installer_repo }}
-      installer_tag: ${{ inputs.installer_tag }}
-      installer_asset_pattern: "Snooz*.tar.gz"
+      installer_tag: ${{ inputs.installer_tag_linux }}
+      installer_asset_pattern: "Snooz*.deb"
+      installer_type: "deb"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
@@ -98,11 +111,71 @@ jobs:
       gold_standard_tag: ${{ inputs.gold_standard_tag }}
     secrets: inherit
 
-  summary:
+  consolidate_results:
     needs: [validate_windows, validate_macos_x64, validate_macos_arm64, validate_linux]
     runs-on: ubuntu-latest
     if: always()
     steps:
+      - name: Checkout repository (needed to run merge script)
+        uses: actions/checkout@v4
+
+      - name: Download validation artifacts from all platforms
+        uses: actions/download-artifact@v4
+        with:
+          path: all-platform-artifacts
+
+      - name: Debug - list artifact contents
+        shell: bash
+        run: |
+          echo "=== Listing all-platform-artifacts contents ==="
+          find all-platform-artifacts -type f | sort
+          echo ""
+          echo "=== Looking for tool-run-summary.tsv files ==="
+          if find all-platform-artifacts -type f -name 'tool-run-summary.tsv'; then
+            echo "✓ Found tool-run-summary.tsv files"
+          else
+            echo "✗ NO tool-run-summary.tsv files found!"
+            exit 1
+          fi
+
+      - name: Prepare status files and run merger
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p consolidated-results
+          mkdir -p os_status_files
+
+          # Find all tool-run-summary.tsv files under all-platform-artifacts and copy them
+          # into os_status_files, naming by platform inferred from the artifact directory name.
+          find all-platform-artifacts -type f -name 'tool-run-summary.tsv' | while IFS= read -r f; do
+            echo "Processing: $f"
+            # Determine platform tag from path components (look for known tokens)
+            plat="unknown"
+            case "$f" in
+              *windows* ) plat="windows" ;; 
+              *macos-x64* | *macos_x64* | *macos-x64-validation-assets* ) plat="macosx64" ;; 
+              *macos-arm64* | *macos_arm64* | *macos-arm64-validation-assets* ) plat="macosarm64" ;; 
+              *linux* ) plat="linux" ;;
+            esac
+            dest="os_status_files/tool-run-summary-${plat}.tsv"
+            echo "Copying $f -> $dest"
+            cp -v "$f" "$dest" || true
+          done
+
+          # Run the repository's Python merger (more robust than inline bash)
+          python3 scripts/merge_statuses.py
+
+          echo "Consolidated tool-run-summary.tsv:"
+          cat consolidated-results/tool-run-summary-all-platforms.tsv
+
+      - name: Upload consolidated summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-summary-consolidated
+          if-no-files-found: warn
+          path: consolidated-results/tool-run-summary-all-platforms.tsv
+
       - name: Report platform validation summary
         run: |
           echo "✓ Windows validation: ${{ needs.validate_windows.result }}"
