@@ -121,105 +121,29 @@ jobs:
         with:
           path: all-platform-artifacts
 
-      - name: Merge tool-run-summary.tsv from all platforms
+      - name: Checkout repository (needed to run merge script)
+        uses: actions/checkout@v4
+
+      - name: Prepare status files and run merger
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p consolidated-results
-          consolidated_summary="consolidated-results/tool-run-summary-all-platforms.tsv"
+          mkdir -p os_status_files
 
-          # Desired header: Tool, Version, Scenario, Run Status Windows, Comparison Status Windows,
-          # Run Status macOS-x64, Comparison Status macOS-x64, Run Status macOS-arm64, Comparison Status macOS-arm64,
-          # Run Status Linux, Comparison Status Linux, Validated Files
-          echo -e "Tool\tVersion\tScenario\tRun Status Windows\tComparison Status Windows\tRun Status macOS-x64\tComparison Status macOS-x64\tRun Status macOS-arm64\tComparison Status macOS-arm64\tRun Status Linux\tComparison Status Linux\tValidated Files" > "$consolidated_summary"
+          # Copy downloaded tool-run-summary.tsv from platform artifact dirs into os_status_files
+          # Paths produced by the download-artifact step:
+          # all-platform-artifacts/windows-validation-assets
+          cp -v all-platform-artifacts/windows-validation-assets/tool-run-summary.tsv os_status_files/tool-run-summary-windows.tsv || true
+          cp -v all-platform-artifacts/macos-x64-validation-assets/tool-run-summary.tsv os_status_files/tool-run-summary-macosx64.tsv || true
+          cp -v all-platform-artifacts/macos-arm64-validation-assets/tool-run-summary.tsv os_status_files/tool-run-summary-macosarm64.tsv || true
+          cp -v all-platform-artifacts/linux-validation-assets/tool-run-summary.tsv os_status_files/tool-run-summary-linux.tsv || true
 
-          # Temporary map file: key = Tool||Scenario, value = tab-separated fields
-          tmp_map="/tmp/validation_map.tsv"
-          : > "$tmp_map"
-
-          add_platform_rows() {
-            local os_label="$1"
-            local artifact_dir="$2"
-            local run_col_name="run_status"
-            local comp_col_name="comparison_status"
-
-            if [ ! -d "$artifact_dir" ]; then
-              echo "Warning: Artifact directory not found: $artifact_dir"
-              return
-            fi
-            local summary_file
-            summary_file=$(find "$artifact_dir" -name "tool-run-summary.tsv" -type f | head -1)
-            if [ -z "$summary_file" ]; then
-              echo "Warning: No tool-run-summary.tsv found in $artifact_dir"
-              return
-            fi
-
-            # Read header to find column positions
-            IFS=$'\t' read -r -a hdr < <(head -n1 "$summary_file")
-            declare -A pos
-            for i in "${!hdr[@]}"; do pos["${hdr[$i]}"]=$((i+1)); done
-
-            tail -n +2 "$summary_file" | while IFS= read -r line || [ -n "$line" ]; do
-              # Extract fields with fallbacks
-              getp() { local name="$1"; local p=${pos["$name"]}; if [ -n "$p" ]; then echo "$line" | awk -F"\t" -v c=$p '{print $c}'; else echo ""; fi }
-              tool=$(getp "tool_name"); if [ -z "$tool" ]; then tool=$(getp "Tool"); fi
-              version=$(getp "tool_version")
-              scenario=$(getp "json_name")
-              runstat=$(getp "$run_col_name"); if [ -z "$runstat" ]; then runstat=$(getp "status"); fi
-              compstat=$(getp "$comp_col_name")
-              vfiles=$(getp "validated_files")
-
-              key="$tool||$scenario"
-              # Read existing line for key
-              existing=$(grep -F "$key" "$tmp_map" || true)
-              if [ -z "$existing" ]; then
-                # Initialize all platform columns empty
-                case "$os_label" in
-                  "Windows") printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$tool" "$version" "$scenario" "$runstat" "$compstat" "" "" "" "" "" "" "$vfiles" >> "$tmp_map" ;;
-                  "macOS-x64") printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$tool" "$version" "$scenario" "" "" "$runstat" "$compstat" "" "" "" "" "$vfiles" >> "$tmp_map" ;;
-                  "macOS-arm64") printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$tool" "$version" "$scenario" "" "" "" "" "$runstat" "$compstat" "" "" "$vfiles" >> "$tmp_map" ;;
-                  "Linux") printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$tool" "$version" "$scenario" "" "" "" "" "" "" "$runstat" "$compstat" "$vfiles" >> "$tmp_map" ;;
-                esac
-              else
-                # Update existing line by filling proper columns
-                # Build awk script to update fields
-                # Fields indices: 1 Tool,2 Version,3 Scenario,4 RunW,5 CompW,6 RunM_x64,7 CompM_x64,8 RunM_arm64,9 CompM_arm64,10 RunL,11 CompL,12 ValidatedFiles
-                awk -v key="$key" -v os="$os_label" -v run="$runstat" -v comp="$compstat" -v vfiles="$vfiles" -F"\t" -v OFS="\t" '
-                  BEGIN{ }
-                  $1"||"$3==key{
-                    if(os=="Windows"){ $4=run; $5=comp }
-                    else if(os=="macOS-x64"){ $6=run; $7=comp }
-                    else if(os=="macOS-arm64"){ $8=run; $9=comp }
-                    else if(os=="Linux"){ $10=run; $11=comp }
-                    if(length(vfiles)>0) $12=vfiles
-                    print; next
-                  }
-                  { print }
-                ' "$tmp_map" > "$tmp_map.tmp" && mv "$tmp_map.tmp" "$tmp_map"
-              fi
-            done
-          }
-
-          # Populate map from each platform
-          add_platform_rows "Windows" "all-platform-artifacts/windows-validation-assets"
-          add_platform_rows "macOS-x64" "all-platform-artifacts/macos-x64-validation-assets"
-          add_platform_rows "macOS-arm64" "all-platform-artifacts/macos-arm64-validation-assets"
-          add_platform_rows "Linux" "all-platform-artifacts/linux-validation-assets"
-
-          # Now output consolidated header already written, then append map contents
-          # Ensure tmp_map lines have 12 columns; normalize missing fields
-          while IFS= read -r line || [ -n "$line" ]; do
-            # Count fields
-            nf=$(awk -F"\t" '{print NF}' <<< "$line")
-            if [ "$nf" -lt 12 ]; then
-              # pad with empty fields
-              pad=$((12-nf))
-              for i in $(seq 1 $pad); do line="$line\t"; done
-            fi
-            echo -e "$line" >> "$consolidated_summary"
-          done < "$tmp_map"
+          # Run the repository's Python merger (more robust than inline bash)
+          python3 scripts/merge_statuses.py
 
           echo "Consolidated tool-run-summary.tsv:"
-          cat "$consolidated_summary"
+          cat consolidated-results/tool-run-summary-all-platforms.tsv
 
       - name: Upload consolidated summary
         if: always()
