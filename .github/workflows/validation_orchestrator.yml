@@ -124,6 +124,20 @@ jobs:
       - name: Checkout repository (needed to run merge script)
         uses: actions/checkout@v4
 
+      - name: Debug - list artifact contents
+        shell: bash
+        run: |
+          echo "=== Listing all-platform-artifacts contents ==="
+          find all-platform-artifacts -type f | sort
+          echo ""
+          echo "=== Looking for tool-run-summary.tsv files ==="
+          if find all-platform-artifacts -type f -name 'tool-run-summary.tsv'; then
+            echo "✓ Found tool-run-summary.tsv files"
+          else
+            echo "✗ NO tool-run-summary.tsv files found!"
+            exit 1
+          fi
+
       - name: Prepare status files and run merger
         shell: bash
         run: |
@@ -131,13 +145,22 @@ jobs:
           mkdir -p consolidated-results
           mkdir -p os_status_files
 
-          # Copy downloaded tool-run-summary.tsv from platform artifact dirs into os_status_files
-          # Paths produced by the download-artifact step:
-          # all-platform-artifacts/windows-validation-assets
-          cp -v all-platform-artifacts/windows-validation-assets/tool-run-summary.tsv os_status_files/tool-run-summary-windows.tsv || true
-          cp -v all-platform-artifacts/macos-x64-validation-assets/tool-run-summary.tsv os_status_files/tool-run-summary-macosx64.tsv || true
-          cp -v all-platform-artifacts/macos-arm64-validation-assets/tool-run-summary.tsv os_status_files/tool-run-summary-macosarm64.tsv || true
-          cp -v all-platform-artifacts/linux-validation-assets/tool-run-summary.tsv os_status_files/tool-run-summary-linux.tsv || true
+          # Find all tool-run-summary.tsv files under all-platform-artifacts and copy them
+          # into os_status_files, naming by platform inferred from the artifact directory name.
+          find all-platform-artifacts -type f -name 'tool-run-summary.tsv' | while IFS= read -r f; do
+            echo "Processing: $f"
+            # Determine platform tag from path components (look for known tokens)
+            plat="unknown"
+            case "$f" in
+              *windows* ) plat="windows" ;; 
+              *macos-x64* | *macos_x64* | *macos-x64-validation-assets* ) plat="macosx64" ;; 
+              *macos-arm64* | *macos_arm64* | *macos-arm64-validation-assets* ) plat="macosarm64" ;; 
+              *linux* ) plat="linux" ;;
+            esac
+            dest="os_status_files/tool-run-summary-${plat}.tsv"
+            echo "Copying $f -> $dest"
+            cp -v "$f" "$dest" || true
+          done
 
           # Run the repository's Python merger (more robust than inline bash)
           python3 scripts/merge_statuses.py
