@@ -84,6 +84,21 @@ jobs:
           
           token: ${{ secrets.GH_PAT }}
 
+      - name: Extract and patch version from release tag
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.release_tag }}"
+          $version = $version.TrimStart('v').TrimStart('release-')
+          
+          if ($version) {
+            Write-Host "Patching version to: $version"
+            $json = Get-Content 'src/build/settings/base.json' | ConvertFrom-Json
+            $json.version = $version
+            $json | ConvertTo-Json -Depth 10 | Set-Content 'src/build/settings/base.json'
+          } else {
+            Write-Host "No release_tag provided, keeping default version from repository"
+          }
+
       - name: Patch is_dev for release
         shell: pwsh
         run: |
@@ -447,6 +462,19 @@ jobs:
           repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
           ref: ${{ inputs.source_ref }}
           token: ${{ secrets.GH_PAT }}
+
+      - name: Extract and patch version from release tag
+        run: |
+          VERSION="${{ inputs.release_tag }}"
+          VERSION="${VERSION#v}"           # Remove 'v' prefix if present
+          VERSION="${VERSION#release-}"    # Remove 'release-' prefix if present
+
+          if [ -n "$VERSION" ]; then
+            echo "Patching version to: $VERSION"
+            python3 -c "import json; data = json.load(open('src/build/settings/base.json')); data['version'] = '$VERSION'; json.dump(data, open('src/build/settings/base.json', 'w'), indent=4)"
+          else
+            echo "No release_tag provided, keeping default version from repository"
+          fi
 
       - name: Patch is_dev for release
         run: |

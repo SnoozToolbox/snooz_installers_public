@@ -101,6 +101,19 @@ jobs:
           ref: ${{ inputs.source_ref }}
           token: ${{ secrets.GH_PAT }}
 
+      - name: Extract and patch version from release tag
+        run: |
+          VERSION="${{ inputs.release_tag }}"
+          VERSION="${VERSION#v}"           # Remove 'v' prefix if present
+          VERSION="${VERSION#release-}"    # Remove 'release-' prefix if present
+
+          if [ -n "$VERSION" ]; then
+            echo "Patching version to: $VERSION"
+            python3 -c "import json; data = json.load(open('src/build/settings/base.json')); data['version'] = '$VERSION'; json.dump(data, open('src/build/settings/base.json', 'w'), indent=4)"
+          else
+            echo "No release_tag provided, keeping default version from repository"
+          fi
+
       - name: Patch is_dev for release
         run: |
           sed -i '' 's/is_dev = True/is_dev = False/' src/main/python/config.py
@@ -1013,6 +1026,19 @@ jobs:
           repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
           ref: ${{ inputs.source_ref }}
           token: ${{ secrets.GH_PAT }}
+
+      - name: Extract and patch version from release tag
+        run: |
+          VERSION="${{ inputs.release_tag }}"
+          VERSION="${VERSION#v}"           # Remove 'v' prefix if present
+          VERSION="${VERSION#release-}"    # Remove 'release-' prefix if present
+
+          if [ -n "$VERSION" ]; then
+            echo "Patching version to: $VERSION"
+            python3 -c "import json; data = json.load(open('src/build/settings/base.json')); data['version'] = '$VERSION'; json.dump(data, open('src/build/settings/base.json', 'w'), indent=4)"
+          else
+            echo "No release_tag provided, keeping default version from repository"
+          fi
 
       - name: Patch is_dev for release
         run: |
