@@ -83,12 +83,22 @@ Create a path relative to the validation workspace; ensures parent directories e
 
 **Parameters:**
 - `relativePath` (string): Path relative to validation-workspaces directory
+- `asDirectory` (boolean, optional): If `true` (or if `relativePath` ends with `/`), create the path as a directory and return it with a trailing `/`. Use this for folder inputs such as `SavedDestination`.
 
 **Example:** Output file path for a report:
 ```json
 {
   "kind": "workspacePath",
   "relativePath": "DetectREMsYASA-report.tsv"
+}
+```
+
+**Example:** Output directory:
+```json
+{
+  "kind": "workspacePath",
+  "relativePath": "ScoreSleepStagesYASA_outputs/",
+  "asDirectory": true
 }
 ```
 

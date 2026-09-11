@@ -304,5 +304,72 @@
         }
       }
     ]
+  },
+  "ScoreSleepStagesYASA": {
+    "targetToolName": "ScoreSleepStagesYASA",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "identifier": "031201d5-ff93-4be6-90d3-256d2ba689d1",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/ScoreSleepStagesYASA-files.json",
+          "required": true
+        }
+      },
+      {
+        "identifier": "031201d5-ff93-4be6-90d3-256d2ba689d1",
+        "inputName": "alias",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/ScoreSleepStagesYASA-alias.json",
+          "required": true
+        }
+      },
+      {
+        "identifier": "45e14f5d-5a72-4aaf-bf01-644c095979d6",
+        "inputName": "SavedDestination",
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "ScoreSleepStagesYASA_outputs/",
+          "asDirectory": true,
+          "required": true
+        }
+      },
+      {
+        "identifier": "45e14f5d-5a72-4aaf-bf01-644c095979d6",
+        "inputName": "Checkbox",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "True",
+          "required": true
+        }
+      },
+      {
+        "identifier": "e58aa07b-4802-45f7-92c2-61f6f19b1818",
+        "inputName": "validation_on",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "True",
+          "required": true
+        }
+      },
+      {
+        "identifier": "e58aa07b-4802-45f7-92c2-61f6f19b1818",
+        "inputName": "stage_group",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "stage",
+          "required": true
+        }
+      }
+    ]
   }
 }

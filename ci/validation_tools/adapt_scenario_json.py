@@ -66,7 +66,12 @@ def resolve_configured_value(spec, workspace_dir, private_dataset_dir):
         relative_path = spec.get("relativePath")
         if not relative_path:
             raise ValueError("workspacePath specification requires relativePath")
+        as_directory = bool(spec.get("asDirectory")) or str(relative_path).endswith(("/", "\\"))
         full_path = (workspace_dir / relative_path).resolve()
+        if as_directory:
+            # Directory inputs (e.g. SavedDestination) must exist before Snooz runs.
+            full_path.mkdir(parents=True, exist_ok=True)
+            return convert_to_json_path(full_path) + "/"
         full_path.parent.mkdir(parents=True, exist_ok=True)
         return convert_to_json_path(full_path)
 
