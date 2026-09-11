@@ -676,7 +676,9 @@ jobs:
             # This runner is a persistent self-hosted Mac mini: make sure no helper process
             # spawned by the app survives this step and holds a single-instance lock that
             # would hang the next (headless runtime) step on a stale, unresponsive instance.
-            pkill -9 -f "Snooz Toolbox.app/Contents/MacOS/" >/dev/null 2>&1 || true
+            for pattern in "Snooz Toolbox.app/Contents/MacOS/" "Snooz Toolbox"; do
+              pkill -9 -f "$pattern" >/dev/null 2>&1 || true
+            done
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
             rm -f "$LOG_FILE"
@@ -822,11 +824,19 @@ jobs:
           # alive and holding its single-instance lock/IPC socket. A leftover instance makes this
           # headless launch silently hand off to it and hang with an empty log until the step
           # times out. Kill any stray instance before mounting/launching.
-          if pgrep -f "Snooz Toolbox.app/Contents/MacOS/" >/dev/null 2>&1; then
+          FOUND_STRAY_PROCESS=0
+          for pattern in "Snooz Toolbox.app/Contents/MacOS/" "Snooz Toolbox"; do
+            if pgrep -f "$pattern" >/dev/null 2>&1; then
+              FOUND_STRAY_PROCESS=1
+              pkill -f "$pattern" || true
+            fi
+          done
+          if [ "$FOUND_STRAY_PROCESS" -eq 1 ]; then
             echo "Found stray Snooz Toolbox process(es) from a previous run; killing before launch."
-            pkill -f "Snooz Toolbox.app/Contents/MacOS/" || true
             sleep 2
-            pkill -9 -f "Snooz Toolbox.app/Contents/MacOS/" || true
+            for pattern in "Snooz Toolbox.app/Contents/MacOS/" "Snooz Toolbox"; do
+              pkill -9 -f "$pattern" || true
+            done
           fi
 
           MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
@@ -836,6 +846,9 @@ jobs:
           LOG_FILE="$LOG_DIR/macos-x64-dmg-runtime-smoke.log"
           : > "$LOG_FILE"
           rm -f "$RUNTIME_TEST_ROOT"/runtime-smoke/snooz_runtime_smoke_*.log
+          RUNTIME_HOME="$RUNTIME_TEST_ROOT/home"
+          RUNTIME_TMPDIR="$RUNTIME_TEST_ROOT/tmp"
+          mkdir -p "$RUNTIME_HOME" "$RUNTIME_TMPDIR"
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
@@ -868,7 +881,7 @@ jobs:
           set +e
           (
             cd "$RUNTIME_TEST_ROOT"
-            "$APP_EXEC" --f "$PROCESS_JSON" >"$LOG_FILE" 2>&1 &
+            HOME="$RUNTIME_HOME" TMPDIR="$RUNTIME_TMPDIR" "$APP_EXEC" --f "$PROCESS_JSON" >"$LOG_FILE" 2>&1 &
             APP_RUN_PID=$!
             (
               sleep 240
@@ -1935,4 +1948,3 @@ jobs:
           path: target/smoke-logs/**
           retention-days: 2
           if-no-files-found: warn
-
