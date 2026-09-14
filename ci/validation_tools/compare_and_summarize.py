@@ -5,10 +5,10 @@ Compare generated tool outputs against gold-standard references, write a
 tool-run-summary.tsv, and collect generated/reference files per tool into
 validation-outputs/.
 
-This is the shared, cross-platform (Windows/macOS/Linux) equivalent of the
-comparison logic previously embedded only in validation_windows.yml's
-PowerShell, so all three platforms produce identical comparison results and
-artifacts.
+Bootstrap behavior:
+  - Empty gold_standard_tag  -> skip all comparisons (still collect generated outputs)
+  - Tag set but tool gold missing -> skip that tool's comparison (collect generated)
+  - Tag set and gold present -> compare as usual
 
 Usage:
     python compare_and_summarize.py \
@@ -72,14 +72,42 @@ def run_comparison(compare_script, tool_name, generated_file, reference_file, fi
     return result.returncode == 0, output
 
 
+def collect_generated_only(output_dir, tool_name, tool_config, generated_search_roots_default):
+    """Copy generated outputs into the artifact so they can become future gold standards."""
+    tool_output_dir = Path(output_dir) / tool_name
+    tool_output_dir.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    for comparison in tool_config.get("comparisons", []):
+        file_name = comparison.get("generatedFileName") or comparison.get("fileName", "")
+        if not file_name:
+            continue
+        roots = comparison.get("generatedSearchRoots") or generated_search_roots_default
+        generated_file = find_first_file_by_name(roots, file_name)
+        if generated_file is None:
+            print(f"::warning::{tool_name} generated file not found for bootstrap copy: {file_name}")
+            continue
+        dest_gen = tool_output_dir / f"generated_{generated_file.name}"
+        dest_gen.write_bytes(generated_file.read_bytes())
+        print(f"Copied generated (for gold-standard bootstrap): {generated_file} -> {dest_gen}")
+        copied += 1
+    return copied
+
+
 def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_default, compare_script):
-    """Run all configured comparisons for one tool. Returns (status, validated_files, output_dir_files)."""
+    """Run all configured comparisons for one tool. Returns (status, validated_files, collected_files)."""
     comparisons = tool_config.get("comparisons", [])
     if not comparisons:
         return "skipped-no-comparisons-configured", [], []
 
     validated_files = []
     collected_files = []  # list of (generated_path, gold_path, file_name)
+
+    tool_gold_dir = Path(gold_dir) / tool_name
+    if not tool_gold_dir.exists():
+        # First-time / bootstrap: analysis already passed; gold not published yet.
+        print(f"::warning::{tool_name} gold-standard directory not found: {tool_gold_dir}")
+        print(f"Skipping comparison for {tool_name}. Use generated outputs from the artifact to publish gold standards.")
+        return "skipped-missing-gold-standard", [], []
 
     for comparison in comparisons:
         file_name = comparison.get("fileName", "")
@@ -100,15 +128,11 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
                 print(f"  Searched root: {root}")
             return "fail", validated_files, collected_files
 
-        tool_gold_dir = Path(gold_dir) / tool_name
-        if not tool_gold_dir.exists():
-            print(f"::error::{tool_name} gold-standard directory not found: {tool_gold_dir}")
-            return "fail", validated_files, collected_files
-
         gold_matches = sorted(tool_gold_dir.rglob(gold_file_name), key=lambda p: str(p))
         if not gold_matches:
-            print(f"::error::{tool_name} gold-standard file not found in {tool_gold_dir}: {gold_file_name}")
-            return "fail", validated_files, collected_files
+            print(f"::warning::{tool_name} gold-standard file not found in {tool_gold_dir}: {gold_file_name}")
+            print(f"Skipping comparison for {tool_name}. Use generated outputs from the artifact to publish gold standards.")
+            return "skipped-missing-gold-standard", validated_files, collected_files
         gold_file = gold_matches[0]
 
         print(f"Comparing {tool_name} output file: {generated_file_name}")
@@ -159,6 +183,11 @@ def main():
     parser.add_argument('--append', action='store_true', help='Append to the summary TSV and keep existing output-dir contents (use when validating one tool right after it runs, instead of all tools at the end)')
 
     args = parser.parse_args()
+    gold_standard_tag = (args.gold_standard_tag or "").strip()
+    print(
+        f"Resolved gold_standard_tag={gold_standard_tag!r} "
+        f"({'comparisons enabled' if gold_standard_tag else 'comparisons skipped (empty tag)'})"
+    )
 
     with open(args.run_status_file, 'r', encoding='utf-8') as f:
         run_status = json.load(f)
@@ -183,7 +212,6 @@ def main():
     for tool_name, run_info in run_status.items():
         print("\n==========================================")
         print(f"\nRunning comparisons for: {tool_name}")
-        # If run-status included an execution log, show a short tail for context
         exec_log = run_info.get("execution_log")
         if exec_log:
             try:
@@ -204,18 +232,21 @@ def main():
         scenario_path = workspace_dir / f"{tool_name}.json"
         tool_version = get_tool_version(scenario_path)
         validated_files = []
+        tool_config = tool_validations.get(tool_name) if isinstance(tool_validations.get(tool_name), dict) else None
 
         if tool_run_status != "pass":
             comparison_status = tool_run_status
             any_failure = True
-        elif not args.gold_standard_tag:
+        elif not gold_standard_tag:
             comparison_status = "skipped-no-gold-standard-tag"
-        elif tool_name not in tool_validations or not isinstance(tool_validations.get(tool_name), dict):
+            if tool_config:
+                collect_generated_only(output_dir, tool_name, tool_config, generated_search_roots_default)
+        elif tool_config is None:
             comparison_status = "not-configured"
         else:
             comparison_status, validated_files, collected_files = compare_tool(
                 tool_name,
-                tool_validations[tool_name],
+                tool_config,
                 args.gold_standards_dir,
                 generated_search_roots_default,
                 args.compare_script,
@@ -224,6 +255,8 @@ def main():
                 collect_output_files(output_dir, tool_name, collected_files)
             if comparison_status == "fail":
                 any_failure = True
+            elif comparison_status == "skipped-missing-gold-standard":
+                collect_generated_only(output_dir, tool_name, tool_config, generated_search_roots_default)
 
         summary_rows.append({
             "tool_name": tool_name,
@@ -238,7 +271,11 @@ def main():
     output_summary_path.parent.mkdir(parents=True, exist_ok=True)
     write_header = not (args.append and output_summary_path.exists())
     with open(output_summary_path, 'a' if args.append else 'w', encoding='utf-8', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=["tool_name", "tool_version", "json_name", "run_status", "comparison_status", "validated_files"], delimiter='\t')
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["tool_name", "tool_version", "json_name", "run_status", "comparison_status", "validated_files"],
+            delimiter='\t',
+        )
         if write_header:
             writer.writeheader()
         writer.writerows(summary_rows)
@@ -250,8 +287,10 @@ def main():
     print("==========================================")
     for row in summary_rows:
         status = row["comparison_status"]
-        if status in ("skipped-no-gold-standard-tag",):
+        if status == "skipped-no-gold-standard-tag":
             print(f"  \u2298 {row['tool_name']}: SKIPPED (no gold standard tag)")
+        elif status == "skipped-missing-gold-standard":
+            print(f"  \u2298 {row['tool_name']}: SKIPPED (gold standard not published yet)")
         elif status == "skipped-no-comparisons-configured":
             print(f"  \u2298 {row['tool_name']}: SKIPPED (no comparisons configured)")
         elif status == "not-configured":
