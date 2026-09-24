@@ -432,7 +432,7 @@
         "required": true,
         "value": {
           "kind": "workspacePath",
-          "value": "EEG_spectral_power_cohort_report_Welch.tsv",
+          "relativePath": "EEG_spectral_power_cohort_report_Welch.tsv",
           "required": true
         }
       }
