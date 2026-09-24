@@ -371,5 +371,72 @@
         }
       }
     ]
+  },
+  "PowerSpectralAnalysis": {
+    "targetToolName": "PowerSpectralAnalysis",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "identifier": "9d7a24dd-ef7b-47ab-81c1-2986d7462b0d",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "identifier": "668f9ecf-9498-4bf6-85d8-7e73002c66a9",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "identifier": "b36768be-9cab-41f9-850f-22edf97b1c13",
+        "inputName": "cutoff", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "0.3 61",
+          "required": true
+        }
+      },
+      {
+        "identifier": "377e68c9-e26d-4b06-972e-d88e12ecb208",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/PowerSpectralAnalysis-files.json",
+          "required": true
+        }
+      },
+      {
+        "identifier": "64038a3b-6640-437a-96b1-2d9bf7f5db7f",
+        "inputName": "constant", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "61",
+          "required": true
+        }
+      },
+      {
+        "identifier": "4bb8c9ac-64e8-4cec-9c2c-5a00c80b4eae",
+        "inputName": "filename", 
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "value": "EEG_spectral_power_cohort_report_Welch.tsv",
+          "required": true
+        }
+      }
+    ]
   }
 }
+
