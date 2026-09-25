@@ -874,6 +874,17 @@ jobs:
               sleep 240
               if kill -0 "$APP_RUN_PID" >/dev/null 2>&1; then
                 echo "::warning::Runtime smoke process exceeded internal 240s watchdog; killing it (possible stale single-instance lock)." >>"$LOG_FILE"
+                {
+                  echo "--- Runtime smoke process snapshot before kill ---"
+                  ps -p "$APP_RUN_PID" -o pid,ppid,state,etime,%cpu,%mem,command || true
+                  echo "--- Related Snooz processes ---"
+                  ps -axo pid,ppid,state,etime,%cpu,%mem,command | grep -E '[S]nooz Toolbox|[s]nooz_runtime_smoke' || true
+                  echo "--- macOS process sample (5 seconds) ---"
+                  sample "$APP_RUN_PID" 5 1 || true
+                  echo "--- VM statistics ---"
+                  vm_stat || true
+                  echo "--- End timeout diagnostics ---"
+                } >>"$LOG_FILE" 2>&1
                 kill -9 "$APP_RUN_PID" >/dev/null 2>&1 || true
               fi
             ) &
