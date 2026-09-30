@@ -68,6 +68,18 @@ class CaptureValidationChangesTest(unittest.TestCase):
         self.assertEqual(metadata["tool"], "Tool Two")
         self.assertEqual(metadata["sequence"], 2)
 
+    def test_finalize_contains_state_after_last_tool(self):
+        (self.dataset / "existing.tsv").write_text("final", encoding="utf-8")
+        capture.capture(self.args())
+        capture.finalize(self.args(sequence=1))
+
+        archive_path = self.output / "checkpoints" / "final-state.zip"
+        with zipfile.ZipFile(archive_path) as archive:
+            self.assertEqual(archive.read("files/private-dataset/existing.tsv"), b"final")
+            metadata = json.loads(archive.read("checkpoint.json"))
+        self.assertEqual(metadata["state"], "after-all-tools")
+        self.assertEqual(metadata["sequence"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

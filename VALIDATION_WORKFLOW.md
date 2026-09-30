@@ -85,6 +85,7 @@ validation-captures/
             changes.json
     checkpoints/
         01-ToolName-before.zip
+        final-state.zip
 ```
 
 `changes.json` lists files created, modified, and deleted by one tool. Created and modified files are copied under `changes/` with their path relative to the validation root preserved. This collection is independent from the files configured for gold-standard comparison.
@@ -97,6 +98,8 @@ Each `*-before.zip` is a cumulative overlay relative to the original dataset rel
 4. Run the adapted scenario for the selected tool.
 
 The checkpoint contains only files changed by preceding tools. Unchanged dataset files remain sourced from the original dataset release to limit artifact size.
+
+`final-state.zip` contains the cumulative overlay after the last tool has run. It can be used as the starting state when developing a new validation test appended to the execution order, without rerunning all preceding tools locally.
 
 ### Tool execution order
 

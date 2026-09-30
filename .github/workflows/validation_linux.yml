@@ -461,6 +461,10 @@ jobs:
             echo "=========================================="
             echo ""
           done
+
+          python3 ci/validation_tools/capture_validation_changes.py finalize \
+            --output-dir validation-captures \
+            --sequence "$tool_sequence"
           
           exit $overall_exit
 

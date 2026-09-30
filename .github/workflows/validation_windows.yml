@@ -574,6 +574,10 @@ jobs:
             Write-Host ""
           }
 
+          python ci/validation_tools/capture_validation_changes.py finalize `
+            --output-dir validation-captures `
+            --sequence $toolSequence
+
           exit $overallExit
 
       - name: Upload adapted JSON and validation logs as artifact

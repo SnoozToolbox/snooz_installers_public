@@ -146,6 +146,30 @@ def checkpoint(args: argparse.Namespace) -> None:
                 archive.write(path, path.relative_to(state_dir).as_posix())
 
 
+def finalize(args: argparse.Namespace) -> None:
+    output_dir = Path(args.output_dir)
+    state_dir = output_dir / "checkpoint-state"
+    checkpoint_dir = output_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = checkpoint_dir / "final-state.zip"
+
+    write_json(
+        state_dir / "checkpoint.json",
+        {
+            "state": "after-all-tools",
+            "sequence": args.sequence,
+            "purpose": "Overlay to apply to the original validation dataset after all tools have run.",
+        },
+    )
+    if not (state_dir / "deleted-paths.json").exists():
+        write_json(state_dir / "deleted-paths.json", [])
+
+    with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(state_dir.rglob("*")):
+            if path.is_file():
+                archive.write(path, path.relative_to(state_dir).as_posix())
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -168,6 +192,11 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint_parser.add_argument("--tool", required=True)
     checkpoint_parser.add_argument("--sequence", type=int, required=True)
     checkpoint_parser.set_defaults(function=checkpoint)
+
+    finalize_parser = subparsers.add_parser("finalize", help="Archive cumulative state after all tools have run")
+    finalize_parser.add_argument("--output-dir", required=True)
+    finalize_parser.add_argument("--sequence", type=int, required=True)
+    finalize_parser.set_defaults(function=finalize)
     return parser
 
 
