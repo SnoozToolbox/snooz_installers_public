@@ -68,3 +68,33 @@ graph TD
 - Tool run summary (TSV format)
 - Comparison results for each validated output
 - Generated vs. reference file pairs
+- All files created, modified, or deleted by each tool under `private-dataset/` and `validation-workspaces/`
+- Cumulative checkpoints that reproduce the state immediately before each tool
+
+### Captured outputs and checkpoints
+
+Each platform artifact contains the following structure under `validation-outputs/`:
+
+```text
+validation-outputs/
+    tools/
+        01-ToolName/
+            changes/
+                private-dataset/...
+                validation-workspaces/...
+            changes.json
+    checkpoints/
+        01-ToolName-before.zip
+    checkpoint-state/
+```
+
+`changes.json` lists files created, modified, and deleted by one tool. Created and modified files are copied under `changes/` with their path relative to the validation root preserved. This collection is independent from the files configured for gold-standard comparison.
+
+Each `*-before.zip` is a cumulative overlay relative to the original dataset release. To reproduce the runner state immediately before a tool:
+
+1. Extract the same dataset release identified by `dataset_tag`.
+2. Extract `files/private-dataset/` and `files/validation-workspaces/` from the checkpoint over the corresponding local folders.
+3. Remove the relative paths listed in `deleted-paths.json`.
+4. Run the adapted scenario for the selected tool.
+
+The checkpoint contains only files changed by preceding tools. Unchanged dataset files remain sourced from the original dataset release to limit artifact size.

@@ -490,6 +490,12 @@ jobs:
           Remove-Item -Path "tool-run-summary.tsv" -Force -ErrorAction SilentlyContinue
           Remove-Item -Path "validation-outputs" -Recurse -Force -ErrorAction SilentlyContinue
           $overallExit = 0
+          $toolSequence = 0
+
+          python ci/validation_tools/capture_validation_changes.py snapshot `
+            --root private-dataset `
+            --root validation-workspaces `
+            --output target/validation-logs/validation-state.json
 
           foreach ($toolName in $tools) {
             $scenario = "validation-workspaces/$toolName.json"
@@ -497,6 +503,12 @@ jobs:
               Write-Host "Warning: Scenario not found: $scenario"
               continue
             }
+
+            $toolSequence += 1
+            python ci/validation_tools/capture_validation_changes.py checkpoint `
+              --output-dir validation-outputs `
+              --tool "$toolName" `
+              --sequence $toolSequence
 
             Write-Host "Running scenario: $toolName"
             $execLog = "target/validation-logs/$toolName-exec.log"
@@ -527,6 +539,14 @@ jobs:
               Add-Content -Path $runStatusTsv -Value "$toolName`tpass"
               $toolStatus = "pass"
             }
+
+            python ci/validation_tools/capture_validation_changes.py capture `
+              --root private-dataset `
+              --root validation-workspaces `
+              --manifest target/validation-logs/validation-state.json `
+              --output-dir validation-outputs `
+              --tool "$toolName" `
+              --sequence $toolSequence
 
             # Validate this tool's outputs now, while its annotation file is still
             # in the state produced by this run (before the next tool modifies it).

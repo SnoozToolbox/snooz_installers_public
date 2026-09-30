@@ -369,6 +369,12 @@ jobs:
           rm -f tool-run-summary.tsv
           rm -rf validation-outputs
           overall_exit=0
+          tool_sequence=0
+
+          python3 ci/validation_tools/capture_validation_changes.py snapshot \
+            --root private-dataset \
+            --root validation-workspaces \
+            --output target/validation-logs/validation-state.json
           
           for TOOL_NAME in $TOOLS; do
             scenario="validation-workspaces/${TOOL_NAME}.json"
@@ -377,6 +383,12 @@ jobs:
               echo "Warning: Scenario not found: $scenario"
               continue
             fi
+
+            tool_sequence=$((tool_sequence + 1))
+            python3 ci/validation_tools/capture_validation_changes.py checkpoint \
+              --output-dir validation-outputs \
+              --tool "$TOOL_NAME" \
+              --sequence "$tool_sequence"
             
             echo "Running scenario: $TOOL_NAME"
             exec_log="target/validation-logs/${TOOL_NAME}-exec.log"
@@ -409,6 +421,14 @@ jobs:
               printf '%s\tpass\n' "$TOOL_NAME" >> "$run_status_tsv"
               tool_status="pass"
             fi
+
+            python3 ci/validation_tools/capture_validation_changes.py capture \
+              --root private-dataset \
+              --root validation-workspaces \
+              --manifest target/validation-logs/validation-state.json \
+              --output-dir validation-outputs \
+              --tool "$TOOL_NAME" \
+              --sequence "$tool_sequence"
 
             # Validate this tool's outputs now, while its annotation file is still
             # in the state produced by this run (before the next tool modifies it).
