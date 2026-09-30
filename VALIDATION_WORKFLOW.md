@@ -73,10 +73,10 @@ graph TD
 
 ### Captured outputs and checkpoints
 
-Each platform artifact contains the following structure under `validation-outputs/`:
+Captured files are stored separately from gold-standard comparison files so comparison cleanup cannot remove them. Each platform artifact contains:
 
 ```text
-validation-outputs/
+validation-captures/
     tools/
         01-ToolName/
             changes/
@@ -85,7 +85,6 @@ validation-outputs/
             changes.json
     checkpoints/
         01-ToolName-before.zip
-    checkpoint-state/
 ```
 
 `changes.json` lists files created, modified, and deleted by one tool. Created and modified files are copied under `changes/` with their path relative to the validation root preserved. This collection is independent from the files configured for gold-standard comparison.
@@ -98,3 +97,9 @@ Each `*-before.zip` is a cumulative overlay relative to the original dataset rel
 4. Run the adapted scenario for the selected tool.
 
 The checkpoint contains only files changed by preceding tools. Unchanged dataset files remain sourced from the original dataset release to limit artifact size.
+
+### Tool execution order
+
+The cross-platform execution order is defined in `ci/validation_tools/tool_execution_order.json`. Windows, Linux, and macOS all use this list. The optional `tools_to_process` input selects a subset but does not change the relative order.
+
+Every tool with non-empty `updates` in `tool_json_adaptations.json` must appear exactly once in the execution-order file. The workflow fails during preparation if a configured tool is missing or an unknown tool is listed. When adding `SlowWaveDetection`, add it to `tool_execution_order.json` at the point where its required input state is available, for example immediately after `ScoreSleepStagesYASA`.

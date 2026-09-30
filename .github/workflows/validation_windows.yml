@@ -458,20 +458,15 @@ jobs:
           }
 
           $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
-          $tools = @()
-          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
-            $tools = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-          }
-
-          if ($tools.Count -eq 0) {
-            $adaptationsPath = "ci/validation_tools/tool_json_adaptations.json"
-            $adaptations = Get-Content -Path $adaptationsPath -Raw | ConvertFrom-Json -AsHashtable
-            $tools = @(
-              $adaptations.GetEnumerator() |
-                Where-Object { $_.Value -is [hashtable] -and $_.Value.ContainsKey("updates") -and $_.Value.updates.Count -gt 0 } |
-                ForEach-Object { [string]$_.Key } |
-                Sort-Object
-            )
+          $tools = @(
+            python ci/validation_tools/resolve_tool_order.py `
+              --adaptations-file ci/validation_tools/tool_json_adaptations.json `
+              --order-file ci/validation_tools/tool_execution_order.json `
+              --tools "$toolsToProcessInput" `
+              --format lines
+          )
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to resolve validation tool execution order."
           }
 
           if ($tools.Count -eq 0) {
@@ -489,6 +484,7 @@ jobs:
           # next tool appends more annotations to the same file.
           Remove-Item -Path "tool-run-summary.tsv" -Force -ErrorAction SilentlyContinue
           Remove-Item -Path "validation-outputs" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "validation-captures" -Recurse -Force -ErrorAction SilentlyContinue
           $overallExit = 0
           $toolSequence = 0
 
@@ -506,7 +502,7 @@ jobs:
 
             $toolSequence += 1
             python ci/validation_tools/capture_validation_changes.py checkpoint `
-              --output-dir validation-outputs `
+              --output-dir validation-captures `
               --tool "$toolName" `
               --sequence $toolSequence
 
@@ -544,7 +540,7 @@ jobs:
               --root private-dataset `
               --root validation-workspaces `
               --manifest target/validation-logs/validation-state.json `
-              --output-dir validation-outputs `
+              --output-dir validation-captures `
               --tool "$toolName" `
               --sequence $toolSequence
 
@@ -592,3 +588,5 @@ jobs:
             target/validation-logs/**/*.log
             tool-run-summary.tsv
             validation-outputs/**/*
+            validation-captures/tools/**/*
+            validation-captures/checkpoints/*

@@ -356,12 +356,14 @@ jobs:
             exit 1
           fi
 
-          # Extract list of actual tools from tool_json_adaptations.json
-          TOOLS=$(python3 -c 'import json,sys; data=json.load(open("ci/validation_tools/tool_json_adaptations.json")); print(" ".join(sorted([k for k,v in data.items() if isinstance(v,dict) and v.get("updates")])))' 2>/dev/null)
-          
+          TOOLS=$(python3 ci/validation_tools/resolve_tool_order.py \
+            --adaptations-file ci/validation_tools/tool_json_adaptations.json \
+            --order-file ci/validation_tools/tool_execution_order.json \
+            --tools "${{ inputs.tools_to_process }}" \
+            --format shell)
           if [ -z "$TOOLS" ]; then
-            echo "Warning: Could not extract tool list from tool_json_adaptations.json"
-            TOOLS=$(ls validation-workspaces/*.json | xargs -n1 basename -s .json | grep -v -E '^(CEAMSTools|tool_|adaptations)' | sort)
+            echo "No tools resolved to run."
+            exit 1
           fi
           
           echo "Running scenarios for tools: $TOOLS"
@@ -374,6 +376,7 @@ jobs:
           # next tool appends more annotations to the same file.
           rm -f tool-run-summary.tsv
           rm -rf validation-outputs
+          rm -rf validation-captures
           overall_exit=0
           tool_sequence=0
 
@@ -392,7 +395,7 @@ jobs:
 
             tool_sequence=$((tool_sequence + 1))
             python3 ci/validation_tools/capture_validation_changes.py checkpoint \
-              --output-dir validation-outputs \
+              --output-dir validation-captures \
               --tool "$TOOL_NAME" \
               --sequence "$tool_sequence"
             
@@ -432,7 +435,7 @@ jobs:
               --root private-dataset \
               --root validation-workspaces \
               --manifest target/validation-logs/validation-state.json \
-              --output-dir validation-outputs \
+              --output-dir validation-captures \
               --tool "$TOOL_NAME" \
               --sequence "$tool_sequence"
 
@@ -489,3 +492,5 @@ jobs:
             validation-workspaces/**/*.log
             tool-run-summary.tsv
             validation-outputs/**/*
+            validation-captures/tools/**/*
+            validation-captures/checkpoints/*

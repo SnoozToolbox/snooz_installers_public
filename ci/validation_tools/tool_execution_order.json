@@ -1,0 +1,12 @@
+[
+  "ConvertDOMINO",
+  "ConvertEDFbrowser",
+  "ConvertXMLCompumedics",
+  "DetectArtifacts",
+  "DetectREMsYASA",
+  "ExtractAnnotation",
+  "ImportEDFPlusAnnotations",
+  "ImportTextAnnotations",
+  "PowerSpectralAnalysis",
+  "ScoreSleepStagesYASA"
+]
