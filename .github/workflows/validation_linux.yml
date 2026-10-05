@@ -371,13 +371,17 @@ jobs:
           rm -f tool-run-summary.tsv
           rm -rf validation-outputs
           rm -rf validation-captures
+          rm -rf captures
           overall_exit=0
           tool_sequence=0
 
           python3 ci/validation_tools/capture_validation_changes.py snapshot \
             --root private-dataset \
             --root validation-workspaces \
-            --output target/validation-logs/validation-state.json
+            --output target/validation-logs/validation-state.json || {
+              echo "::error::Validation snapshot failed"
+              exit 1
+            }
           
           for TOOL_NAME in $TOOLS; do
             scenario="validation-workspaces/${TOOL_NAME}.json"
@@ -391,7 +395,10 @@ jobs:
             python3 ci/validation_tools/capture_validation_changes.py checkpoint \
               --output-dir validation-captures \
               --tool "$TOOL_NAME" \
-              --sequence "$tool_sequence"
+              --sequence "$tool_sequence" || {
+                echo "::error::Validation checkpoint failed for $TOOL_NAME"
+                exit 1
+              }
             
             echo "Running scenario: $TOOL_NAME"
             exec_log="target/validation-logs/${TOOL_NAME}-exec.log"
@@ -429,9 +436,13 @@ jobs:
               --root private-dataset \
               --root validation-workspaces \
               --manifest target/validation-logs/validation-state.json \
-              --output-dir validation-captures \
+              --output-dir captures \
+              --state-dir validation-captures/checkpoint-state \
               --tool "$TOOL_NAME" \
-              --sequence "$tool_sequence"
+              --sequence "$tool_sequence" || {
+                echo "::error::Validation capture failed for $TOOL_NAME"
+                exit 1
+              }
 
             # Validate this tool's outputs now, while its annotation file is still
             # in the state produced by this run (before the next tool modifies it).
@@ -464,7 +475,10 @@ jobs:
 
           python3 ci/validation_tools/capture_validation_changes.py finalize \
             --output-dir validation-captures \
-            --sequence "$tool_sequence"
+            --sequence "$tool_sequence" || {
+              echo "::error::Validation final checkpoint failed"
+              exit 1
+            }
           
           exit $overall_exit
 
@@ -477,7 +491,8 @@ jobs:
           path: |
             validation-workspaces/**/*.json
             validation-workspaces/**/*.log
+            target/validation-logs/**/*.log
             tool-run-summary.tsv
             validation-outputs/**/*
-            validation-captures/tools/**/*
+            captures/**/*
             validation-captures/checkpoints/*

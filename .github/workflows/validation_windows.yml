@@ -495,6 +495,9 @@ jobs:
           Remove-Item -Path "tool-run-summary.tsv" -Force -ErrorAction SilentlyContinue
           Remove-Item -Path "validation-outputs" -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item -Path "validation-captures" -Recurse -Force -ErrorAction SilentlyContinue
+          if (Test-Path "captures") {
+            Remove-Item -LiteralPath "captures" -Recurse -Force -ErrorAction Stop
+          }
           $overallExit = 0
           $toolSequence = 0
 
@@ -502,6 +505,9 @@ jobs:
             --root private-dataset `
             --root validation-workspaces `
             --output target/validation-logs/validation-state.json
+          if ($LASTEXITCODE -ne 0) {
+            throw "Validation snapshot failed with exit code $LASTEXITCODE"
+          }
 
           foreach ($toolName in $tools) {
             $scenario = "validation-workspaces/$toolName.json"
@@ -515,6 +521,10 @@ jobs:
               --output-dir validation-captures `
               --tool "$toolName" `
               --sequence $toolSequence
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Validation checkpoint failed for $toolName with exit code $LASTEXITCODE"
+            }
 
             Write-Host "Running scenario: $toolName"
             $execLog = "target/validation-logs/$toolName-exec.log"
@@ -550,9 +560,14 @@ jobs:
               --root private-dataset `
               --root validation-workspaces `
               --manifest target/validation-logs/validation-state.json `
-              --output-dir validation-captures `
+              --output-dir captures `
+              --state-dir validation-captures/checkpoint-state `
               --tool "$toolName" `
               --sequence $toolSequence
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Validation capture failed for $toolName with exit code $LASTEXITCODE"
+            }
 
             # Validate this tool's outputs now, while its annotation file is still
             # in the state produced by this run (before the next tool modifies it).
@@ -588,6 +603,10 @@ jobs:
             --output-dir validation-captures `
             --sequence $toolSequence
 
+          if ($LASTEXITCODE -ne 0) {
+            throw "Validation final checkpoint failed with exit code $LASTEXITCODE"
+          }
+
           exit $overallExit
 
       - name: Upload adapted JSON and validation logs as artifact
@@ -602,5 +621,5 @@ jobs:
             target/validation-logs/**/*.log
             tool-run-summary.tsv
             validation-outputs/**/*
-            validation-captures/tools/**/*
+            captures/**/*
             validation-captures/checkpoints/*

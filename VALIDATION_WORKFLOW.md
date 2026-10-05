@@ -73,22 +73,22 @@ graph TD
 
 ### Captured outputs and checkpoints
 
-Captured files are stored separately from gold-standard comparison files so comparison cleanup cannot remove them. Each platform artifact contains:
+Captured files are stored separately from gold-standard comparison files so comparison cleanup cannot remove them. Windows, Linux, and macOS artifacts use the same short, flat capture layout to reduce Windows Explorer extraction path lengths:
 
 ```text
+captures/
+    01-ToolName/
+        output.tsv
+        changes.json
 validation-captures/
-    tools/
-        01-ToolName/
-            changes/
-                private-dataset/...
-                validation-workspaces/...
-            changes.json
     checkpoints/
         01-ToolName-before.zip
         final-state.zip
 ```
 
-`changes.json` lists files created, modified, and deleted by one tool. Created and modified files are copied under `changes/` with their path relative to the validation root preserved. This collection is independent from the files configured for gold-standard comparison.
+`changes.json` lists files created, modified, and deleted by one tool. Each file record retains its original root-relative `path` and a `captured_path` relative to the tool folder. Unique basenames are preserved. Case-insensitive duplicate basenames and the reserved name `changes.json` receive a source-path hash suffix, with a shortened stem, to prevent overwrites. Capture copy failures are recorded in `copy_errors` and fail the workflow on every platform. Checkpoint contents and restoration instructions are unchanged; extracting checkpoints may still require a short destination path or a long-path-capable extractor.
+
+The `capture` command writes files directly into `--output-dir captures`, under the tool folder; there is no later flattening step or legacy nested mode. Its required `--state-dir validation-captures/checkpoint-state` separately retains source-relative paths for checkpoint restoration. The `checkpoint` and `finalize` commands use `--output-dir validation-captures`.
 
 Each `*-before.zip` is a cumulative overlay relative to the original dataset release. To reproduce the runner state immediately before a tool:
 

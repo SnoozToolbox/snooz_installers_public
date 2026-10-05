@@ -109,6 +109,27 @@ def snapshot(args: argparse.Namespace) -> None:
     write_json(Path(args.output), {"roots": list(roots), "files": inventory(roots)})
 
 
+def flat_capture_names(keys: list[str]) -> dict[str, str]:
+    counts = {}
+    for key in keys:
+        name = Path(key).name.casefold()
+        counts[name] = counts.get(name, 0) + 1
+
+    names = {}
+    used = {"changes.json"}
+    for key in sorted(keys):
+        filename = Path(key).name
+        if counts[filename.casefold()] > 1 or filename.casefold() == "changes.json":
+            path = Path(filename)
+            digest = hashlib.sha256(key.encode("utf-8")).hexdigest()
+            filename = f"{path.stem[:120]}-{digest}{path.suffix[:20]}"
+        if filename.casefold() in used:
+            raise ValueError(f"Capture filename collision for {key}: {filename}")
+        used.add(filename.casefold())
+        names[key] = filename
+    return names
+
+
 def capture(args: argparse.Namespace) -> None:
     roots = parse_roots(args.root)
     before_path = Path(args.manifest)
@@ -122,16 +143,15 @@ def capture(args: argparse.Namespace) -> None:
 
     tool_id = f"{args.sequence:02d}-{safe_tool_name(args.tool)}"
     output_dir = Path(args.output_dir)
-    tool_dir = output_dir / "tools" / tool_id
-    changes_dir = tool_dir / "changes"
-    state_dir = output_dir / "checkpoint-state"
+    tool_dir = output_dir / tool_id
+    capture_names = flat_capture_names(changed)
+    state_dir = Path(args.state_dir)
     state_files_dir = state_dir / "files"
     deleted_state_path = state_dir / "deleted-paths.json"
     deleted_state = set(load_json(deleted_state_path)) if deleted_state_path.exists() else set()
 
     # Enable long paths for Windows
     if sys.platform == "win32":
-        changes_dir = to_windows_long_path(changes_dir)
         state_files_dir = to_windows_long_path(state_files_dir)
 
     file_records = []
@@ -142,7 +162,9 @@ def capture(args: argparse.Namespace) -> None:
     for key in changed:
         try:
             source = resolve_inventory_path(key, roots)
-            destination = changes_dir / Path(key)
+            captured_path = capture_names[key]
+            destination = tool_dir / Path(captured_path)
+            destination = to_windows_long_path(destination)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
 
@@ -150,8 +172,13 @@ def capture(args: argparse.Namespace) -> None:
             state_destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, state_destination)
             deleted_state.discard(key)
-            file_records.append({"path": key, "sha256": file_digest(source), **after[key]})
-        except Exception as e:
+            file_records.append({
+                "path": key,
+                "captured_path": captured_path,
+                "sha256": file_digest(source),
+                **after[key],
+            })
+        except OSError as e:
             copy_errors.append({"path": key, "error": str(e)})
             print(f"Warning: Failed to copy {key}: {e}", file=sys.stderr)
             continue
@@ -164,14 +191,10 @@ def capture(args: argparse.Namespace) -> None:
             print(f"  ... and {len(copy_errors) - 10} more", file=sys.stderr)
 
     for key in deleted:
-        try:
-            state_path = state_files_dir / Path(key)
-            if state_path.exists():
-                state_path.unlink()
-            deleted_state.add(key)
-        except Exception as e:
-            print(f"Warning: Failed to delete {key}: {e}", file=sys.stderr)
-            continue
+        state_path = state_files_dir / Path(key)
+        if state_path.exists():
+            state_path.unlink()
+        deleted_state.add(key)
 
     write_json(deleted_state_path, sorted(deleted_state))
     write_json(
@@ -186,6 +209,8 @@ def capture(args: argparse.Namespace) -> None:
             "copy_errors": copy_errors,
         },
     )
+    if copy_errors:
+        raise RuntimeError(f"Capture failed for {args.tool}: {len(copy_errors)} files could not be copied")
     write_json(before_path, {"roots": list(roots), "files": after})
     
     print(f"Successfully captured {len(file_records)} files for tool {args.tool}", file=sys.stderr)
@@ -218,7 +243,7 @@ def checkpoint(args: argparse.Namespace) -> None:
                     source_path = to_windows_long_path(path) if sys.platform == "win32" else path
                     arcname = path.relative_to(state_dir).as_posix()
                     archive.write(source_path, arcname)
-                except Exception as e:
+                except OSError as e:
                     failed_files.append({"file": str(path), "error": str(e)})
                     print(f"Warning: Failed to add {path} to checkpoint archive: {e}", file=sys.stderr)
     
@@ -226,6 +251,7 @@ def checkpoint(args: argparse.Namespace) -> None:
         print(f"Warning: {len(failed_files)} files failed to add to checkpoint archive", file=sys.stderr)
         for entry in failed_files:
             print(f"  - {entry['file']}: {entry['error']}", file=sys.stderr)
+        raise RuntimeError(f"Checkpoint incomplete: {len(failed_files)} files could not be archived")
 
 
 def finalize(args: argparse.Namespace) -> None:
@@ -255,7 +281,7 @@ def finalize(args: argparse.Namespace) -> None:
                     source_path = to_windows_long_path(path) if sys.platform == "win32" else path
                     arcname = path.relative_to(state_dir).as_posix()
                     archive.write(source_path, arcname)
-                except Exception as e:
+                except OSError as e:
                     failed_files.append({"file": str(path), "error": str(e)})
                     print(f"Warning: Failed to add {path} to finalize archive: {e}", file=sys.stderr)
     
@@ -263,6 +289,7 @@ def finalize(args: argparse.Namespace) -> None:
         print(f"Warning: {len(failed_files)} files failed to add to finalize archive", file=sys.stderr)
         for entry in failed_files:
             print(f"  - {entry['file']}: {entry['error']}", file=sys.stderr)
+        raise RuntimeError(f"Final checkpoint incomplete: {len(failed_files)} files could not be archived")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -277,7 +304,11 @@ def build_parser() -> argparse.ArgumentParser:
     capture_parser = subparsers.add_parser("capture", help="Collect changes since the previous snapshot")
     capture_parser.add_argument("--root", action="append", required=True)
     capture_parser.add_argument("--manifest", required=True)
-    capture_parser.add_argument("--output-dir", required=True)
+    capture_parser.add_argument("--output-dir", required=True, help="Directory containing flat per-tool captures")
+    capture_parser.add_argument(
+        "--state-dir", required=True,
+        help="Cumulative checkpoint-state directory used by checkpoint and finalize",
+    )
     capture_parser.add_argument("--tool", required=True)
     capture_parser.add_argument("--sequence", type=int, required=True)
     capture_parser.set_defaults(function=capture)
