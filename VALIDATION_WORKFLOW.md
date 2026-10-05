@@ -81,25 +81,17 @@ captures/
         output.tsv
         changes.json
 validation-captures/
+    checkpoint-state/
+        (internal state, not archived)
     checkpoints/
-        01-ToolName-before.zip
-        final-state.zip
+        (generated locally, not archived in artifacts)
 ```
 
-`changes.json` lists files created, modified, and deleted by one tool. Each file record retains its original root-relative `path` and a `captured_path` relative to the tool folder. Unique basenames are preserved. Case-insensitive duplicate basenames and the reserved name `changes.json` receive a source-path hash suffix, with a shortened stem, to prevent overwrites. Capture copy failures are recorded in `copy_errors` and fail the workflow on every platform. Checkpoint contents and restoration instructions are unchanged; extracting checkpoints may still require a short destination path or a long-path-capable extractor.
+`changes.json` lists files created, modified, and deleted by one tool. Each file record retains its original root-relative `path` and a `captured_path` relative to the tool folder. Unique basenames are preserved. Case-insensitive duplicate basenames and the reserved name `changes.json` receive a source-path hash suffix, with a shortened stem, to prevent overwrites. Capture copy failures are recorded in `copy_errors` and fail the workflow on every platform.
 
-The `capture` command writes files directly into `--output-dir captures`, under the tool folder; there is no later flattening step or legacy nested mode. Its required `--state-dir validation-captures/checkpoint-state` separately retains source-relative paths for checkpoint restoration. The `checkpoint` and `finalize` commands use `--output-dir validation-captures`.
+**Artifact contents:** Only `captures/**/*` is included in GitHub artifacts. The `validation-captures/` folder is used internally during the workflow for checkpoint state and local checkpoint generation, but is not archived. This avoids the Windows 260-character path limit issue when extracting archives.
 
-Each `*-before.zip` is a cumulative overlay relative to the original dataset release. To reproduce the runner state immediately before a tool:
-
-1. Extract the same dataset release identified by `dataset_tag`.
-2. Extract `files/private-dataset/` and `files/validation-workspaces/` from the checkpoint over the corresponding local folders.
-3. Remove the relative paths listed in `deleted-paths.json`.
-4. Run the adapted scenario for the selected tool.
-
-The checkpoint contains only files changed by preceding tools. Unchanged dataset files remain sourced from the original dataset release to limit artifact size.
-
-`final-state.zip` contains the cumulative overlay after the last tool has run. It can be used as the starting state when developing a new validation test appended to the execution order, without rerunning all preceding tools locally.
+**Checkpoint restoration (if needed locally):** Checkpoint contents and restoration instructions are unchanged; extracting checkpoints locally may still require a short destination path or a long-path-capable extractor. However, users receive only the final `captures/` output which has flat names suitable for immediate use.
 
 ### Tool execution order
 

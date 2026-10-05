@@ -622,4 +622,3 @@ jobs:
             tool-run-summary.tsv
             validation-outputs/**/*
             captures/**/*
-            validation-captures/checkpoints/*
