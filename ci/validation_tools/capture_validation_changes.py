@@ -6,10 +6,50 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
+import sys
 import zipfile
 from pathlib import Path
+
+
+def enable_long_paths():
+    """Enable long path support on Windows to handle paths > 260 characters."""
+    if sys.platform == "win32":
+        try:
+            # Use \\?\ prefix for absolute paths on Windows to bypass MAX_PATH
+            # This is handled by pathlib on Python 3.6+, but we ensure registry entry exists
+            import winreg
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\FileSystem") as key:
+                    value = winreg.QueryValueEx(key, "LongPathsEnabled")[0]
+                    if value:
+                        print("Long paths already enabled in registry", file=sys.stderr)
+            except (WindowsError, FileNotFoundError):
+                print("Warning: Unable to check long paths registry; continuing anyway", file=sys.stderr)
+        except (ImportError, Exception) as e:
+            print(f"Warning: {e}", file=sys.stderr)
+
+
+def to_windows_long_path(path: Path) -> Path:
+    """Convert path to Windows long path format if needed."""
+    if sys.platform != "win32":
+        return path
+    try:
+        # Convert to absolute path and use UNC format for long paths
+        abs_path = path.resolve()
+        # Check if path is already a long path
+        if str(abs_path).startswith("\\\\?\\"):
+            return abs_path
+        # For local paths > 260 chars, use \\?\ prefix
+        if len(str(abs_path)) > 260:
+            # Don't add prefix for network paths (starting with \\)
+            if not str(abs_path).startswith("\\\\"):
+                return Path(f"\\\\?\\{abs_path}")
+        return abs_path
+    except Exception:
+        return path
 
 
 def parse_roots(values: list[str]) -> dict[str, Path]:
@@ -24,6 +64,7 @@ def parse_roots(values: list[str]) -> dict[str, Path]:
 
 
 def file_digest(path: Path) -> str:
+    path = to_windows_long_path(path)
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
@@ -88,24 +129,49 @@ def capture(args: argparse.Namespace) -> None:
     deleted_state_path = state_dir / "deleted-paths.json"
     deleted_state = set(load_json(deleted_state_path)) if deleted_state_path.exists() else set()
 
-    file_records = []
-    for key in changed:
-        source = resolve_inventory_path(key, roots)
-        destination = changes_dir / Path(key)
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
+    # Enable long paths for Windows
+    if sys.platform == "win32":
+        changes_dir = to_windows_long_path(changes_dir)
+        state_files_dir = to_windows_long_path(state_files_dir)
 
-        state_destination = state_files_dir / Path(key)
-        state_destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, state_destination)
-        deleted_state.discard(key)
-        file_records.append({"path": key, "sha256": file_digest(source), **after[key]})
+    file_records = []
+    copy_errors = []
+    
+    print(f"Capturing {len(changed)} changed files for tool {args.tool} (sequence {args.sequence})", file=sys.stderr)
+    
+    for key in changed:
+        try:
+            source = resolve_inventory_path(key, roots)
+            destination = changes_dir / Path(key)
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
+
+            state_destination = state_files_dir / Path(key)
+            state_destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, state_destination)
+            deleted_state.discard(key)
+            file_records.append({"path": key, "sha256": file_digest(source), **after[key]})
+        except Exception as e:
+            copy_errors.append({"path": key, "error": str(e)})
+            print(f"Warning: Failed to copy {key}: {e}", file=sys.stderr)
+            continue
+
+    if copy_errors:
+        print(f"Error: {len(copy_errors)} files failed to copy:", file=sys.stderr)
+        for entry in copy_errors[:10]:  # Show first 10 errors
+            print(f"  - {entry['path']}: {entry['error']}", file=sys.stderr)
+        if len(copy_errors) > 10:
+            print(f"  ... and {len(copy_errors) - 10} more", file=sys.stderr)
 
     for key in deleted:
-        state_path = state_files_dir / Path(key)
-        if state_path.exists():
-            state_path.unlink()
-        deleted_state.add(key)
+        try:
+            state_path = state_files_dir / Path(key)
+            if state_path.exists():
+                state_path.unlink()
+            deleted_state.add(key)
+        except Exception as e:
+            print(f"Warning: Failed to delete {key}: {e}", file=sys.stderr)
+            continue
 
     write_json(deleted_state_path, sorted(deleted_state))
     write_json(
@@ -117,9 +183,12 @@ def capture(args: argparse.Namespace) -> None:
             "modified": modified,
             "deleted": deleted,
             "files": file_records,
+            "copy_errors": copy_errors,
         },
     )
     write_json(before_path, {"roots": list(roots), "files": after})
+    
+    print(f"Successfully captured {len(file_records)} files for tool {args.tool}", file=sys.stderr)
 
 
 def checkpoint(args: argparse.Namespace) -> None:
@@ -140,10 +209,23 @@ def checkpoint(args: argparse.Namespace) -> None:
     if not (state_dir / "deleted-paths.json").exists():
         write_json(state_dir / "deleted-paths.json", [])
 
+    failed_files = []
     with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(state_dir.rglob("*")):
             if path.is_file():
-                archive.write(path, path.relative_to(state_dir).as_posix())
+                try:
+                    # Use the actual path (with long path support on Windows)
+                    source_path = to_windows_long_path(path) if sys.platform == "win32" else path
+                    arcname = path.relative_to(state_dir).as_posix()
+                    archive.write(source_path, arcname)
+                except Exception as e:
+                    failed_files.append({"file": str(path), "error": str(e)})
+                    print(f"Warning: Failed to add {path} to checkpoint archive: {e}", file=sys.stderr)
+    
+    if failed_files:
+        print(f"Warning: {len(failed_files)} files failed to add to checkpoint archive", file=sys.stderr)
+        for entry in failed_files:
+            print(f"  - {entry['file']}: {entry['error']}", file=sys.stderr)
 
 
 def finalize(args: argparse.Namespace) -> None:
@@ -164,10 +246,23 @@ def finalize(args: argparse.Namespace) -> None:
     if not (state_dir / "deleted-paths.json").exists():
         write_json(state_dir / "deleted-paths.json", [])
 
+    failed_files = []
     with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(state_dir.rglob("*")):
             if path.is_file():
-                archive.write(path, path.relative_to(state_dir).as_posix())
+                try:
+                    # Use the actual path (with long path support on Windows)
+                    source_path = to_windows_long_path(path) if sys.platform == "win32" else path
+                    arcname = path.relative_to(state_dir).as_posix()
+                    archive.write(source_path, arcname)
+                except Exception as e:
+                    failed_files.append({"file": str(path), "error": str(e)})
+                    print(f"Warning: Failed to add {path} to finalize archive: {e}", file=sys.stderr)
+    
+    if failed_files:
+        print(f"Warning: {len(failed_files)} files failed to add to finalize archive", file=sys.stderr)
+        for entry in failed_files:
+            print(f"  - {entry['file']}: {entry['error']}", file=sys.stderr)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -201,6 +296,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    enable_long_paths()
     args = build_parser().parse_args()
     args.function(args)
     return 0

@@ -90,6 +90,17 @@ jobs:
     runs-on: windows-2022
 
     steps:
+      - name: Enable long paths on Windows
+        shell: powershell
+        run: |
+          # Enable long path support (>260 chars) on Windows
+          # This is critical for the validation workflow which creates deep directory structures
+          New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force -ErrorAction SilentlyContinue | Out-Null
+          # Also set it for the Python environment
+          $env:PYTHONPATH = $env:PYTHONPATH
+          Write-Host "Long path support enabled"
+          Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LongPathsEnabled | Write-Host
+
       - name: Checkout workflow repository
         uses: actions/checkout@v5
 
