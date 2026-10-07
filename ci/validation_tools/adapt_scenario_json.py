@@ -84,7 +84,7 @@ def resolve_configured_value(spec, workspace_dir, private_dataset_dir):
             if required:
                 raise FileNotFoundError(f"workspaceFileJson target not found: {full_path}")
             return None
-        with open(full_path, 'r', encoding='utf-8') as f:
+        with open(full_path, 'r', encoding='utf-8-sig') as f:
             return json.load(f)
 
     if kind == "privateDatasetPath":
@@ -215,7 +215,7 @@ def update_node_inputs_by_identifier(json_obj, identifier, input_name, input_val
 
 
 def adapt_tool_scenario(source_path, dest_path, tool_name, tool_definition, workspace_dir, private_dataset_dir):
-    with open(source_path, 'r', encoding='utf-8') as f:
+    with open(source_path, 'r', encoding='utf-8-sig') as f:
         scenario = json.load(f)
 
     metadata = scenario.setdefault("metadata", {})
@@ -269,7 +269,7 @@ def main():
         print(f"Tool adaptations config not found: {adaptations_path}", file=sys.stderr)
         return 1
 
-    with open(adaptations_path, 'r', encoding='utf-8') as f:
+    with open(adaptations_path, 'r', encoding='utf-8-sig') as f:
         adaptations = json.load(f)
 
     tools_to_process = [t.strip() for t in args.tools.split(',') if t.strip()]
