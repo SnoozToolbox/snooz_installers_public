@@ -616,9 +616,7 @@ jobs:
           name: windows-validation-assets
           if-no-files-found: warn
           path: |
-            validation-workspaces/**/*.json
-            validation-workspaces/**/*.log
-            target/validation-logs/**/*.log
+            validation-workspaces/*.json
             tool-run-summary.tsv
             validation-outputs/**/*
             captures/**/*

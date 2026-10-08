@@ -63,15 +63,14 @@ graph TD
 
 ## Output Artifacts
 
-- Adapted JSON scenario files
-- Snooz process logs and execution logs
-- Tool run summary (TSV format)
-- Comparison results for each validated output
-- Generated vs. reference file pairs
-- All files created, modified, or deleted by each tool under `private-dataset/` and `validation-workspaces/`
-- Cumulative checkpoints that reproduce the state immediately before each tool
+- **Adapted JSON scenario files**: archived in `validation-workspaces/*.json` (root level only)
+- **All files created, modified, or deleted by each tool**: archived in `captures/` (includes changes under `private-dataset/` and `validation-workspaces/`)
+- **Snooz process logs**: included in `captures/` (execution console output remains available in GitHub Actions logs)
+- **Tool run summary**: archived in `tool-run-summary.tsv` (TSV format)
+- **Comparison results and generated vs. reference file pairs**: archived in `validation-outputs/**/*`
 
-### Captured outputs and checkpoints
+
+### Captured outputs
 
 Captured files are stored separately from gold-standard comparison files so comparison cleanup cannot remove them. Windows, Linux, and macOS artifacts use the same short, flat capture layout to reduce Windows Explorer extraction path lengths:
 
@@ -80,18 +79,18 @@ captures/
     01-ToolName/
         output.tsv
         changes.json
-validation-captures/
-    checkpoint-state/
-        (internal state, not archived)
-    checkpoints/
-        (generated locally, not archived in artifacts)
 ```
 
 `changes.json` lists files created, modified, and deleted by one tool. Each file record retains its original root-relative `path` and a `captured_path` relative to the tool folder. Unique basenames are preserved. Case-insensitive duplicate basenames and the reserved name `changes.json` receive a source-path hash suffix, with a shortened stem, to prevent overwrites. Capture copy failures are recorded in `copy_errors` and fail the workflow on every platform.
 
-**Artifact contents:** Only `captures/**/*` is included in GitHub artifacts. The `validation-captures/` folder is used internally during the workflow for checkpoint state and local checkpoint generation, but is not archived. This avoids the Windows 260-character path limit issue when extracting archives.
+**Artifact contents:** Windows, Linux, and macOS archive the same set of paths:
 
-**Checkpoint restoration (if needed locally):** Checkpoint contents and restoration instructions are unchanged; extracting checkpoints locally may still require a short destination path or a long-path-capable extractor. However, users receive only the final `captures/` output which has flat names suitable for immediate use.
+- `validation-workspaces/*.json`: adapted scenario JSON files at the workspace root only
+- `tool-run-summary.tsv`: tool execution and comparison summary
+- `validation-outputs/**/*`: comparison results and generated/reference file pairs
+- `captures/**/*`: captured tool outputs and Snooz process logs
+
+The short, flat `captures/` layout is archived for captured outputs to avoid the Windows 260-character path limit issue when extracting archives. Temporary internal folders (`target/`, `validation-captures/`) remain absent from the artifact.
 
 ### Tool execution order
 
