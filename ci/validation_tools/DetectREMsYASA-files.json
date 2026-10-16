@@ -986,15 +986,15 @@
                 }
             },
             "COMPLET_RC": {
-                "is_selected": false,
+                "is_selected": true,
                 "montage_index": 1,
                 "channels": {
                     "LOC": {
-                        "is_selected": false,
+                        "is_selected": true,
                         "sample_rate": "256.01638504864314"
                     },
                     "ROC": {
-                        "is_selected": false,
+                        "is_selected": true,
                         "sample_rate": "256.01638504864314"
                     },
                     "EMG1": {
@@ -1116,15 +1116,15 @@
                 }
             },
             "SCORING_RC": {
-                "is_selected": true,
+                "is_selected": false,
                 "montage_index": 2,
                 "channels": {
                     "LOC": {
-                        "is_selected": true,
+                        "is_selected": false,
                         "sample_rate": "256.01638504864314"
                     },
                     "ROC": {
-                        "is_selected": true,
+                        "is_selected": false,
                         "sample_rate": "256.01638504864314"
                     },
                     "EMG1": {

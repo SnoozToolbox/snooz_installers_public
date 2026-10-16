@@ -98,6 +98,7 @@
     "processingMode": "adapted",
     "updates": [
       {
+        "description": "Update the dictionary for the Artifact name (art_channel).",
         "identifier": "41a6b6f1-08b3-417c-bafb-30dc2274c24b",
         "inputName": "dictionary",
         "required": true,
@@ -108,6 +109,7 @@
         }
       },
       {
+        "description": "Update the dictionary for the Artifact group (art_inspector).",
         "identifier": "fdffc3b0-7ef0-4b45-98a3-63093adae04a",
         "inputName": "dictionary",
         "required": true,
@@ -118,6 +120,7 @@
         }
       },
       {
+        "description": "Update the cutoff value for the preprocessing filter.",
         "identifier": "e5120882-ba1a-48c6-8414-a51b2286ce65",
         "inputName": "cutoff",
         "required": true,
@@ -128,6 +131,7 @@
         }
       },
       {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
         "identifier": "64feff16-15d2-4acf-b2e5-195412e476ba",
         "inputName": "files",
         "required": true,
@@ -138,6 +142,7 @@
         }
       },
       {
+        "description": "Update the alias input for CEAMSModules.PSGReader.",
         "identifier": "64feff16-15d2-4acf-b2e5-195412e476ba",
         "inputName": "alias",
         "required": true,
@@ -154,6 +159,7 @@
     "processingMode": "adapted",
     "updates": [
       {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
         "identifier": "c3e6adf4-0698-4655-b2a5-e0cf102bf224",
         "inputName": "files",
         "required": true,
@@ -164,6 +170,18 @@
         }
       },
       {
+        "description": "Update the save_directory input for REMsDetectionYasa.",
+        "identifier": "5b36c10e-696e-40d2-be30-12548a806e0c",
+        "inputName": "save_directory",
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "DetectREMsYASA-report.tsv",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the cohort_filename input for CEAMSModules.REMsDetails.",
         "identifier": "d1489e58-7c3d-490e-9c36-f830c8dc596e",
         "inputName": "cohort_filename",
         "required": true,
