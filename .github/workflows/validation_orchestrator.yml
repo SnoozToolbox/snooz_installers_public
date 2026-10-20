@@ -47,9 +47,9 @@ on:
         required: false
         default: SnoozToolbox/snooz-gold-standards
       gold_standard_tag:
-        description: Gold-standard release tag (optional; enables output comparison)
+        description: "Gold-standard release tag. Leave empty to skip comparison (first-run bootstrap). Set e.g. v1.0.0 to compare."
         required: false
-        default: v1.0.0
+        default: ""
 
 jobs:
   validate_windows:

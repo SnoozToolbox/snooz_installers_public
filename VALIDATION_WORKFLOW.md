@@ -63,8 +63,37 @@ graph TD
 
 ## Output Artifacts
 
-- Adapted JSON scenario files
-- Snooz process logs and execution logs
-- Tool run summary (TSV format)
-- Comparison results for each validated output
-- Generated vs. reference file pairs
+- **Adapted JSON scenario files**: archived in `validation-workspaces/*.json` (root level only)
+- **All files created, modified, or deleted by each tool**: archived in `captures/` (includes changes under `private-dataset/` and `validation-workspaces/`)
+- **Snooz process logs**: included in `captures/` (execution console output remains available in GitHub Actions logs)
+- **Tool run summary**: archived in `tool-run-summary.tsv` (TSV format)
+- **Comparison results and generated vs. reference file pairs**: archived in `validation-outputs/**/*`
+
+
+### Captured outputs
+
+Captured files are stored separately from gold-standard comparison files so comparison cleanup cannot remove them. Windows, Linux, and macOS artifacts use the same short, flat capture layout to reduce Windows Explorer extraction path lengths:
+
+```text
+captures/
+    01-ToolName/
+        output.tsv
+        changes.json
+```
+
+`changes.json` lists files created, modified, and deleted by one tool. Each file record retains its original root-relative `path` and a `captured_path` relative to the tool folder. Unique basenames are preserved. Case-insensitive duplicate basenames and the reserved name `changes.json` receive a source-path hash suffix, with a shortened stem, to prevent overwrites. Capture copy failures are recorded in `copy_errors` and fail the workflow on every platform.
+
+**Artifact contents:** Windows, Linux, and macOS archive the same set of paths:
+
+- `validation-workspaces/*.json`: adapted scenario JSON files at the workspace root only
+- `tool-run-summary.tsv`: tool execution and comparison summary
+- `validation-outputs/**/*`: comparison results and generated/reference file pairs
+- `captures/**/*`: captured tool outputs and Snooz process logs
+
+The short, flat `captures/` layout is archived for captured outputs to avoid the Windows 260-character path limit issue when extracting archives. Temporary internal folders (`target/`, `validation-captures/`) remain absent from the artifact.
+
+### Tool execution order
+
+The cross-platform execution order is defined in `ci/validation_tools/tool_execution_order.json`. Windows, Linux, and macOS all use this list. The optional `tools_to_process` input selects a subset but does not change the relative order.
+
+Every tool with non-empty `updates` in `tool_json_adaptations.json` must appear exactly once in the execution-order file. The workflow fails during preparation if a configured tool is missing or an unknown tool is listed. When adding `SlowWaveDetection`, add it to `tool_execution_order.json` at the point where its required input state is available, for example immediately after `ScoreSleepStagesYASA`.

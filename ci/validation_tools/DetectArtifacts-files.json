@@ -1,13 +1,6 @@
-{
+﻿{
   "$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf": {
-    "event_groups": [
-      "stage",
-      "SpO2 artifact",
-      "Hypopnea",
-      "SpO2 desaturation",
-      "Arousal ()",
-      "Obstructive Apnea"
-    ],
+    "event_groups": [],
     "montages": {
       "edf": {
         "is_selected": true,
@@ -74,14 +67,7 @@
     }
   },
   "$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf": {
-    "event_groups": [
-      "stage",
-      "SpO2 artifact",
-      "Arousal ()",
-      "Hypopnea",
-      "SpO2 desaturation",
-      "Obstructive Apnea"
-    ],
+    "event_groups": [],
     "montages": {
       "edf": {
         "is_selected": true,
@@ -148,15 +134,7 @@
     }
   },
   "$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg": {
-    "event_groups": [
-      "Section d' chantillon.",
-      "Annotation",
-      "DetecteMJ",
-      "HYPNO",
-      "M-EVE",
-      " V NEMENTS RESPIRATOIRES",
-      "Stade"
-    ],
+    "event_groups": [],
     "montages": {
       "Amp_Embla NDx": {
         "is_selected": false,
@@ -871,38 +849,7 @@
     }
   },
   "$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts": {
-    "event_groups": [
-      "D marrage de l'enreg.",
-      "Section de calibration",
-      "Section de d blocage",
-      "E-Test Section",
-      "Section de patient d connect ",
-      "Section d' chantillon.",
-      "Section de bouton-poussoir",
-      "D tection manuelle",
-      "Annotation",
-      "Pap",
-      "Position du corps",
-      "Biocalibration",
-      "Id. de calibration",
-      "Message",
-      "Param. de visualisation",
-      "DetecteMJ",
-      "Artefact",
-      "M-EVE",
-      "MJ",
-      " V NEMENTS RESPIRATOIRES",
-      "HRVAS",
-      "RONFLEMENT",
-      "HYPNO",
-      "Calibration Label",
-      "Artifact",
-      "c-rem 2 signs",
-      "c-rem 1 sign",
-      "Stade",
-      "Hyperventilation",
-      "Apr s l'hyperventil."
-    ],
+    "event_groups": [],
     "montages": {
       "APN E-MCI_RC": {
         "is_selected": false,

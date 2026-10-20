@@ -66,7 +66,12 @@ def resolve_configured_value(spec, workspace_dir, private_dataset_dir):
         relative_path = spec.get("relativePath")
         if not relative_path:
             raise ValueError("workspacePath specification requires relativePath")
+        as_directory = bool(spec.get("asDirectory")) or str(relative_path).endswith(("/", "\\"))
         full_path = (workspace_dir / relative_path).resolve()
+        if as_directory:
+            # Directory inputs (e.g. SavedDestination) must exist before Snooz runs.
+            full_path.mkdir(parents=True, exist_ok=True)
+            return convert_to_json_path(full_path) + "/"
         full_path.parent.mkdir(parents=True, exist_ok=True)
         return convert_to_json_path(full_path)
 
@@ -79,7 +84,7 @@ def resolve_configured_value(spec, workspace_dir, private_dataset_dir):
             if required:
                 raise FileNotFoundError(f"workspaceFileJson target not found: {full_path}")
             return None
-        with open(full_path, 'r', encoding='utf-8') as f:
+        with open(full_path, 'r', encoding='utf-8-sig') as f:
             return json.load(f)
 
     if kind == "privateDatasetPath":
@@ -209,8 +214,35 @@ def update_node_inputs_by_identifier(json_obj, identifier, input_name, input_val
     return updated
 
 
+class ActivationState:
+    KEY = 'activation_state'
+    ACTIVATED = 'activated'  # The node is executed
+    DEACTIVATED = 'deactivated'  # The node is ignored
+    BYPASS = 'bypass'  # The node is informed that it needs to let the data pass by
+
+
+def update_node_activation_state(json_obj, identifier, activation_state):
+    """Set the activation_state of the node(s) matching identifier."""
+    valid_states = (ActivationState.ACTIVATED, ActivationState.DEACTIVATED, ActivationState.BYPASS)
+    if activation_state not in valid_states:
+        raise ValueError(f"Invalid activationState '{activation_state}', expected one of {valid_states}")
+
+    process_params = json_obj.get("process_params")
+    if not process_params or "nodes" not in process_params:
+        return False
+
+    updated = False
+    for node in process_params["nodes"]:
+        if node.get("identifier") != identifier:
+            continue
+        node[ActivationState.KEY] = activation_state
+        updated = True
+
+    return updated
+
+
 def adapt_tool_scenario(source_path, dest_path, tool_name, tool_definition, workspace_dir, private_dataset_dir):
-    with open(source_path, 'r', encoding='utf-8') as f:
+    with open(source_path, 'r', encoding='utf-8-sig') as f:
         scenario = json.load(f)
 
     metadata = scenario.setdefault("metadata", {})
@@ -232,6 +264,15 @@ def adapt_tool_scenario(source_path, dest_path, tool_name, tool_definition, work
 
         if not identifier:
             raise ValueError(f"Invalid updates entry in {tool_name}: missing identifier")
+
+        # Module-level update: {"identifier": ..., "activationState": "activated" | "deactivated"}
+        if "activationState" in update:
+            state = update["activationState"]
+            print(f"{tool_name} update '{identifier}.activation_state': {state}")
+            if not update_node_activation_state(scenario, identifier, state) and required:
+                raise ValueError(f"Unable to update node '{identifier}' activation_state in {source_path}")
+            continue
+
         if not input_name:
             raise ValueError(f"Invalid updates entry in {tool_name}: missing inputName")
         if value_spec is None:
@@ -264,7 +305,7 @@ def main():
         print(f"Tool adaptations config not found: {adaptations_path}", file=sys.stderr)
         return 1
 
-    with open(adaptations_path, 'r', encoding='utf-8') as f:
+    with open(adaptations_path, 'r', encoding='utf-8-sig') as f:
         adaptations = json.load(f)
 
     tools_to_process = [t.strip() for t in args.tools.split(',') if t.strip()]

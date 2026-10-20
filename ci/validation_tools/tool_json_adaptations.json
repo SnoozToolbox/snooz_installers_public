@@ -98,6 +98,7 @@
     "processingMode": "adapted",
     "updates": [
       {
+        "description": "Update the dictionary for the Artifact name (art_channel).",
         "identifier": "41a6b6f1-08b3-417c-bafb-30dc2274c24b",
         "inputName": "dictionary",
         "required": true,
@@ -108,6 +109,7 @@
         }
       },
       {
+        "description": "Update the dictionary for the Artifact group (art_inspector).",
         "identifier": "fdffc3b0-7ef0-4b45-98a3-63093adae04a",
         "inputName": "dictionary",
         "required": true,
@@ -118,6 +120,7 @@
         }
       },
       {
+        "description": "Update the cutoff value for the preprocessing filter.",
         "identifier": "e5120882-ba1a-48c6-8414-a51b2286ce65",
         "inputName": "cutoff",
         "required": true,
@@ -128,6 +131,7 @@
         }
       },
       {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
         "identifier": "64feff16-15d2-4acf-b2e5-195412e476ba",
         "inputName": "files",
         "required": true,
@@ -138,6 +142,7 @@
         }
       },
       {
+        "description": "Update the alias input for CEAMSModules.PSGReader.",
         "identifier": "64feff16-15d2-4acf-b2e5-195412e476ba",
         "inputName": "alias",
         "required": true,
@@ -154,6 +159,7 @@
     "processingMode": "adapted",
     "updates": [
       {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
         "identifier": "c3e6adf4-0698-4655-b2a5-e0cf102bf224",
         "inputName": "files",
         "required": true,
@@ -164,6 +170,18 @@
         }
       },
       {
+        "description": "Update the save_directory input for REMsDetectionYasa.",
+        "identifier": "5b36c10e-696e-40d2-be30-12548a806e0c",
+        "inputName": "save_directory",
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "DetectREMsYASA-report.tsv",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the cohort_filename input for CEAMSModules.REMsDetails.",
         "identifier": "d1489e58-7c3d-490e-9c36-f830c8dc596e",
         "inputName": "cohort_filename",
         "required": true,
@@ -304,5 +322,213 @@
         }
       }
     ]
-  }
+  },
+  "ScoreSleepStagesYASA": {
+    "targetToolName": "ScoreSleepStagesYASA",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "identifier": "031201d5-ff93-4be6-90d3-256d2ba689d1",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/ScoreSleepStagesYASA-files.json",
+          "required": true
+        }
+      },
+      {
+        "identifier": "031201d5-ff93-4be6-90d3-256d2ba689d1",
+        "inputName": "alias",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/ScoreSleepStagesYASA-alias.json",
+          "required": true
+        }
+      },
+      {
+        "identifier": "45e14f5d-5a72-4aaf-bf01-644c095979d6",
+        "inputName": "SavedDestination",
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "ScoreSleepStagesYASA_outputs/",
+          "asDirectory": true,
+          "required": true
+        }
+      },
+      {
+        "identifier": "45e14f5d-5a72-4aaf-bf01-644c095979d6",
+        "inputName": "Checkbox",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "True",
+          "required": true
+        }
+      },
+      {
+        "identifier": "e58aa07b-4802-45f7-92c2-61f6f19b1818",
+        "inputName": "validation_on",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "True",
+          "required": true
+        }
+      },
+      {
+        "identifier": "e58aa07b-4802-45f7-92c2-61f6f19b1818",
+        "inputName": "stage_group",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "stage",
+          "required": true
+        }
+      }
+    ]
+  },
+  "PowerSpectralAnalysis": {
+    "targetToolName": "PowerSpectralAnalysis",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "identifier": "9d7a24dd-ef7b-47ab-81c1-2986d7462b0d",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "identifier": "668f9ecf-9498-4bf6-85d8-7e73002c66a9",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "identifier": "b36768be-9cab-41f9-850f-22edf97b1c13",
+        "inputName": "cutoff", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "0.3 61",
+          "required": true
+        }
+      },
+      {
+        "identifier": "377e68c9-e26d-4b06-972e-d88e12ecb208",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/PowerSpectralAnalysis-files.json",
+          "required": true
+        }
+      },
+      {
+        "identifier": "64038a3b-6640-437a-96b1-2d9bf7f5db7f",
+        "inputName": "constant", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "61",
+          "required": true
+        }
+      },
+      {
+        "description": "Update output report filename in PSACompilation.",
+        "identifier": "4bb8c9ac-64e8-4cec-9c2c-5a00c80b4eae",
+        "inputName": "filename", 
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "EEG_spectral_power_cohort_report_Welch.tsv",
+          "required": true
+        }
+      }
+    ]
+  },
+  "SlowWaveDetection": {
+    "targetToolName": "SlowWaveDetection",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
+        "identifier": "f1a6056e-bb6e-44ca-9c15-33b3b9cc0502",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/SlowWaveDetection-files.json",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the dictionary input for artifact group (group_selection).",
+        "identifier": "5c74bd80-a2e5-430b-a454-e188c0a257df",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the dictionary input for artifact name (name_selection).",
+        "identifier": "ed03c6cf-eecc-4826-9f43-015366108011",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Activate the SlowWavesDetails module (output report).",
+        "identifier": "0308c274-4216-4642-9093-0ac919e9a0de",
+        "activationState": "activated",
+        "required": true
+      },
+      {
+        "description": "Check export_slow_wave details report (per-event) in SlowWavesDetails.",
+        "identifier": "0308c274-4216-4642-9093-0ac919e9a0de",
+        "inputName": "export_slow_wave", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "True",
+          "required": true
+        }
+      },
+      {
+        "description": "Update output report filename (per-subject) in SlowWavesDetails.",
+        "identifier": "0308c274-4216-4642-9093-0ac919e9a0de",
+        "inputName": "cohort_filename", 
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "Slow-Waves-Cohort-report.tsv",
+          "required": true
+        }
+      },
+      {
+        "description": "Activate the SlowWavesDetails module (output report).",
+        "identifier": "0308c274-4216-4642-9093-0ac919e9a0de",
+        "activationState": "activated",
+        "required": true
+      }
+    ]
+  }    
 }
+

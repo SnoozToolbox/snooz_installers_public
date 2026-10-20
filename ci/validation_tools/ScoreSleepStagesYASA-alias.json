@@ -1,0 +1,35 @@
+{
+  "EEG": [
+    "EEG",
+    "EEG(sec)",
+    "C3-RC",
+    "C4-RC",
+    "C3",
+    "C4",
+    "F3",
+    "F4",
+    "O1",
+    "O2",
+    "F3-RC",
+    "F4-RC",
+    "O1-RC",
+    "O2-RC",
+    "Cz-RC",
+    "Fz-RC",
+    "Pz-RC"
+  ],
+  "EOG": [
+    "EOG(L)",
+    "EOG(R)",
+    "LOC-RC",
+    "ROC-RC",
+    "LOC",
+    "ROC"
+  ],
+  "EMG": [
+    "EMG",
+    "EMG1-EMG2",
+    "EMG1",
+    "EMG2"
+  ]
+}

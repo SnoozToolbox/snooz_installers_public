@@ -47,9 +47,9 @@ on:
         required: false
         default: SnoozToolbox/snooz-gold-standards
       gold_standard_tag:
-        description: Gold-standard release tag (optional; enables output comparison)
+        description: "Gold-standard release tag. Leave empty to skip comparison (first-run bootstrap). Set e.g. v1.0.0 to compare."
         required: false
-        default: v1.0.0
+        default: ""
 
   workflow_call:
     inputs:
@@ -93,10 +93,10 @@ on:
         type: string
         default: SnoozToolbox/snooz-gold-standards
       gold_standard_tag:
-        description: Gold-standard release tag (optional; enables output comparison)
+        description: "Gold-standard release tag. Leave empty to skip comparison (first-run bootstrap). Set e.g. v1.0.0 to compare."
         required: false
         type: string
-        default: v1.0.0
+        default: ""
 
 jobs:
   validate_linux:
@@ -350,12 +350,14 @@ jobs:
             exit 1
           fi
 
-          # Extract list of actual tools from tool_json_adaptations.json
-          TOOLS=$(python3 -c 'import json,sys; data=json.load(open("ci/validation_tools/tool_json_adaptations.json")); print(" ".join(sorted([k for k,v in data.items() if isinstance(v,dict) and v.get("updates")])))' 2>/dev/null)
-          
+          TOOLS=$(python3 ci/validation_tools/resolve_tool_order.py \
+            --adaptations-file ci/validation_tools/tool_json_adaptations.json \
+            --order-file ci/validation_tools/tool_execution_order.json \
+            --tools "${{ inputs.tools_to_process }}" \
+            --format shell)
           if [ -z "$TOOLS" ]; then
-            echo "Warning: Could not extract tool list from tool_json_adaptations.json"
-            TOOLS=$(ls validation-workspaces/*.json | xargs -n1 basename -s .json | grep -v -E '^(CEAMSTools|tool_|adaptations)' | sort)
+            echo "No tools resolved to run."
+            exit 1
           fi
           
           echo "Running scenarios for tools: $TOOLS"
@@ -368,7 +370,18 @@ jobs:
           # next tool appends more annotations to the same file.
           rm -f tool-run-summary.tsv
           rm -rf validation-outputs
+          rm -rf validation-captures
+          rm -rf captures
           overall_exit=0
+          tool_sequence=0
+
+          python3 ci/validation_tools/capture_validation_changes.py snapshot \
+            --root private-dataset \
+            --root validation-workspaces \
+            --output target/validation-logs/validation-state.json || {
+              echo "::error::Validation snapshot failed"
+              exit 1
+            }
           
           for TOOL_NAME in $TOOLS; do
             scenario="validation-workspaces/${TOOL_NAME}.json"
@@ -377,6 +390,15 @@ jobs:
               echo "Warning: Scenario not found: $scenario"
               continue
             fi
+
+            tool_sequence=$((tool_sequence + 1))
+            python3 ci/validation_tools/capture_validation_changes.py checkpoint \
+              --output-dir validation-captures \
+              --tool "$TOOL_NAME" \
+              --sequence "$tool_sequence" || {
+                echo "::error::Validation checkpoint failed for $TOOL_NAME"
+                exit 1
+              }
             
             echo "Running scenario: $TOOL_NAME"
             exec_log="target/validation-logs/${TOOL_NAME}-exec.log"
@@ -410,6 +432,18 @@ jobs:
               tool_status="pass"
             fi
 
+            python3 ci/validation_tools/capture_validation_changes.py capture \
+              --root private-dataset \
+              --root validation-workspaces \
+              --manifest target/validation-logs/validation-state.json \
+              --output-dir captures \
+              --state-dir validation-captures/checkpoint-state \
+              --tool "$TOOL_NAME" \
+              --sequence "$tool_sequence" || {
+                echo "::error::Validation capture failed for $TOOL_NAME"
+                exit 1
+              }
+
             # Validate this tool's outputs now, while its annotation file is still
             # in the state produced by this run (before the next tool modifies it).
             single_status_tsv="target/validation-logs/${TOOL_NAME}-status.tsv"
@@ -438,6 +472,13 @@ jobs:
             echo "=========================================="
             echo ""
           done
+
+          python3 ci/validation_tools/capture_validation_changes.py finalize \
+            --output-dir validation-captures \
+            --sequence "$tool_sequence" || {
+              echo "::error::Validation final checkpoint failed"
+              exit 1
+            }
           
           exit $overall_exit
 
@@ -448,7 +489,7 @@ jobs:
           name: linux-validation-assets
           if-no-files-found: warn
           path: |
-            validation-workspaces/**/*.json
-            validation-workspaces/**/*.log
+            validation-workspaces/*.json
             tool-run-summary.tsv
             validation-outputs/**/*
+            captures/**/*

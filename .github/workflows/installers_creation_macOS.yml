@@ -830,6 +830,7 @@ jobs:
           fi
 
           MOUNT_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-smoke.XXXXXX)"
+          LOCAL_APP_DIR="$(mktemp -d /tmp/snooz-dmg-runtime-app.XXXXXX)"
           LOG_DIR="target/smoke-logs"
           mkdir -p "$LOG_DIR"
           LOG_DIR="$(cd "$LOG_DIR" && pwd)"
@@ -839,6 +840,7 @@ jobs:
           cleanup() {
             hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
             rmdir "$MOUNT_DIR" >/dev/null 2>&1 || true
+            rm -rf "$LOCAL_APP_DIR" >/dev/null 2>&1 || true
             rm -rf "$RUNTIME_TEST_ROOT" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
@@ -851,15 +853,21 @@ jobs:
             exit 1
           fi
 
-          APP_EXEC="$(find "$APP_IN_DMG/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
+          # Simulate the user install (drag the .app out of the DMG) instead of running from the mounted image.
+          APP_LOCAL="$LOCAL_APP_DIR/$(basename "$APP_IN_DMG")"
+          ditto "$APP_IN_DMG" "$APP_LOCAL"
+          hdiutil detach "$MOUNT_DIR" -force >/dev/null 2>&1 || true
+          echo "Installed app copy from DMG: $APP_LOCAL"
+
+          APP_EXEC="$(find "$APP_LOCAL/Contents/MacOS" -maxdepth 1 -type f -perm -111 | head -n 1)"
           if [ -z "$APP_EXEC" ]; then
             echo "::error::No executable found in DMG app bundle."
-            find "$APP_IN_DMG/Contents/MacOS" -maxdepth 2 -print || true
+            find "$APP_LOCAL/Contents/MacOS" -maxdepth 2 -print || true
             exit 1
           fi
 
-          MNE_INIT_PY="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
-          MNE_INIT_PYI="$(find "$APP_IN_DMG/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
+          MNE_INIT_PY="$(find "$APP_LOCAL/Contents" -type f -path '*/mne/__init__.py' | head -n 1)"
+          MNE_INIT_PYI="$(find "$APP_LOCAL/Contents" -type f -path '*/mne/__init__.pyi' | head -n 1)"
           echo "mne __init__.py in DMG app: ${MNE_INIT_PY:-<not found>}"
           echo "mne __init__.pyi in DMG app: ${MNE_INIT_PYI:-<not found>}"
 
@@ -874,6 +882,17 @@ jobs:
               sleep 240
               if kill -0 "$APP_RUN_PID" >/dev/null 2>&1; then
                 echo "::warning::Runtime smoke process exceeded internal 240s watchdog; killing it (possible stale single-instance lock)." >>"$LOG_FILE"
+                {
+                  echo "--- Runtime smoke process snapshot before kill ---"
+                  ps -p "$APP_RUN_PID" -o pid,ppid,state,etime,%cpu,%mem,command || true
+                  echo "--- Related Snooz processes ---"
+                  ps -axo pid,ppid,state,etime,%cpu,%mem,command | grep -E '[S]nooz Toolbox|[s]nooz_runtime_smoke' || true
+                  echo "--- macOS process sample (5 seconds) ---"
+                  sample "$APP_RUN_PID" 5 1 || true
+                  echo "--- VM statistics ---"
+                  vm_stat || true
+                  echo "--- End timeout diagnostics ---"
+                } >>"$LOG_FILE" 2>&1
                 kill -9 "$APP_RUN_PID" >/dev/null 2>&1 || true
               fi
             ) &

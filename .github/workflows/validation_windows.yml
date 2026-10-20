@@ -39,9 +39,9 @@ on:
         required: false
         default: SnoozToolbox/snooz-gold-standards
       gold_standard_tag:
-        description: Gold-standard release tag (optional; enables output comparison)
+        description: "Gold-standard release tag. Leave empty to skip comparison (first-run bootstrap). Set e.g. v1.0.0 to compare."
         required: false
-        default: v1.0.0
+        default: ""
 
   workflow_call:
     inputs:
@@ -80,16 +80,26 @@ on:
         type: string
         default: SnoozToolbox/snooz-gold-standards
       gold_standard_tag:
-        description: Gold-standard release tag (optional; enables output comparison)
+        description: "Gold-standard release tag. Leave empty to skip comparison (first-run bootstrap). Set e.g. v1.0.0 to compare."
         required: false
         type: string
-        default: v1.0.0
+        default: ""
 
 jobs:
   validate_windows:
     runs-on: windows-2022
 
     steps:
+      - name: Enable long paths on Windows
+        shell: powershell
+        run: |
+          # Enable long path support (>260 chars) on Windows
+          # This is critical for the validation workflow which creates deep directory structures
+          $regPath = "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem"
+          New-ItemProperty -Path $regPath -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force -ErrorAction SilentlyContinue | Out-Null
+          Write-Host "Long path support enabled"
+          Get-ItemProperty -Path $regPath -Name "LongPathsEnabled" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LongPathsEnabled | Write-Host
+
       - name: Checkout workflow repository
         uses: actions/checkout@v5
 
@@ -458,20 +468,15 @@ jobs:
           }
 
           $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
-          $tools = @()
-          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
-            $tools = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-          }
-
-          if ($tools.Count -eq 0) {
-            $adaptationsPath = "ci/validation_tools/tool_json_adaptations.json"
-            $adaptations = Get-Content -Path $adaptationsPath -Raw | ConvertFrom-Json -AsHashtable
-            $tools = @(
-              $adaptations.GetEnumerator() |
-                Where-Object { $_.Value -is [hashtable] -and $_.Value.ContainsKey("updates") -and $_.Value.updates.Count -gt 0 } |
-                ForEach-Object { [string]$_.Key } |
-                Sort-Object
-            )
+          $tools = @(
+            python ci/validation_tools/resolve_tool_order.py `
+              --adaptations-file ci/validation_tools/tool_json_adaptations.json `
+              --order-file ci/validation_tools/tool_execution_order.json `
+              --tools "$toolsToProcessInput" `
+              --format lines
+          )
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to resolve validation tool execution order."
           }
 
           if ($tools.Count -eq 0) {
@@ -489,13 +494,36 @@ jobs:
           # next tool appends more annotations to the same file.
           Remove-Item -Path "tool-run-summary.tsv" -Force -ErrorAction SilentlyContinue
           Remove-Item -Path "validation-outputs" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path "validation-captures" -Recurse -Force -ErrorAction SilentlyContinue
+          if (Test-Path "captures") {
+            Remove-Item -LiteralPath "captures" -Recurse -Force -ErrorAction Stop
+          }
           $overallExit = 0
+          $toolSequence = 0
+
+          python ci/validation_tools/capture_validation_changes.py snapshot `
+            --root private-dataset `
+            --root validation-workspaces `
+            --output target/validation-logs/validation-state.json
+          if ($LASTEXITCODE -ne 0) {
+            throw "Validation snapshot failed with exit code $LASTEXITCODE"
+          }
 
           foreach ($toolName in $tools) {
             $scenario = "validation-workspaces/$toolName.json"
             if (-not (Test-Path $scenario)) {
               Write-Host "Warning: Scenario not found: $scenario"
               continue
+            }
+
+            $toolSequence += 1
+            python ci/validation_tools/capture_validation_changes.py checkpoint `
+              --output-dir validation-captures `
+              --tool "$toolName" `
+              --sequence $toolSequence
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Validation checkpoint failed for $toolName with exit code $LASTEXITCODE"
             }
 
             Write-Host "Running scenario: $toolName"
@@ -528,6 +556,19 @@ jobs:
               $toolStatus = "pass"
             }
 
+            python ci/validation_tools/capture_validation_changes.py capture `
+              --root private-dataset `
+              --root validation-workspaces `
+              --manifest target/validation-logs/validation-state.json `
+              --output-dir captures `
+              --state-dir validation-captures/checkpoint-state `
+              --tool "$toolName" `
+              --sequence $toolSequence
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Validation capture failed for $toolName with exit code $LASTEXITCODE"
+            }
+
             # Validate this tool's outputs now, while its annotation file is still
             # in the state produced by this run (before the next tool modifies it).
             $singleStatusTsv = "target/validation-logs/$toolName-status.tsv"
@@ -558,6 +599,14 @@ jobs:
             Write-Host ""
           }
 
+          python ci/validation_tools/capture_validation_changes.py finalize `
+            --output-dir validation-captures `
+            --sequence $toolSequence
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Validation final checkpoint failed with exit code $LASTEXITCODE"
+          }
+
           exit $overallExit
 
       - name: Upload adapted JSON and validation logs as artifact
@@ -567,8 +616,7 @@ jobs:
           name: windows-validation-assets
           if-no-files-found: warn
           path: |
-            validation-workspaces/**/*.json
-            validation-workspaces/**/*.log
-            target/validation-logs/**/*.log
+            validation-workspaces/*.json
             tool-run-summary.tsv
             validation-outputs/**/*
+            captures/**/*
