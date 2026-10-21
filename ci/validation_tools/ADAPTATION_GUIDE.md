@@ -44,7 +44,7 @@ Each entry in the `updates` array modifies one node input:
 
 ### Module activation state
 
-An entry can instead change the `activation_state` of a module (node), using `activationState` in place of `inputName` and `value`. This is needed because enabling an option in the Snooz UI can activate another module (e.g. the Slow Wave report activates `SlowWavesDetails`), which does not happen when the JSON is edited directly.
+An entry can instead change the `activation_state` of a module (node), using `activationState` in place of `inputName` and `value`. This is needed because enabling an option in the Snooz UI can activate another module, which does not happen when the JSON is edited directly.
 
 - **`identifier`** (string): UUID of the target node (required)
 - **`activationState`** (string): one of `activated` (node is executed), `deactivated` (node is ignored), `bypass` (node lets the data pass through)
@@ -52,7 +52,7 @@ An entry can instead change the `activation_state` of a module (node), using `ac
 
 ```json
 {
-  "description": "Activate the SlowWavesDetails module (output report).",
+  "description": "Activate the output report module.",
   "identifier": "0308c274-4216-4642-9093-0ac919e9a0de",
   "activationState": "activated",
   "required": true

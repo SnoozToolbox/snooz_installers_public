@@ -258,49 +258,5 @@
         ]
       }
     ]
-  },
-  "SlowWaveDetection": {
-    "comparisons": [
-      {
-        "fileName": "Slow-Waves-Cohort-report.tsv",
-        "fileType": "bag-comparison",
-        "precision": 4,
-        "generatedSearchRoots": [
-          "validation-workspaces"
-        ]
-      },
-      {
-        "fileName": "01-01-0001_sw_carrier.tsv",
-        "fileType": "bag-comparison",
-        "precision": 4,
-        "generatedSearchRoots": [
-          "validation-workspaces"
-        ]
-      },
-      {
-        "fileName": "learn-nsrr01_sw_carrier.tsv",
-        "fileType": "bag-comparison",
-        "precision": 4,
-        "generatedSearchRoots": [
-          "validation-workspaces"
-        ]
-      },
-      {
-        "fileName": "learn-nsrr02_sw_carrier.tsv",
-        "fileType": "bag-comparison",
-        "precision": 4,
-        "generatedSearchRoots": [
-          "validation-workspaces"
-        ]
-      },
-      {
-        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_sw_carrier.tsv",
-        "fileType": "bag-comparison",
-        "precision": 4,
-        "generatedSearchRoots": [
-          "validation-workspaces"
-        ]
-      }
-    ]
   }
 }

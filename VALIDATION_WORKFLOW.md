@@ -96,4 +96,4 @@ The short, flat `captures/` layout is archived for captured outputs to avoid the
 
 The cross-platform execution order is defined in `ci/validation_tools/tool_execution_order.json`. Windows, Linux, and macOS all use this list. The optional `tools_to_process` input selects a subset but does not change the relative order.
 
-Every tool with non-empty `updates` in `tool_json_adaptations.json` must appear exactly once in the execution-order file. The workflow fails during preparation if a configured tool is missing or an unknown tool is listed. When adding `SlowWaveDetection`, add it to `tool_execution_order.json` at the point where its required input state is available, for example immediately after `ScoreSleepStagesYASA`.
+Every tool with non-empty `updates` in `tool_json_adaptations.json` must appear exactly once in the execution-order file. The workflow fails during preparation if a configured tool is missing or an unknown tool is listed. When adding a tool, add it to `tool_execution_order.json` at the point where its required input state is available.
