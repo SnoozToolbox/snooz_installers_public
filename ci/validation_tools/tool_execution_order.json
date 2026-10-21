@@ -8,5 +8,6 @@
   "ImportEDFPlusAnnotations",
   "ImportTextAnnotations",
   "PowerSpectralAnalysis",
+  "SlowWaveDetection",
   "ScoreSleepStagesYASA"
 ]
