@@ -77,6 +77,7 @@ jobs:
     if: ${{ inputs.build_windows }}
     steps:
       - name: Checkout Repository
+        id: source
         uses: actions/checkout@v5
         with:
           repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
@@ -457,6 +458,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           repository: ${{ inputs.release_repo != '' && inputs.release_repo || github.repository }}
           tag_name: ${{ inputs.release_tag }}
+          target_commitish: ${{ (inputs.release_repo != '' && inputs.release_repo || github.repository) == (contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo)) && steps.source.outputs.commit || '' }}
           name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
           draft: ${{ inputs.release_draft }}
           prerelease: ${{ inputs.release_prerelease }}
@@ -468,6 +470,7 @@ jobs:
     if: ${{ inputs.build_linux }}
     steps:
       - name: Checkout Repository
+        id: source
         uses: actions/checkout@v5
         with:
           repository: ${{ contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo) }}
@@ -1013,6 +1016,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           repository: ${{ inputs.release_repo != '' && inputs.release_repo || github.repository }}
           tag_name: ${{ inputs.release_tag }}
+          target_commitish: ${{ (inputs.release_repo != '' && inputs.release_repo || github.repository) == (contains(inputs.source_repo, '/') && inputs.source_repo || format('SnoozToolbox/{0}', inputs.source_repo)) && steps.source.outputs.commit || '' }}
           name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
           draft: ${{ inputs.release_draft }}
           prerelease: ${{ inputs.release_prerelease }}

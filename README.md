@@ -14,6 +14,24 @@ The workflow that contains the installer jobs is located at `.github/workflows/i
   - Define the source repository (default: SnoozToolbox/snooz-toolbox).
   - Define the branch (default: main).
 
+## Release tag target
+
+The [Windows/Linux](.github/workflows/installers_creation_Windows_Linux.yml) and
+[macOS](.github/workflows/installers_creation_macOS.yml) workflows build the
+selected `source_repo` and `source_ref`.
+When publishing a release in that same source repository, a new `release_tag`
+targets the exact commit checked out for the build, not the default branch.
+For example, set `source_repo` and `release_repo` to
+`SnoozToolbox/snooz-toolbox-ceams`, and `source_ref` to `release/1.1.0`.
+The tag then identifies the branch commit used to build the installers, even
+if the branch advances during the build.
+
+Existing tags are not moved by this setting. Use a new release tag for a new
+source commit. When publishing to a different repository, GitHub's default tag
+target behavior is preserved because the source commit may not exist there.
+For multi-platform releases, keep the source branch unchanged until all builds
+have checked it out, or use the same source commit SHA for every workflow.
+
 ## Validation flow strategy
 
 The long-term plan is to keep installer creation and installer validation in separate workflows.
@@ -228,5 +246,4 @@ Notes:
 
 - `GH_PAT` is required for all builds (Windows, macOS, Linux): it is used to check out the source repository, download `fbs-pro` release assets, and publish installers to a release when release publishing is enabled.
 - Apple-related secrets are required for macOS signing and notarization jobs.
-
 
