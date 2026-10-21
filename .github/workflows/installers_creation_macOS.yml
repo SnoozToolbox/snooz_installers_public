@@ -1049,7 +1049,7 @@ jobs:
 
   build_dmg_arm64:
     if: ${{ inputs.build_macos && inputs.build_macos_arm64 }}
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       APPLE_TEAM_ID: UDE82H2SDR
       APP_BUNDLE_ID: com.snooztoolbox
