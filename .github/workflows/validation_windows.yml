@@ -13,7 +13,7 @@ on:
       installer_tag:
         description: Installer release tag to validate
         required: true
-        default: v1.0.1-rc3
+        default: v1.1.0-rc7
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
@@ -21,7 +21,7 @@ on:
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
-        default: "7.4.0"
+        default: "7.5.0"
       dataset_repo:
         description: Private dataset repository (owner/name)
         required: true
@@ -41,7 +41,7 @@ on:
       gold_standard_tag:
         description: "Gold-standard release tag. Leave empty to skip comparison (first-run bootstrap). Set e.g. v1.0.0 to compare."
         required: false
-        default: ""
+        default: "v1.1.0"
 
   workflow_call:
     inputs:
