@@ -569,7 +569,13 @@ jobs:
             exit 1
           fi
 
-          xcrun stapler staple "$APP_PATH"
+          # Stapling fetches the ticket from CloudKit and fails on transient network errors.
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "$APP_PATH"; then break; fi
+            if [ "$attempt" = 5 ]; then echo "::error::stapler staple failed after 5 attempts"; exit 1; fi
+            echo "Staple attempt $attempt failed, retrying in 30s..."
+            sleep 30
+          done
           xcrun stapler validate "$APP_PATH"
           rm -f "$APP_ZIP"
 
@@ -980,7 +986,12 @@ jobs:
             exit 1
           fi
 
-          xcrun stapler staple "$DMG_PATH"
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "$DMG_PATH"; then break; fi
+            if [ "$attempt" = 5 ]; then echo "::error::stapler staple failed after 5 attempts"; exit 1; fi
+            echo "Staple attempt $attempt failed, retrying in 30s..."
+            sleep 30
+          done
           xcrun stapler validate "$DMG_PATH"
 
       - name: Rename x64 DMG with architecture suffix
@@ -1535,7 +1546,13 @@ jobs:
             exit 1
           fi
 
-          xcrun stapler staple "$APP_PATH"
+          # Stapling fetches the ticket from CloudKit and fails on transient network errors.
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "$APP_PATH"; then break; fi
+            if [ "$attempt" = 5 ]; then echo "::error::stapler staple failed after 5 attempts"; exit 1; fi
+            echo "Staple attempt $attempt failed, retrying in 30s..."
+            sleep 30
+          done
           xcrun stapler validate "$APP_PATH"
           rm -f "$APP_ZIP"
 
@@ -1892,7 +1909,12 @@ jobs:
             exit 1
           fi
 
-          xcrun stapler staple "$DMG_PATH"
+          for attempt in 1 2 3 4 5; do
+            if xcrun stapler staple "$DMG_PATH"; then break; fi
+            if [ "$attempt" = 5 ]; then echo "::error::stapler staple failed after 5 attempts"; exit 1; fi
+            echo "Staple attempt $attempt failed, retrying in 30s..."
+            sleep 30
+          done
           xcrun stapler validate "$DMG_PATH"
 
       - name: Rename arm64 DMG with architecture suffix
