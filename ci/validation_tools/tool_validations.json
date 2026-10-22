@@ -386,7 +386,7 @@
         ]
       },      
       {
-        "fileName": "martin_info.tsv",
+        "fileName": "a4_info.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
@@ -394,7 +394,7 @@
         ]
       },
       {
-        "fileName": "01-01-0001_martin.tsv",
+        "fileName": "01-01-0001_a4.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
@@ -402,7 +402,7 @@
         ]
       },
       {
-        "fileName": "learn-nsrr01_martin.tsv",
+        "fileName": "learn-nsrr01_a4.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
@@ -410,7 +410,7 @@
         ]
       },
       {
-        "fileName": "learn-nsrr02_martin.tsv",
+        "fileName": "learn-nsrr02_a4.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
@@ -418,7 +418,7 @@
         ]
       },
       {
-        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_martin.tsv",
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_a4.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
