@@ -463,11 +463,85 @@
       }
     ]
   },
-    "ScoreSleepStagesYASA": {
+  "SpindleDetectionA7": {
+    "targetToolName": "SpindleDetectionA7",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
+        "identifier": "",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/SpindleDetectionA7-files.json",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the dictionary input for artifact group (group_selection).",
+        "identifier": "",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the dictionary input for artifact name (name_selection).",
+        "identifier": "",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Activate the SpindleDetectionA7 module (output report).",
+        "identifier": "",
+        "activationState": "activated",
+        "required": true
+      },
+      {
+        "description": "Check export_slow_wave details report (per-event) in SlowWavesDetails.",
+        "identifier": "",
+        "inputName": "export_slow_wave", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "True",
+          "required": true
+        }
+      },
+      {
+        "description": "Update output report filename (per-subject) in SlowWavesDetails.",
+        "identifier": "",
+        "inputName": "cohort_filename", 
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "Slow-Waves-Cohort-report.tsv",
+          "required": true
+        }
+      },
+      {
+        "description": "Activate the SlowWavesDetails module (output report).",
+        "identifier": "",
+        "activationState": "activated",
+        "required": true
+      }
+    ]
+  },
+  "ScoreSleepStagesYASA": {
     "targetToolName": "ScoreSleepStagesYASA",
     "processingMode": "adapted",
     "updates": [
       {
+        "description": "Keep this test at the end of the workflow because it changes the sleep staging.",
         "identifier": "031201d5-ff93-4be6-90d3-256d2ba689d1",
         "inputName": "files",
         "required": true,
