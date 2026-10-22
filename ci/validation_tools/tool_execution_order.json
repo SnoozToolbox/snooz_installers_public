@@ -9,5 +9,6 @@
   "ImportTextAnnotations",
   "PowerSpectralAnalysis",
   "SlowWaveDetection",
+  "SpindleDetectionA7",
   "ScoreSleepStagesYASA"
 ]
