@@ -474,7 +474,7 @@
         "required": true,
         "value": {
           "kind": "workspaceFileJson",
-          "relativePath": "../ci/validation_tools/SpindleDetectionA7-files.json",
+          "relativePath": "../ci/validation_tools/SpindleDetection-files.json",
           "required": true
         }
       },
@@ -541,7 +541,7 @@
         "required": true,
         "value": {
           "kind": "workspaceFileJson",
-          "relativePath": "../ci/validation_tools/SpindleDetectionMartin-files.json",
+          "relativePath": "../ci/validation_tools/SpindleDetection-files.json",
           "required": true
         }
       },
@@ -580,7 +580,74 @@
         "required": true,
         "value": {
           "kind": "workspacePath",
-          "relativePath": "SpindleDetectionA7-Cohort-report.tsv",
+          "relativePath": "SpindleDetectionMartin-Cohort-report.tsv",
+          "required": true
+        }
+      },
+      {
+        "description": "Export spindle characteristics files (per-event) in CEAMSModules.SpindlesDetails.",
+        "identifier": "0e3df2c0-7c41-4fa5-89bb-f6601ef8831a",
+        "inputName": "export_spindles", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "True",
+          "required": true
+        }
+      }
+    ]
+  },
+    "SpindleDetectionSumo": {
+    "targetToolName": "SpindleDetectionSumo",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
+        "identifier": "afec6a23-8c85-4c7d-8b29-d04fea5a6887",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/SpindleDetection-files.json",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the CEAMSModules.Dictionary input for artifact group (group_selection).",
+        "identifier": "93f0bc13-163b-4ab9-9af8-9b1cceb519f7",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the CEAMSModules.Dictionary input for artifact name (name_selection).",
+        "identifier": "0dfe9ca8-4683-4a3b-bc95-029bc282301a",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Activate the CEAMSModules.SpindlesDetails module (spindle_events connected to events-not events_selected).",
+        "identifier":  "0e3df2c0-7c41-4fa5-89bb-f6601ef8831a",
+        "activationState": "activated",
+        "required": true
+      },
+      {
+        "description": "Update output report filename (per-subject) in CEAMSModules.SpindlesDetails.",
+        "identifier": "0e3df2c0-7c41-4fa5-89bb-f6601ef8831a",
+        "inputName": "cohort_filename", 
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "SpindleDetectionSumo-Cohort-report.tsv",
           "required": true
         }
       },
