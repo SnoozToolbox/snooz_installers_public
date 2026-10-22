@@ -367,6 +367,66 @@
       }
     ]
   },
+  "SpindleDetectionMartin": {
+    "comparisons": [
+      {
+        "fileName": "SpindleDetectionMartin-Cohort-report_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },  
+      {
+        "fileName": "SpindleDetectionMartin-Cohort-report.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },      
+      {
+        "fileName": "martin_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "01-01-0001_martin.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_martin.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_martin.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_martin.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      }
+    ]
+  },
   "ScoreSleepStagesYASA": {
     "comparisons": [
       {

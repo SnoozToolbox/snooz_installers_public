@@ -10,5 +10,6 @@
   "PowerSpectralAnalysis",
   "SlowWaveDetection",
   "SpindleDetectionA7",
+  "SpindleDetectionMartin",
   "ScoreSleepStagesYASA"
 ]
