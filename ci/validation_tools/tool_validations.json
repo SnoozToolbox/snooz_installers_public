@@ -235,10 +235,10 @@
       }     
     ]
   },
-  "ScoreSleepStagesYASA": {
+  "PowerSpectralAnalysis": {
     "comparisons": [
       {
-        "fileName": "YASA_sleep_staging_metrics_cohort_report.tsv",
+        "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
@@ -247,10 +247,130 @@
       }
     ]
   },
-  "PowerSpectralAnalysis": {
+  "SlowWaveDetection": {
     "comparisons": [
       {
-        "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
+        "fileName": "Slow-Waves-Cohort-report_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "Slow-Waves-Cohort-report.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "sw_carrier_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "01-01-0001_sw_carrier.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_sw_carrier.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_sw_carrier.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_sw_carrier.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      }
+    ]
+  },
+  "SpindleDetectionA7": {
+    "comparisons": [
+      {
+        "fileName": "SpindleDetectionA7-Cohort-report_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },  
+      {
+        "fileName": "SpindleDetectionA7-Cohort-report.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },      
+      {
+        "fileName": "a7_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "01-01-0001_a7.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_a7.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_a7.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_a7.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      }
+    ]
+  },
+  "ScoreSleepStagesYASA": {
+    "comparisons": [
+      {
+        "fileName": "YASA_sleep_staging_metrics_cohort_report.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
