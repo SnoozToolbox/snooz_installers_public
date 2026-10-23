@@ -10,6 +10,10 @@ Bootstrap behavior:
   - Tag set but tool gold missing -> skip that tool's comparison (collect generated)
   - Tag set and gold present -> compare as usual
 
+Comparisons with fileType 'exists' only check that the generated file was
+created and is valid (non-empty; complete PDF for .pdf files). They never need
+a gold standard, so they run whether or not gold_standard_tag is set.
+
 Usage:
     python compare_and_summarize.py \
         --run-status-file target/validation-logs/run-status.json \
@@ -70,6 +74,54 @@ def run_comparison(compare_script, tool_name, generated_file, reference_file, fi
     result = subprocess.run(args, capture_output=True, text=True)
     output = (result.stdout or "") + (result.stderr or "")
     return result.returncode == 0, output
+
+
+def describe_invalid_file(path):
+    """Return why a generated file is not valid, or None when it is."""
+    size = path.stat().st_size
+    if size == 0:
+        return "file is empty"
+    if path.suffix.lower() == ".pdf":
+        with open(path, 'rb') as f:
+            header = f.read(5)
+            f.seek(max(0, size - 1024))
+            tail = f.read()
+        if header != b"%PDF-":
+            return "file does not start with a PDF header"
+        if b"%%EOF" not in tail:
+            return "PDF is truncated (no %%EOF marker)"
+    return None
+
+
+def check_generated_files_exist(tool_name, checks, generated_search_roots_default):
+    """Run fileType 'exists' checks. Returns (all_ok, validated_files)."""
+    all_ok = True
+    validated_files = []
+    for check in checks:
+        file_name = check.get("generatedFileName") or check.get("fileName", "")
+        roots = check.get("generatedSearchRoots") or generated_search_roots_default
+        if not file_name:
+            print(f"::error::{tool_name} invalid exists entry. Define fileName.")
+            all_ok = False
+            continue
+
+        generated_file = find_first_file_by_name(roots, file_name)
+        if generated_file is None:
+            print(f"::error::{tool_name} expected output not found: {file_name}")
+            for root in roots:
+                print(f"  Searched root: {root}")
+            all_ok = False
+            continue
+
+        problem = describe_invalid_file(generated_file)
+        if problem:
+            print(f"::error::{tool_name} invalid output {generated_file}: {problem}")
+            all_ok = False
+            continue
+
+        print(f"✓ Output exists and is valid for {tool_name} : {file_name}")
+        validated_files.append(file_name)
+    return all_ok, validated_files
 
 
 def collect_generated_only(output_dir, tool_name, tool_config, generated_search_roots_default):
@@ -234,29 +286,48 @@ def main():
         validated_files = []
         tool_config = tool_validations.get(tool_name) if isinstance(tool_validations.get(tool_name), dict) else None
 
+        # 'exists' checks need no gold standard; the rest are gold-standard comparisons.
+        comparisons = tool_config.get("comparisons", []) if tool_config else []
+        exists_checks = [c for c in comparisons if c.get("fileType") == "exists"]
+        gold_config = None
+        if tool_config:
+            gold_config = dict(tool_config)
+            gold_config["comparisons"] = [c for c in comparisons if c.get("fileType") != "exists"]
+
+        exists_ok = True
+        if tool_run_status == "pass" and exists_checks:
+            exists_ok, validated_files = check_generated_files_exist(
+                tool_name, exists_checks, generated_search_roots_default)
+
         if tool_run_status != "pass":
             comparison_status = tool_run_status
             any_failure = True
+        elif not exists_ok:
+            comparison_status = "fail"
+            any_failure = True
+        elif exists_checks and not gold_config["comparisons"]:
+            comparison_status = "pass"
         elif not gold_standard_tag:
             comparison_status = "skipped-no-gold-standard-tag"
             if tool_config:
-                collect_generated_only(output_dir, tool_name, tool_config, generated_search_roots_default)
+                collect_generated_only(output_dir, tool_name, gold_config, generated_search_roots_default)
         elif tool_config is None:
             comparison_status = "not-configured"
         else:
-            comparison_status, validated_files, collected_files = compare_tool(
+            comparison_status, gold_validated_files, collected_files = compare_tool(
                 tool_name,
-                tool_config,
+                gold_config,
                 args.gold_standards_dir,
                 generated_search_roots_default,
                 args.compare_script,
             )
+            validated_files += gold_validated_files
             if collected_files:
                 collect_output_files(output_dir, tool_name, collected_files)
             if comparison_status == "fail":
                 any_failure = True
             elif comparison_status == "skipped-missing-gold-standard":
-                collect_generated_only(output_dir, tool_name, tool_config, generated_search_roots_default)
+                collect_generated_only(output_dir, tool_name, gold_config, generated_search_roots_default)
 
         summary_rows.append({
             "tool_name": tool_name,

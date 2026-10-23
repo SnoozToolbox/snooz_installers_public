@@ -390,6 +390,78 @@
       }
     ]
   },
+  "PSAImages": {
+    "targetToolName": "PSAImages",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Input PSA report: the cohort report written by PowerSpectralAnalysis (all 4 subjects).",
+        "identifier": "bc3ee945-0abf-46b7-b110-db5e617ea70a",
+        "inputName": "filenames",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/validation-workspaces/EEG_spectral_power_cohort_report_Welch.tsv': '$GITHUB_WORKSPACE/validation-workspaces/EEG_spectral_power_cohort_report_Welch.tsv'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Group label for each input report.",
+        "identifier": "bc3ee945-0abf-46b7-b110-db5e617ea70a",
+        "inputName": "file_group",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/validation-workspaces/EEG_spectral_power_cohort_report_Welch.tsv': 'cohort'}",
+          "required": true
+        }
+      },
+      {
+        "description": "No ROI defined.",
+        "identifier": "bc3ee945-0abf-46b7-b110-db5e617ea70a",
+        "inputName": "ROIs_def",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{}",
+          "required": true
+        }
+      },
+      {
+        "description": "Per-subject channel selection {subject_id: {channel: True}} (7.5.0 format, as written by the GUI). Subject ids are the values of the report's 'filename' column.",
+        "identifier": "bc3ee945-0abf-46b7-b110-db5e617ea70a",
+        "inputName": "chans_ROIs_sel",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'01-01-0001': {'C3': True, 'F3': True, 'O1': True}, 'learn-nsrr01': {'EEG': True, 'EEG(sec)': True}, 'learn-nsrr02': {'EEG': True, 'EEG(sec)': True}, 'COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db': {'C3-RC': True, 'F3-RC': True, 'O1-RC': True}}",
+          "required": true
+        }
+      },
+      {
+        "description": "Generate all 4 figure types. DejaVu Sans ships with matplotlib, so the font is the same on every OS. The output folder must already exist.",
+        "identifier": "bc3ee945-0abf-46b7-b110-db5e617ea70a",
+        "inputName": "pics_param",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'cohort_avg': True, 'cohort_sel': True, 'group_avg': True, 'group_sel': True, 'sleep_stage_selection': ['N2N3', 'R'], 'activity_var': 'total', 'display': 'mean_std', 'hour': 0, 'cycle': 0, 'freq_range': [0.5, 30], 'log_scale_y': True, 'log_scale_x': False, 'show_legend': True, 'force_axis': False, 'font': 'DejaVu Sans', 'fontsize': 12, 'figure_width': 8, 'figure_height': 6, 'output_folder': '$GITHUB_WORKSPACE/validation-workspaces'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Default color palettes.",
+        "identifier": "bc3ee945-0abf-46b7-b110-db5e617ea70a",
+        "inputName": "colors_param",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'group_avg': ['tab:blue', 'tab:red', 'tab:green', 'tab:purple', 'tab:orange', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'], 'group_sel': ['tab:blue', 'tab:red', 'tab:green', 'tab:purple', 'tab:orange', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'], 'cohort': ['tab:blue', 'tab:red', 'tab:green', 'tab:purple', 'tab:orange', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan']}",
+          "required": true
+        }
+      }
+    ]
+  },
   "SlowWaveDetection": {
     "targetToolName": "SlowWaveDetection",
     "processingMode": "adapted",

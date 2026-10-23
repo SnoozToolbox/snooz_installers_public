@@ -7,6 +7,7 @@
       "Each item in comparisons defines one generated file to compare against one gold-standard file.",
       "If generated and gold names are identical, use fileName only.",
       "fileType: Use 'bag-comparison' for unordered line comparison (order-independent, counts must match), 'generic' for strict line-by-line order preservation, or 'report' for ordered comparison.",
+      "fileType 'exists': only checks that the generated file was created and is valid (non-empty; complete PDF for .pdf). No gold standard is needed and the check runs even when gold_standard_tag is empty. Use it for outputs that cannot be compared as text, such as images or PDFs.",
       "comparisons[].delimiter: Optional delimiter override for text normalization when relevant.",
       "comparisons[].maxDiffLines: Optional maximum number of diff lines to print in mismatch logs."
     ],
@@ -241,6 +242,136 @@
         "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
         "fileType": "bag-comparison",
         "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      }
+    ]
+  },
+  "PSAImages": {
+    "comparisons": [
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_C3-RC_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_C3_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_EEG(sec)_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_EEG_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_F3-RC_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_F3_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_O1-RC_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_O1_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "EEG_spectral_power_cohort_report_Welch_avg_psa_Total_N2N3+R_mean_std.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total_C3-RC.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total_C3.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total_EEG(sec).pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total_EEG.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total_F3-RC.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total_F3.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total_O1-RC.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "cohort_psa_mean_std_Total_O1.pdf",
+        "fileType": "exists",
         "generatedSearchRoots": [
           "validation-workspaces"
         ]
