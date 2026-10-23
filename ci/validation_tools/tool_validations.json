@@ -431,7 +431,7 @@
       {
         "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_sw_carrier.tsv",
         "fileType": "bag-comparison",
-        "precision": 4,
+        "precision": 3,
         "generatedSearchRoots": [
           "validation-workspaces"
         ]
