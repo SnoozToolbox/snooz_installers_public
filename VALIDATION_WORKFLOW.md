@@ -17,6 +17,8 @@ macOS x64 validation uses the self-hosted runner with labels `self-hosted`, `mac
 
 The downloaded installer must include the architecture suffix `-x64.dmg` or `-arm64.dmg`. Validation selects exactly one DMG matching the requested architecture, even when the download pattern matches both, and checks the executable architecture with `lipo` before running scenarios.
 
+Each validation job mounts its selected DMG at a unique path under `RUNNER_TEMP` and detaches only that mount during cleanup. Existing Snooz volumes on the self-hosted runner are not selected or detached.
+
 The Intel runner must provide GitHub CLI (`gh`) for downloading release assets. Before downloading, the workflow adds the standard Intel Homebrew directory (`/usr/local/bin`) to `PATH` and installs `gh` with `brew install gh` if it is missing. Homebrew must already be installed and usable by the runner account. If neither `gh` nor Homebrew is available, the workflow stops with an explicit setup error.
 
 ## Workflow Diagram
