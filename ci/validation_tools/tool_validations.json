@@ -378,6 +378,26 @@
       }
     ]
   },
+  "PSACohortReview": {
+    "comparisons": [
+      {
+        "fileName": "PSACohortReview_clean.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "PSACohortReview_transposed.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      }
+    ]
+  },
   "SlowWaveDetection": {
     "comparisons": [
       {

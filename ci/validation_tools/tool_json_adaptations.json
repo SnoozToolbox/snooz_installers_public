@@ -462,6 +462,111 @@
       }
     ]
   },
+  "PSACohortReview": {
+    "targetToolName": "PSACohortReview",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Input PSA report: the cohort report written by PowerSpectralAnalysis (all 4 subjects).",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "filenames",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "['$GITHUB_WORKSPACE/validation-workspaces/EEG_spectral_power_cohort_report_Welch.tsv']",
+          "required": true
+        }
+      },
+      {
+        "description": "Per subject: [original channels, renamed channels, selected flags]. Subject keys are the values of the report's 'filename' column. All channels kept, none renamed.",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "subject_chans_label",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'01-01-0001': [['C3', 'F3', 'O1'], ['C3', 'F3', 'O1'], [True, True, True]], 'learn-nsrr01': [['EEG', 'EEG(sec)'], ['EEG', 'EEG(sec)'], [True, True]], 'learn-nsrr02': [['EEG', 'EEG(sec)'], ['EEG', 'EEG(sec)'], [True, True]], 'COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db': [['C3-RC', 'F3-RC', 'O1-RC'], ['C3-RC', 'F3-RC', 'O1-RC'], [True, True, True]]}",
+          "required": true
+        }
+      },
+      {
+        "description": "No ROI defined at the cohort level.",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "ROIs_cohort",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{}",
+          "required": true
+        }
+      },
+      {
+        "description": "No ROI selected per subject.",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "ROIs_subjects",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{}",
+          "required": true
+        }
+      },
+      {
+        "description": "Bands as written by the GUI (pandas table text): 1-4 Hz absolute, 11-16 Hz absolute, 1-4 Hz relative to 0-30 Hz. Edges must match the report's 1 Hz bins.",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "freq_band",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "num-start(Hz) num-end(Hz) den-start(Hz) den-end(Hz)\n0 1 4 NaN NaN\n1 11 16 NaN NaN\n2 1 4 0 30",
+          "required": true
+        }
+      },
+      {
+        "description": "Export the 'Total' activity variables.",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "activity_label",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "Total",
+          "required": true
+        }
+      },
+      {
+        "description": "Write the clean PSA file (selected channels only).",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "PSA_clean_flag",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "1",
+          "required": true
+        }
+      },
+      {
+        "description": "Write the transposed PSA file (one row per subject).",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "PSA_transposed_flag",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "1",
+          "required": true
+        }
+      },
+      {
+        "description": "Base output path: the module writes PSACohortReview_clean.tsv and PSACohortReview_transposed.tsv.",
+        "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+        "inputName": "output_dir",
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "PSACohortReview",
+          "required": true
+        }
+      }
+    ]
+  },
   "SlowWaveDetection": {
     "targetToolName": "SlowWaveDetection",
     "processingMode": "adapted",

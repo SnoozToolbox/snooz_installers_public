@@ -9,6 +9,7 @@
   "ImportTextAnnotations",
   "PowerSpectralAnalysis",
   "PSAImages",
+  "PSACohortReview",
   "SlowWaveDetection",
   "SpindleDetectionA7",
   "SpindleDetectionMartin",
