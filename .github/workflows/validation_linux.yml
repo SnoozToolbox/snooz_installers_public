@@ -339,6 +339,27 @@ jobs:
           fi
           echo "JSON paths successfully adapted."
 
+      - name: Add swap space for memory-heavy tools
+        shell: bash
+        run: |
+          # DetectArtifacts peaks above the runner's ~16 GB RAM + 3 GB swap and
+          # gets OOM-killed. Windows/macOS grow their swap on demand; Linux does not.
+          SWAP_SIZE_GB=16
+          if [ -d /mnt ] && [ "$(df -BG --output=avail /mnt | tail -1 | tr -dc '0-9')" -gt $((SWAP_SIZE_GB + 5)) ]; then
+            SWAP_FILE=/mnt/extra-swapfile
+          else
+            SWAP_FILE=/extra-swapfile
+          fi
+          echo "Disk space before adding swap:"
+          df -h / /mnt 2>/dev/null || df -h /
+          sudo fallocate -l "${SWAP_SIZE_GB}G" "$SWAP_FILE"
+          sudo chmod 600 "$SWAP_FILE"
+          sudo mkswap "$SWAP_FILE"
+          sudo swapon "$SWAP_FILE"
+          echo "Swap after adding $SWAP_FILE:"
+          swapon --show
+          free -m
+
       - name: Run adapted headless scenarios and validate each tool immediately
         shell: bash
         run: |
