@@ -19,6 +19,10 @@ The downloaded installer must include the architecture suffix `-x64.dmg` or `-ar
 
 Each validation job mounts its selected DMG at a unique path under `RUNNER_TEMP` and detaches only that mount during cleanup. Existing Snooz volumes on the self-hosted runner are not selected or detached.
 
+Like the installer build's headless DMG smoke test, validation uses `ditto` to copy the app into a unique local directory under `RUNNER_TEMP`, simulating a drag-and-drop installation. Signature checks, JSON extraction, and scenario execution use this installed copy, not the app on the mounted image. Cleanup removes only the job's temporary app directory.
+
+Before executing scenarios, macOS validation verifies the app signature with `codesign --verify --deep --strict` and assesses it with Gatekeeper (`spctl`). Either failure stops validation. Diagnostic output is preserved in `target/validation-logs/macos-codesign.log` and `target/validation-logs/macos-gatekeeper.log`; validation does not bypass macOS security checks.
+
 The Intel runner must provide GitHub CLI (`gh`) for downloading release assets. Before downloading, the workflow adds the standard Intel Homebrew directory (`/usr/local/bin`) to `PATH` and installs `gh` with `brew install gh` if it is missing. Homebrew must already be installed and usable by the runner account. If neither `gh` nor Homebrew is available, the workflow stops with an explicit setup error.
 
 ## Workflow Diagram

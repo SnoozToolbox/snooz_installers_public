@@ -271,7 +271,7 @@ jobs:
 
           echo "Installing: $INSTALLER"
           MOUNTED_VOLUME=$(mktemp -d "$RUNNER_TEMP/snooz-validation-mount.XXXXXX")
-          hdiutil attach "$INSTALLER" -nobrowse -mountpoint "$MOUNTED_VOLUME"
+          hdiutil attach "$INSTALLER" -nobrowse -readonly -mountpoint "$MOUNTED_VOLUME"
           echo "SNOOZ_MOUNTED_VOLUME=$MOUNTED_VOLUME" >> "$GITHUB_ENV"
           
           echo "Found mounted volume: $MOUNTED_VOLUME"
@@ -286,6 +286,14 @@ jobs:
           fi
 
           echo "Found app bundle: $APP_PATH"
+
+          # Match the installer build's headless test by simulating a drag-and-drop installation.
+          LOCAL_APP_DIR=$(mktemp -d "$RUNNER_TEMP/snooz-validation-app.XXXXXX")
+          echo "SNOOZ_INSTALLED_APP_DIR=$LOCAL_APP_DIR" >> "$GITHUB_ENV"
+          APP_LOCAL="$LOCAL_APP_DIR/$(basename "$APP_PATH")"
+          ditto "$APP_PATH" "$APP_LOCAL"
+          APP_PATH="$APP_LOCAL"
+          echo "Installed app copy from DMG: $APP_PATH"
           
           # Get the app name (it might not be exactly "Snooz.app")
           APP_NAME=$(basename "$APP_PATH")
@@ -310,14 +318,27 @@ jobs:
             echo "::error::Installer executable does not support requested architecture: $MACH_ARCH"
             exit 1
           fi
+
+          mkdir -p target/validation-logs
+          signature_status=0
+          codesign --verify --deep --strict --verbose=4 "$APP_PATH" \
+            > target/validation-logs/macos-codesign.log 2>&1 || signature_status=$?
+          cat target/validation-logs/macos-codesign.log
+
+          gatekeeper_status=0
+          spctl --assess --type execute --verbose=4 "$APP_PATH" \
+            > target/validation-logs/macos-gatekeeper.log 2>&1 || gatekeeper_status=$?
+          cat target/validation-logs/macos-gatekeeper.log
+
+          if [ "$signature_status" -ne 0 ] || [ "$gatekeeper_status" -ne 0 ]; then
+            echo "::error::macOS application verification failed (codesign=$signature_status, Gatekeeper=$gatekeeper_status). See macos-codesign.log and macos-gatekeeper.log."
+            exit 1
+          fi
           
           echo "Found executable: $INSTALLED_EXE"
-          echo "Using app directly from mounted volume to preserve code signatures"
-          
-          # DO NOT detach the volume yet - we need it for execution and JSON extraction
           echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
 
-          # Extract JSON files from the mounted app
+          # Extract JSON files from the installed app
           VERSION_UNDERSCORE="${{ inputs.package_version }}"
           VERSION_UNDERSCORE="${VERSION_UNDERSCORE//./_}"
           
@@ -510,13 +531,17 @@ jobs:
           
           exit $overall_exit
 
-      - name: Detach mounted DMG volume
+      - name: Clean up validation installation
         shell: bash
         if: always()
         run: |
           if [ -n "${SNOOZ_MOUNTED_VOLUME:-}" ]; then
             echo "Detaching: $SNOOZ_MOUNTED_VOLUME"
             hdiutil detach "$SNOOZ_MOUNTED_VOLUME"
+          fi
+          if [ -n "${SNOOZ_INSTALLED_APP_DIR:-}" ]; then
+            echo "Removing validation app copy: $SNOOZ_INSTALLED_APP_DIR"
+            rm -rf "$SNOOZ_INSTALLED_APP_DIR"
           fi
 
       - name: Upload adapted JSON and validation logs as artifact
