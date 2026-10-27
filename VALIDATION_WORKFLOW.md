@@ -15,6 +15,8 @@ This workflow automates the validation of Snooz tools by:
 
 macOS x64 validation uses the self-hosted runner with labels `self-hosted`, `macOS`, and `X64`. macOS arm64 validation uses `macos-latest`.
 
+The downloaded installer must include the architecture suffix `-x64.dmg` or `-arm64.dmg`. Validation selects exactly one DMG matching the requested architecture, even when the download pattern matches both, and checks the executable architecture with `lipo` before running scenarios.
+
 The Intel runner must provide GitHub CLI (`gh`) for downloading release assets. Before downloading, the workflow adds the standard Intel Homebrew directory (`/usr/local/bin`) to `PATH` and installs `gh` with `brew install gh` if it is missing. Homebrew must already be installed and usable by the runner account. If neither `gh` nor Homebrew is available, the workflow stops with an explicit setup error.
 
 ## Workflow Diagram
@@ -68,6 +70,8 @@ graph TD
 - **Artifact Recording**: Comprehensive logs and status files for audit trail
 
 ## Output Artifacts
+
+macOS validation artifacts include `target/validation-logs/` (captured executable output and run statuses) and `validation-workspaces/*.log` (application process logs, when created). Executable failures are printed before output validation continues; any failed execution makes the job fail.
 
 - **Adapted JSON scenario files**: archived in `validation-workspaces/*.json` (root level only)
 - **All files created, modified, or deleted by each tool**: archived in `captures/` (includes changes under `private-dataset/` and `validation-workspaces/`)
