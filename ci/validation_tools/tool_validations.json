@@ -236,6 +236,18 @@
       }     
     ]
   },
+  "SleepCycleExport": {
+    "comparisons": [
+      {
+        "fileName": "SleepCycle.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      }
+    ]
+  },
   "PowerSpectralAnalysis": {
     "comparisons": [
       {

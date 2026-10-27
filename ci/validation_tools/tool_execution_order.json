@@ -7,6 +7,7 @@
   "ExtractAnnotation",
   "ImportEDFPlusAnnotations",
   "ImportTextAnnotations",
+  "SleepCycleExport",
   "PowerSpectralAnalysis",
   "PSAImages",
   "PSACohortReview",
