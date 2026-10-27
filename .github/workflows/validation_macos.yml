@@ -96,7 +96,7 @@ on:
 
 jobs:
   validate_macos:
-    runs-on: macos-latest
+    runs-on: ${{ inputs.arch == 'x64' && fromJSON('["self-hosted", "macOS", "X64"]') || 'macos-latest' }}
     steps:
       - name: Checkout workflow repository
         uses: actions/checkout@v5
