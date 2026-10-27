@@ -101,6 +101,21 @@ jobs:
       - name: Checkout workflow repository
         uses: actions/checkout@v5
 
+      - name: Ensure GitHub CLI is available on self-hosted Intel runner
+        if: ${{ inputs.arch == 'x64' }}
+        shell: bash
+        run: |
+          export PATH="/usr/local/bin:$PATH"
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
+          if ! command -v gh >/dev/null 2>&1; then
+            if ! command -v brew >/dev/null 2>&1; then
+              echo "::error::GitHub CLI (gh) is missing. Install Homebrew and run 'brew install gh' on the Intel runner."
+              exit 1
+            fi
+            brew install gh
+          fi
+          gh --version
+
       - name: Download dataset release assets (private)
         shell: bash
         env:

@@ -11,6 +11,12 @@ This workflow automates the validation of Snooz tools by:
 5. Comparing generated outputs against a gold-standard repository
 6. Recording validation results in an artifact
 
+## macOS Runner Requirements
+
+macOS x64 validation uses the self-hosted runner with labels `self-hosted`, `macOS`, and `X64`. macOS arm64 validation uses `macos-latest`.
+
+The Intel runner must provide GitHub CLI (`gh`) for downloading release assets. Before downloading, the workflow adds the standard Intel Homebrew directory (`/usr/local/bin`) to `PATH` and installs `gh` with `brew install gh` if it is missing. Homebrew must already be installed and usable by the runner account. If neither `gh` nor Homebrew is available, the workflow stops with an explicit setup error.
+
 ## Workflow Diagram
 
 ```mermaid
