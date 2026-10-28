@@ -640,6 +640,90 @@
       }
     ]
   },
+  "SlowWaveClassification": {
+    "targetToolName": "SlowWaveClassification",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Per-recording slow wave events written by SlowWaveDetection (export_slow_wave).",
+        "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
+        "inputName": "sw_char_files",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "['$GITHUB_WORKSPACE/validation-workspaces/slow_wave_characteristics/01-01-0001_sw_carrier.tsv', '$GITHUB_WORKSPACE/validation-workspaces/slow_wave_characteristics/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_sw_carrier.tsv', '$GITHUB_WORKSPACE/validation-workspaces/slow_wave_characteristics/learn-nsrr01_sw_carrier.tsv', '$GITHUB_WORKSPACE/validation-workspaces/slow_wave_characteristics/learn-nsrr02_sw_carrier.tsv']",
+          "required": true
+        }
+      },
+      {
+        "description": "Slow wave cohort report written by SlowWaveDetection.",
+        "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
+        "inputName": "sw_cohort_file",
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "Slow-Waves-Cohort-report.tsv",
+          "required": true
+        }
+      },
+      {
+        "description": "Per-recording sleep stages written by SlowWaveDetection. The JSON key is 'stages_files' (module input name: sw_stages_files).",
+        "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
+        "inputName": "stages_files",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "['$GITHUB_WORKSPACE/validation-workspaces/slow_wave_sleep_stages/01-01-0001_sw_carrier_stages.tsv', '$GITHUB_WORKSPACE/validation-workspaces/slow_wave_sleep_stages/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_sw_carrier_stages.tsv', '$GITHUB_WORKSPACE/validation-workspaces/slow_wave_sleep_stages/learn-nsrr01_sw_carrier_stages.tsv', '$GITHUB_WORKSPACE/validation-workspaces/slow_wave_sleep_stages/learn-nsrr02_sw_carrier_stages.tsv']",
+          "required": true
+        }
+      },
+      {
+        "description": "Fixed number of categories: the automatic mode (1 to 4 categories by AIC) is not reproducible because GaussianMixture has no random_state.",
+        "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
+        "inputName": "automatic_classification",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "False",
+          "required": true
+        }
+      },
+      {
+        "description": "Two categories: reproducible across runs.",
+        "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
+        "inputName": "num_categories",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "2",
+          "required": true
+        }
+      },
+      {
+        "description": "Divide the night into 2 parts.",
+        "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
+        "inputName": "num_divisions",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "2",
+          "required": true
+        }
+      },
+      {
+        "description": "Own output folder (trailing slash required, must exist): the classified files reuse the input file names, so they must not be written into slow_wave_characteristics/.",
+        "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
+        "inputName": "output_dir",
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "SlowWaveClassification_outputs/",
+          "asDirectory": true,
+          "required": true
+        }
+      }
+    ]
+  },
   "SpindleDetectionA7": {
     "targetToolName": "SpindleDetectionA7",
     "processingMode": "adapted",

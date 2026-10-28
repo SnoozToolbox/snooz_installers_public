@@ -11,6 +11,7 @@
   "PSAImages",
   "PSACohortReview",
   "SlowWaveDetection",
+  "SlowWaveClassification",
   "SpindleDetectionA7",
   "SpindleDetectionMartin",
   "SpindleDetectionSumo",

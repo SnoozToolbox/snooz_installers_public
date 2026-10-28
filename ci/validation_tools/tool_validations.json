@@ -458,6 +458,64 @@
       }
     ]
   },
+  "SlowWaveClassification": {
+    "comparisons": [
+      {
+        "fileName": "01-01-0001_sw_carrier.tsv",
+        "fileType": "bag-comparison",
+        "precision": 3,
+        "generatedSearchRoots": [
+          "validation-workspaces/SlowWaveClassification_outputs"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_sw_carrier.tsv",
+        "fileType": "bag-comparison",
+        "precision": 3,
+        "generatedSearchRoots": [
+          "validation-workspaces/SlowWaveClassification_outputs"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_sw_carrier.tsv",
+        "fileType": "bag-comparison",
+        "precision": 3,
+        "generatedSearchRoots": [
+          "validation-workspaces/SlowWaveClassification_outputs"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_sw_carrier.tsv",
+        "fileType": "bag-comparison",
+        "precision": 3,
+        "generatedSearchRoots": [
+          "validation-workspaces/SlowWaveClassification_outputs"
+        ]
+      },
+      {
+        "fileName": "sw_cohort_details_per_categories.tsv",
+        "fileType": "bag-comparison",
+        "precision": 3,
+        "generatedSearchRoots": [
+          "validation-workspaces/SlowWaveClassification_outputs"
+        ]
+      },
+      {
+        "fileName": "sw_cohort_details_per_categories_info.tsv",
+        "fileType": "bag-comparison",
+        "generatedSearchRoots": [
+          "validation-workspaces/SlowWaveClassification_outputs"
+        ]
+      },
+      {
+        "fileName": "SW_trans_freq_hist_2_manual_categories.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces/SlowWaveClassification_outputs"
+        ]
+      }
+    ]
+  },
   "SpindleDetectionA7": {
     "comparisons": [
       {
