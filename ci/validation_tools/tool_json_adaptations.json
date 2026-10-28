@@ -323,6 +323,45 @@
       }
     ]
   },
+  "SleepCycleExport": {
+    "targetToolName": "SleepCycleExport",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
+        "identifier": "04840c4b-cc36-4e0f-ba47-474807dec329",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/SleepCycleExport-files.json",
+          "required": true
+        }
+      },
+      {
+        "description": "Update output cohort report filename (per-subject) in CEAMSModules.Constant (linked to filename).",
+        "identifier": "d4525793-91f1-4cf8-a659-f05b698a7f31",
+        "inputName": "constant", 
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "SleepCycle.tsv",
+          "required": true
+        }
+      },
+      {
+        "description": "Update hypnogram suffix in CEAMSModules.StringManip (output linked to suffix).",
+        "identifier": "a980fb33-ba82-404c-8bfb-81c492652a71",
+        "inputName": "suffix", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "_Hyp",
+          "required": true
+        }
+      }
+    ]
+  },
   "PowerSpectralAnalysis": {
     "targetToolName": "PowerSpectralAnalysis",
     "processingMode": "adapted",
@@ -707,7 +746,7 @@
       }
     ]
   },
-    "SpindleDetectionMartin": {
+  "SpindleDetectionMartin": {
     "targetToolName": "SpindleDetectionMartin",
     "processingMode": "adapted",
     "updates": [
@@ -774,7 +813,7 @@
       }
     ]
   },
-    "SpindleDetectionSumo": {
+  "SpindleDetectionSumo": {
     "targetToolName": "SpindleDetectionSumo",
     "processingMode": "adapted",
     "updates": [
