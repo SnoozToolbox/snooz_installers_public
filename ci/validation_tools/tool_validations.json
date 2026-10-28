@@ -251,7 +251,7 @@
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
-          "validation-workspaces"
+          "private-dataset"
         ]
       },
       {
@@ -259,7 +259,7 @@
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
-          "validation-workspaces"
+          "private-dataset"
         ]
       },
       {
@@ -267,7 +267,7 @@
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
-          "validation-workspaces"
+          "private-dataset"
         ]
       },
       {
@@ -275,7 +275,7 @@
         "fileType": "bag-comparison",
         "precision": 4,
         "generatedSearchRoots": [
-          "validation-workspaces"
+          "private-dataset"
         ]
       },
       {
