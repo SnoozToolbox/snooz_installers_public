@@ -885,6 +885,28 @@
     "processingMode": "adapted",
     "updates": [
       {
+        "description": "Set an empty event-name selection for every recording consumed by SignalsFromEvents.",
+        "identifier": "92ab2bd0-7063-4b43-8ce0-1c2fa7df1200",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+          "required": true
+        }
+      },
+      {
+        "description": "Set an empty event-group selection for every recording consumed by SignalsFromEvents.",
+        "identifier": "3be09df1-eda9-4ef7-a415-74404a6ce78b",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+          "required": true
+        }
+      },
+      {
         "description": "Update the CEAMSModules.Dictionary input for artifact name (name_selection).",
         "identifier": "436be2e9-932b-46d2-afcf-7ff0903d1978",
         "inputName": "dictionary",
