@@ -11,6 +11,20 @@ This workflow automates the validation of Snooz tools by:
 5. Comparing generated outputs against a gold-standard repository
 6. Recording validation results in an artifact
 
+## macOS Runner Requirements
+
+macOS x64 validation uses the self-hosted runner with labels `self-hosted`, `macOS`, and `X64`. macOS arm64 validation uses `macos-latest`.
+
+The downloaded installer must include the architecture suffix `-x64.dmg` or `-arm64.dmg`. Validation selects exactly one DMG matching the requested architecture, even when the download pattern matches both, and checks the executable architecture with `lipo` before running scenarios.
+
+Each validation job mounts its selected DMG at a unique path under `RUNNER_TEMP` and detaches only that mount during cleanup. Existing Snooz volumes on the self-hosted runner are not selected or detached.
+
+Like the installer build's headless DMG smoke test, validation uses `ditto` to copy the app into a unique local directory under `RUNNER_TEMP`, simulating a drag-and-drop installation. Signature checks, JSON extraction, and scenario execution use this installed copy, not the app on the mounted image. Cleanup removes only the job's temporary app directory.
+
+Before executing scenarios, macOS validation verifies the app signature with `codesign --verify --deep --strict` and assesses it with Gatekeeper (`spctl`). Either failure stops validation. Diagnostic output is preserved in `target/validation-logs/macos-codesign.log` and `target/validation-logs/macos-gatekeeper.log`; validation does not bypass macOS security checks.
+
+The Intel runner must provide GitHub CLI (`gh`) for downloading release assets. Before downloading, the workflow adds the standard Intel Homebrew directory (`/usr/local/bin`) to `PATH` and installs `gh` with `brew install gh` if it is missing. Homebrew must already be installed and usable by the runner account. If neither `gh` nor Homebrew is available, the workflow stops with an explicit setup error.
+
 ## Workflow Diagram
 
 ```mermaid
@@ -62,6 +76,8 @@ graph TD
 - **Artifact Recording**: Comprehensive logs and status files for audit trail
 
 ## Output Artifacts
+
+macOS validation artifacts include `target/validation-logs/` (captured executable output and run statuses) and `validation-workspaces/*.log` (application process logs, when created). Executable failures are printed before output validation continues; any failed execution makes the job fail.
 
 - **Adapted JSON scenario files**: archived in `validation-workspaces/*.json` (root level only)
 - **All files created, modified, or deleted by each tool**: archived in `captures/` (includes changes under `private-dataset/` and `validation-workspaces/`)

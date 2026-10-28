@@ -101,6 +101,21 @@ jobs:
       - name: Checkout workflow repository
         uses: actions/checkout@v5
 
+      - name: Ensure GitHub CLI is available on self-hosted Intel runner
+        if: ${{ inputs.arch == 'x64' }}
+        shell: bash
+        run: |
+          export PATH="/usr/local/bin:$PATH"
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
+          if ! command -v gh >/dev/null 2>&1; then
+            if ! command -v brew >/dev/null 2>&1; then
+              echo "::error::GitHub CLI (gh) is missing. Install Homebrew and run 'brew install gh' on the Intel runner."
+              exit 1
+            fi
+            brew install gh
+          fi
+          gh --version
+
       - name: Download dataset release assets (private)
         shell: bash
         env:
@@ -234,31 +249,30 @@ jobs:
 
       - name: Install Snooz and extract JSON files
         shell: bash
+        env:
+          TARGET_ARCH: ${{ inputs.arch }}
         run: |
-          INSTALLER=$(find installer -name "*.dmg" | head -1)
-          if [ -z "$INSTALLER" ]; then
-            echo "No installer DMG found"
+          case "$TARGET_ARCH" in
+            x64) MACH_ARCH="x86_64" ;;
+            arm64) MACH_ARCH="arm64" ;;
+            *)
+              echo "::error::Invalid architecture: $TARGET_ARCH (expected x64 or arm64)"
+              exit 1
+              ;;
+          esac
+          shopt -s nullglob
+          INSTALLERS=(installer/*-"$TARGET_ARCH".dmg)
+          if [ "${#INSTALLERS[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one installer ending in -$TARGET_ARCH.dmg; found ${#INSTALLERS[@]}"
+            find installer -name "*.dmg" -type f
             exit 1
           fi
-
-          INSTALL_DIR="/tmp/snooz_ci_install"
-          rm -rf "$INSTALL_DIR"
-          mkdir -p "$INSTALL_DIR"
+          INSTALLER="${INSTALLERS[0]}"
 
           echo "Installing: $INSTALLER"
-          hdiutil attach "$INSTALLER"
-          
-          # Find the mounted volume containing Snooz.app (volume name may vary)
-          # Wait a moment for the volume to be fully mounted
-          sleep 2
-          
-          MOUNTED_VOLUME=$(ls -d /Volumes/*nooz* 2>/dev/null | head -1)
-          if [ -z "$MOUNTED_VOLUME" ]; then
-            echo "No mounted volume containing 'Snooz' found"
-            echo "Available volumes:"
-            ls -la /Volumes
-            exit 1
-          fi
+          MOUNTED_VOLUME=$(mktemp -d "$RUNNER_TEMP/snooz-validation-mount.XXXXXX")
+          hdiutil attach "$INSTALLER" -nobrowse -readonly -mountpoint "$MOUNTED_VOLUME"
+          echo "SNOOZ_MOUNTED_VOLUME=$MOUNTED_VOLUME" >> "$GITHUB_ENV"
           
           echo "Found mounted volume: $MOUNTED_VOLUME"
           
@@ -268,11 +282,18 @@ jobs:
             echo "Snooz.app not found in $MOUNTED_VOLUME"
             echo "Contents of $MOUNTED_VOLUME:"
             ls -la "$MOUNTED_VOLUME"
-            hdiutil detach "$MOUNTED_VOLUME" 2>/dev/null || true
             exit 1
           fi
 
           echo "Found app bundle: $APP_PATH"
+
+          # Match the installer build's headless test by simulating a drag-and-drop installation.
+          LOCAL_APP_DIR=$(mktemp -d "$RUNNER_TEMP/snooz-validation-app.XXXXXX")
+          echo "SNOOZ_INSTALLED_APP_DIR=$LOCAL_APP_DIR" >> "$GITHUB_ENV"
+          APP_LOCAL="$LOCAL_APP_DIR/$(basename "$APP_PATH")"
+          ditto "$APP_PATH" "$APP_LOCAL"
+          APP_PATH="$APP_LOCAL"
+          echo "Installed app copy from DMG: $APP_PATH"
           
           # Get the app name (it might not be exactly "Snooz.app")
           APP_NAME=$(basename "$APP_PATH")
@@ -291,17 +312,33 @@ jobs:
             echo "File is not executable: $INSTALLED_EXE"
             exit 1
           fi
+
+          file "$INSTALLED_EXE"
+          if ! lipo "$INSTALLED_EXE" -verify_arch "$MACH_ARCH"; then
+            echo "::error::Installer executable does not support requested architecture: $MACH_ARCH"
+            exit 1
+          fi
+
+          mkdir -p target/validation-logs
+          signature_status=0
+          codesign --verify --deep --strict --verbose=4 "$APP_PATH" \
+            > target/validation-logs/macos-codesign.log 2>&1 || signature_status=$?
+          cat target/validation-logs/macos-codesign.log
+
+          gatekeeper_status=0
+          spctl --assess --type execute --verbose=4 "$APP_PATH" \
+            > target/validation-logs/macos-gatekeeper.log 2>&1 || gatekeeper_status=$?
+          cat target/validation-logs/macos-gatekeeper.log
+
+          if [ "$signature_status" -ne 0 ] || [ "$gatekeeper_status" -ne 0 ]; then
+            echo "::error::macOS application verification failed (codesign=$signature_status, Gatekeeper=$gatekeeper_status). See macos-codesign.log and macos-gatekeeper.log."
+            exit 1
+          fi
           
           echo "Found executable: $INSTALLED_EXE"
-          echo "Using app directly from mounted volume to preserve code signatures"
-          
-          # DO NOT detach the volume yet - we need it for execution and JSON extraction
-          # Create INSTALL_DIR for JSON files extraction
-          mkdir -p "$INSTALL_DIR"
-
           echo "SNOOZ_INSTALLED_EXE=$INSTALLED_EXE" >> "$GITHUB_ENV"
 
-          # Extract JSON files from the mounted app
+          # Extract JSON files from the installed app
           VERSION_UNDERSCORE="${{ inputs.package_version }}"
           VERSION_UNDERSCORE="${VERSION_UNDERSCORE//./_}"
           
@@ -409,21 +446,27 @@ jobs:
             echo "Running scenario: $TOOL_NAME"
             exec_log="target/validation-logs/${TOOL_NAME}-exec.log"
             
-            # Run executable and capture exit code properly (don't use pipe with tee)
-            "$SNOOZ_EXE" --f "$scenario" > "$exec_log" 2>&1
-            app_status=$?
+            app_status=0
+            "$SNOOZ_EXE" --f "$scenario" > "$exec_log" 2>&1 || app_status=$?
             
             # Also display output to console
             cat "$exec_log"
             
             # Locate the Snooz process log (generated by the app) for diagnostics
             scenario_dir=$(dirname "$scenario")
-            process_log=$(ls -t "$scenario_dir"/*.log 2>/dev/null | head -1)
+            process_log=$(ls -t "$scenario_dir"/*.log 2>/dev/null | head -1 || true)
             
             # Snooz Toolbox now returns 0 on success and 1 on failure, so the exit
             # code alone determines pass/fail (no more log-content parsing needed).
             if [ $app_status -ne 0 ]; then
+              overall_exit=1
               echo "::error::Headless execution failed for $TOOL_NAME with exit code $app_status"
+              if [ "$app_status" -eq 126 ]; then
+                echo "--- Executable diagnostics ---"
+                uname -m
+                ls -l "$SNOOZ_EXE"
+                file "$SNOOZ_EXE"
+              fi
               if [ -n "$process_log" ] && [ -f "$process_log" ]; then
                 echo "--- Snooz process log (last 200 lines) ---"
                 tail -200 "$process_log"
@@ -460,6 +503,7 @@ jobs:
               --output "$single_status_json" \
               --exec-log-dir target/validation-logs
 
+            compare_status=0
             python3 ci/validation_tools/compare_and_summarize.py \
               --run-status-file "$single_status_json" \
               --tool-validations-file ci/validation_tools/tool_validations.json \
@@ -469,8 +513,7 @@ jobs:
               --workspace-dir validation-workspaces \
               --output-summary-tsv tool-run-summary.tsv \
               --output-dir validation-outputs \
-              --append
-            compare_status=$?
+              --append || compare_status=$?
             if [ $compare_status -ne 0 ]; then
               overall_exit=1
             fi
@@ -488,16 +531,18 @@ jobs:
           
           exit $overall_exit
 
-      - name: Detach mounted DMG volume
+      - name: Clean up validation installation
         shell: bash
         if: always()
         run: |
-          # Detach any mounted volumes containing "Snooz"
-          for volume in $(ls -d /Volumes/*nooz* 2>/dev/null); do
-            echo "Detaching: $volume"
-            hdiutil detach "$volume" 2>/dev/null || true
-          done
-          echo "DMG volumes detached"
+          if [ -n "${SNOOZ_MOUNTED_VOLUME:-}" ]; then
+            echo "Detaching: $SNOOZ_MOUNTED_VOLUME"
+            hdiutil detach "$SNOOZ_MOUNTED_VOLUME"
+          fi
+          if [ -n "${SNOOZ_INSTALLED_APP_DIR:-}" ]; then
+            echo "Removing validation app copy: $SNOOZ_INSTALLED_APP_DIR"
+            rm -rf "$SNOOZ_INSTALLED_APP_DIR"
+          fi
 
       - name: Upload adapted JSON and validation logs as artifact
         if: always()
@@ -507,6 +552,8 @@ jobs:
           if-no-files-found: warn
           path: |
             validation-workspaces/*.json
+            validation-workspaces/*.log
+            target/validation-logs/**/*
             tool-run-summary.tsv
             validation-outputs/**/*
             captures/**/*
