@@ -667,9 +667,9 @@
         }
       },
       {
-        "description": "Per-recording sleep stages written by SlowWaveDetection. The JSON key is 'stages_files' (module input name: sw_stages_files).",
+        "description": "Per-recording sleep stages written by SlowWaveDetection. Requires SlowWaveClassification 2.4.1+ (key renamed from 'stages_files', which broke headless mode).",
         "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
-        "inputName": "stages_files",
+        "inputName": "sw_stages_files",
         "required": true,
         "value": {
           "kind": "literal",
@@ -678,7 +678,7 @@
         }
       },
       {
-        "description": "Fixed number of categories: the automatic mode (1 to 4 categories by AIC) is not reproducible because GaussianMixture has no random_state.",
+        "description": "Fixed number of categories (2) instead of the automatic mode (1 to 4 categories by AIC). Before 2.4.1 the GaussianMixture had no random_state and the automatic mode was not reproducible.",
         "identifier": "d59d94d1-11dc-4e06-9716-f749a3647843",
         "inputName": "automatic_classification",
         "required": true,
