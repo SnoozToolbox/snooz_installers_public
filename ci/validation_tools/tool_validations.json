@@ -245,6 +245,66 @@
         "generatedSearchRoots": [
           "validation-workspaces"
         ]
+      },
+      {
+        "fileName": "01-01-0001_stage_cycle.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_stage_cycle.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_stage_cycle.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_stage_cycle.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "SleepCycle_01-01-0001_Hyp.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "SleepCycle_learn-nsrr01_Hyp.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "SleepCycle_learn-nsrr02_Hyp.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
+      },
+      {
+        "fileName": "SleepCycle_COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_Hyp.pdf",
+        "fileType": "exists",
+        "generatedSearchRoots": [
+          "validation-workspaces"
+        ]
       }
     ]
   },
