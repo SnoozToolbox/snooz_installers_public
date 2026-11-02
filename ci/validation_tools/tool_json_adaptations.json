@@ -964,6 +964,146 @@
       }
     ]
   },
+  "AnalyzeEEGConnectivity": {
+    "targetToolName": "AnalyzeEEGConnectivity",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Set an empty event-name selection for every recording consumed by SignalsFromEvents.",
+        "identifier": "92ab2bd0-7063-4b43-8ce0-1c2fa7df1200",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+          "required": true
+        }
+      },
+      {
+        "description": "Set an empty event-group selection for every recording consumed by SignalsFromEvents.",
+        "identifier": "3be09df1-eda9-4ef7-a415-74404a6ce78b",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the CEAMSModules.Dictionary input for artifact name (name_selection).",
+        "identifier": "436be2e9-932b-46d2-afcf-7ff0903d1978",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the CEAMSModules.Dictionary input for artifact group (group_selection).",
+        "identifier": "91c5a05d-7239-421a-b2af-72432918e291",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_snooz_set1_NREM'}",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
+        "identifier": "3d9476b5-9aa0-4df8-8d57-01e1096d18b8",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/AnalyzeEEGConnectivity-files.json",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the cutoff input for CEAMSModules.FilterSignal (Delta band).",
+        "identifier": "1dbffc28-380f-4ca4-ae73-16cdd6e4b60c",
+        "inputName": "cutoff", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "0.16 4",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the sleep stage selection for CEAMSModules.SleepStageEvents (N3).",
+        "identifier": "3b6e3aba-4c49-4fd9-b41d-0a6a22004957",
+        "inputName": "stages", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "3",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the epoch length for CEAMSModules.EpochSignal (epoch_length_sec=10 s), epochs connected to WpliConnectivity.",
+        "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+        "inputName": "epoch_length_sec", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "10",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the epoch length for CEAMSModules.EpochSignal (overlap_sec=0 s), epochs connected to WpliConnectivity.",
+        "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+        "inputName": "overlap_sec", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "0",
+          "required": true
+        }
+      },
+      {
+        "description": "Update output report filename in CEAMSModules.ConnectivityDetails for wdpli with min spanning tree.",
+        "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+        "inputName": "output_path", 
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "AnalyzeEEGConnectivity_wpli/",
+          "asDirectory": true,
+          "required": true
+        }
+      },
+      {
+        "description": "Update output report filename in CEAMSModules.NetworkProperties for wdpli with min spanning tree.",
+        "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+        "inputName": "threshold_mode", 
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "minimally_spanning_tree",
+          "required": true
+        }
+      },
+      {
+        "description": "Update output report filename in CEAMSModules.NetworkProperties for wdpli with min spanning tree.",
+        "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+        "inputName": "output_path", 
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "AnalyzeEEGConnectivity_wpli/",
+          "asDirectory": true,
+          "required": true
+        }
+      }
+    ]
+  },
   "ScoreSleepStagesYASA": {
     "targetToolName": "ScoreSleepStagesYASA",
     "processingMode": "adapted",
