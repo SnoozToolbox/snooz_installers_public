@@ -37,14 +37,21 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 
-def find_first_file_by_name(roots, file_name):
+def find_first_file_by_name(roots, file_name, strict=False):
+    found = set()
     for root in roots:
         root_path = Path(root)
         if not root_path.exists():
             continue
         matches = sorted(root_path.rglob(file_name), key=lambda p: str(p))
         if matches:
-            return matches[0]
+            if not strict:
+                return matches[0]
+            found.update(path.resolve() for path in matches if path.is_file())
+    if len(found) > 1:
+        raise ValueError(f"Ambiguous scenario output {file_name!r}: {sorted(map(str, found))}")
+    if found:
+        return next(iter(found))
     return None
 
 
@@ -93,7 +100,7 @@ def describe_invalid_file(path):
     return None
 
 
-def check_generated_files_exist(tool_name, checks, generated_search_roots_default):
+def check_generated_files_exist(tool_name, checks, generated_search_roots_default, strict=False):
     """Run fileType 'exists' checks. Returns (all_ok, validated_files)."""
     all_ok = True
     validated_files = []
@@ -105,7 +112,7 @@ def check_generated_files_exist(tool_name, checks, generated_search_roots_defaul
             all_ok = False
             continue
 
-        generated_file = find_first_file_by_name(roots, file_name)
+        generated_file = find_first_file_by_name(roots, file_name, strict)
         if generated_file is None:
             print(f"::error::{tool_name} expected output not found: {file_name}")
             for root in roots:
@@ -134,7 +141,7 @@ def collect_generated_only(output_dir, tool_name, tool_config, generated_search_
         if not file_name:
             continue
         roots = comparison.get("generatedSearchRoots") or generated_search_roots_default
-        generated_file = find_first_file_by_name(roots, file_name)
+        generated_file = find_first_file_by_name(roots, file_name, tool_config.get("_strict_paths", False))
         if generated_file is None:
             print(f"::warning::{tool_name} generated file not found for bootstrap copy: {file_name}")
             continue
@@ -173,7 +180,9 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
             print(f"::error::{tool_name} invalid comparison entry. Define fileName (or both generatedFileName and goldFileName).")
             return "fail", validated_files, collected_files
 
-        generated_file = find_first_file_by_name(generated_roots, generated_file_name)
+        generated_file = find_first_file_by_name(
+            generated_roots, generated_file_name, tool_config.get("_strict_paths", False)
+        )
         if generated_file is None:
             print(f"::error::{tool_name} generated file not found: {generated_file_name}")
             for root in generated_roots:
@@ -186,6 +195,8 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
             print(f"Skipping comparison for {tool_name}. Use generated outputs from the artifact to publish gold standards.")
             return "skipped-missing-gold-standard", validated_files, collected_files
         gold_file = gold_matches[0]
+        if tool_config.get("_strict_paths") and len(gold_matches) > 1:
+            raise ValueError(f"Ambiguous scenario gold standard {gold_file_name!r} in {tool_gold_dir}")
 
         print(f"Comparing {tool_name} output file: {generated_file_name}")
         print(f"Resolved generated path: {generated_file}")
@@ -223,7 +234,7 @@ def collect_output_files(output_dir, tool_name, collected_files):
 
 def main():
     parser = argparse.ArgumentParser(description="Compare tool outputs against gold standards and write a run summary")
-    parser.add_argument('--run-status-file', required=True, help='JSON file mapping tool name to {run_status, execution_log}')
+    parser.add_argument('--run-status-file', required=True, help='JSON mapping run ids to status, execution log and optional scenario identity')
     parser.add_argument('--tool-validations-file', required=True, help='Path to tool_validations.json')
     parser.add_argument('--gold-standards-dir', required=True, help='Path to extracted gold standards (one subfolder per tool)')
     parser.add_argument('--gold-standard-tag', default='', help='Gold standard release tag (empty disables comparison)')
@@ -261,9 +272,13 @@ def main():
     summary_rows = []
     any_failure = False
 
-    for tool_name, run_info in run_status.items():
+    for run_id, run_info in run_status.items():
+        tool_name = run_info.get("tool_name", run_id)
+        scenario_id = run_info.get("scenario_id", "default")
+        explicit_scenario = run_info.get("explicit_scenario", False)
+        comparison_name = f"{tool_name}/{scenario_id}" if explicit_scenario else tool_name
         print("\n==========================================")
-        print(f"\nRunning comparisons for: {tool_name}")
+        print(f"\nRunning comparisons for: {run_id}")
         exec_log = run_info.get("execution_log")
         if exec_log:
             try:
@@ -281,10 +296,18 @@ def main():
                 print(f"(Invalid execution log path: {exec_log})")
 
         tool_run_status = run_info.get("run_status", "fail")
-        scenario_path = workspace_dir / f"{tool_name}.json"
+        scenario_path = Path(run_info.get("json_path", workspace_dir / f"{tool_name}.json"))
         tool_version = get_tool_version(scenario_path)
         validated_files = []
         tool_config = tool_validations.get(tool_name) if isinstance(tool_validations.get(tool_name), dict) else None
+        if explicit_scenario:
+            scenarios = tool_config.get("scenarios", {}) if tool_config else {}
+            if not isinstance(scenarios, dict) or not isinstance(scenarios.get(scenario_id), dict):
+                raise ValueError(f"No validation configuration for scenario {tool_name}:{scenario_id}")
+            tool_config = scenarios[scenario_id]
+            if not isinstance(tool_config.get("comparisons"), list) or not tool_config["comparisons"]:
+                raise ValueError(f"No comparisons configured for scenario {tool_name}:{scenario_id}")
+            tool_config = dict(tool_config, _strict_paths=True)
 
         # 'exists' checks need no gold standard; the rest are gold-standard comparisons.
         comparisons = tool_config.get("comparisons", []) if tool_config else []
@@ -297,7 +320,7 @@ def main():
         exists_ok = True
         if tool_run_status == "pass" and exists_checks:
             exists_ok, validated_files = check_generated_files_exist(
-                tool_name, exists_checks, generated_search_roots_default)
+                comparison_name, exists_checks, generated_search_roots_default, explicit_scenario)
 
         if tool_run_status != "pass":
             comparison_status = tool_run_status
@@ -310,12 +333,12 @@ def main():
         elif not gold_standard_tag:
             comparison_status = "skipped-no-gold-standard-tag"
             if tool_config:
-                collect_generated_only(output_dir, tool_name, gold_config, generated_search_roots_default)
+                collect_generated_only(output_dir, comparison_name, gold_config, generated_search_roots_default)
         elif tool_config is None:
             comparison_status = "not-configured"
         else:
             comparison_status, gold_validated_files, collected_files = compare_tool(
-                tool_name,
+                comparison_name,
                 gold_config,
                 args.gold_standards_dir,
                 generated_search_roots_default,
@@ -323,16 +346,17 @@ def main():
             )
             validated_files += gold_validated_files
             if collected_files:
-                collect_output_files(output_dir, tool_name, collected_files)
+                collect_output_files(output_dir, comparison_name, collected_files)
             if comparison_status == "fail":
                 any_failure = True
             elif comparison_status == "skipped-missing-gold-standard":
-                collect_generated_only(output_dir, tool_name, gold_config, generated_search_roots_default)
+                collect_generated_only(output_dir, comparison_name, gold_config, generated_search_roots_default)
 
         summary_rows.append({
             "tool_name": tool_name,
             "tool_version": tool_version,
-            "json_name": f"{tool_name}.json",
+            "scenario_id": scenario_id,
+            "json_name": scenario_path.name,
             "run_status": tool_run_status,
             "comparison_status": comparison_status,
             "validated_files": "; ".join(validated_files) if validated_files else "none",
@@ -344,7 +368,7 @@ def main():
     with open(output_summary_path, 'a' if args.append else 'w', encoding='utf-8', newline='') as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=["tool_name", "tool_version", "json_name", "run_status", "comparison_status", "validated_files"],
+            fieldnames=["tool_name", "tool_version", "scenario_id", "json_name", "run_status", "comparison_status", "validated_files"],
             delimiter='\t',
         )
         if write_header:
@@ -358,18 +382,19 @@ def main():
     print("==========================================")
     for row in summary_rows:
         status = row["comparison_status"]
+        label = f"{row['tool_name']}:{row['scenario_id']}"
         if status == "skipped-no-gold-standard-tag":
-            print(f"  \u2298 {row['tool_name']}: SKIPPED (no gold standard tag)")
+            print(f"  \u2298 {label}: SKIPPED (no gold standard tag)")
         elif status == "skipped-missing-gold-standard":
-            print(f"  \u2298 {row['tool_name']}: SKIPPED (gold standard not published yet)")
+            print(f"  \u2298 {label}: SKIPPED (gold standard not published yet)")
         elif status == "skipped-no-comparisons-configured":
-            print(f"  \u2298 {row['tool_name']}: SKIPPED (no comparisons configured)")
+            print(f"  \u2298 {label}: SKIPPED (no comparisons configured)")
         elif status == "not-configured":
-            print(f"  \u2298 {row['tool_name']}: NOT CONFIGURED")
+            print(f"  \u2298 {label}: NOT CONFIGURED")
         elif status == "pass":
-            print(f"  \u2713 {row['tool_name']}: PASS")
+            print(f"  \u2713 {label}: PASS")
         else:
-            print(f"  \u2717 {row['tool_name']}: FAIL ({status})")
+            print(f"  \u2717 {label}: FAIL ({status})")
     print("==========================================")
     print("")
 
