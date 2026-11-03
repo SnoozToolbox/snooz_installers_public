@@ -33,6 +33,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from compare_outputs import validate_table_options
+
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
@@ -66,7 +68,8 @@ def get_tool_version(scenario_path):
         return "unknown"
 
 
-def run_comparison(compare_script, tool_name, generated_file, reference_file, file_type, precision):
+def run_comparison(compare_script, tool_name, generated_file, reference_file, file_type, precision,
+                   table_options=None):
     args = [
         sys.executable, str(compare_script),
         "--tool-name", tool_name,
@@ -77,6 +80,8 @@ def run_comparison(compare_script, tool_name, generated_file, reference_file, fi
     ]
     if precision is not None:
         args += ["--precision", str(precision)]
+    if table_options is not None:
+        args += ["--table-options", json.dumps(table_options)]
 
     result = subprocess.run(args, capture_output=True, text=True)
     output = (result.stdout or "") + (result.stderr or "")
@@ -175,6 +180,19 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
         file_type = comparison.get("fileType", "generic")
         precision = comparison.get("precision")
         generated_roots = comparison.get("generatedSearchRoots") or generated_search_roots_default
+        table_options = {
+            key: comparison[key] for key in ("keyColumns", "numericTolerance") if key in comparison
+        }
+        try:
+            if file_type == "table-tolerance":
+                validate_table_options(table_options)
+                if precision is not None:
+                    raise ValueError("table-tolerance cannot be combined with precision rounding.")
+            elif table_options:
+                raise ValueError("keyColumns and numericTolerance require fileType table-tolerance.")
+        except ValueError as error:
+            print(f"::error::{tool_name} invalid comparison configuration: {error}")
+            return "fail", validated_files, collected_files
 
         if not generated_file_name or not gold_file_name:
             print(f"::error::{tool_name} invalid comparison entry. Define fileName (or both generatedFileName and goldFileName).")
@@ -200,7 +218,10 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
 
         print(f"Comparing {tool_name} output file: {generated_file_name}")
         print(f"Resolved generated path: {generated_file}")
-        passed, output = run_comparison(compare_script, tool_name, generated_file, gold_file, file_type, precision)
+        passed, output = run_comparison(
+            compare_script, tool_name, generated_file, gold_file, file_type, precision,
+            table_options if file_type == "table-tolerance" else None,
+        )
         print(output)
 
         collected_files.append((generated_file, gold_file, generated_file_name))

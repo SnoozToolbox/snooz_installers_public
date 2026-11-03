@@ -143,6 +143,43 @@ are errors for explicit scenarios, rather than selecting the first match.
 The existing `exists` checks, numeric precision and bootstrap behavior remain
 available. A skipped gold-standard comparison is not a successful comparison.
 
+#### Numeric table tolerances
+
+Use `fileType: "table-tolerance"` for header-based TSV reports that need numeric
+tolerances instead of decimal rounding. Do not combine this mode with `precision`.
+For example:
+
+```json
+{
+  "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
+  "fileType": "table-tolerance",
+  "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+  "numericTolerance": {
+    "columnPattern": "*_act",
+    "relative": 0.001,
+    "absolute": 1e-8
+  },
+  "generatedSearchRoots": ["validation-workspaces"]
+}
+```
+
+Rows are matched by the exact key values, independently of row order. Missing,
+extra, empty or duplicate keys fail, as do mismatched headers or malformed rows.
+The case-sensitive glob `columnPattern` must match at least one non-key column
+and no key columns. Matched numeric cells pass when
+`abs(generated - reference) <= absolute + relative * abs(reference)`.
+Both tolerances must be finite and non-negative. `relative: 0.001` means 0.1%.
+All other cells are compared exactly, without rounding or time normalization.
+Empty strings, `nan` and `NaN` are recognized missing values in tolerant columns
+and must match exactly; they are never equivalent to zero. Other non-numeric or
+infinite values fail, even if identical in both files.
+
+UTF-8 BOMs and empty physical lines are accepted. Extra empty header fields and
+tab-only malformed rows are not silently discarded. Logs report the configured
+tolerances, missing/extra keys and differing cells, with numeric errors and
+allowed thresholds. Only the two FOOOF component reports currently opt in;
+their `_info.tsv` reports and all legacy comparisons keep their existing modes.
+
 Publish one gold-standard zip per tool, with scenario folders at the archive
 root, for example `pwelch/report.tsv` and `irasa/report.tsv`. After extraction,
 references live under `gold-standards/extracted/<ToolName>/<scenario-id>`.
