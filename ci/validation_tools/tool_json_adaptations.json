@@ -407,12 +407,13 @@
         }
       },
       {
+        "description": "Set the maximum analyzed frequency to 30 Hz for all spectral scenarios.",
         "identifier": "64038a3b-6640-437a-96b1-2d9bf7f5db7f",
         "inputName": "constant", 
         "required": true,
         "value": {
           "kind": "literal",
-          "value": "61",
+          "value": "30",
           "required": true
         }
       }
