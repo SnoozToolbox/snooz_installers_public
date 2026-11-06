@@ -382,10 +382,8 @@
             ],
             "fitQuality": {
               "fitKeyColumns": ["filename", "channel_label"],
-              "maxError": 1.0,
-              "maxErrorIncrease": 1.0,
-              "minR2": 0.0,
-              "maxR2Decrease": 1.0
+              "maxErrorIncrease": 0.005,
+              "maxR2Decrease": 0.015
             },
             "generatedSearchRoots": [
               "validation-workspaces"
@@ -402,10 +400,8 @@
             ],
             "fitQuality": {
               "fitKeyColumns": ["filename", "channel_label"],
-              "maxError": 1.0,
-              "maxErrorIncrease": 1.0,
-              "minR2": 0.0,
-              "maxR2Decrease": 1.0
+              "maxErrorIncrease": 0.005,
+              "maxR2Decrease": 0.015
             },
             "generatedSearchRoots": [
               "validation-workspaces"

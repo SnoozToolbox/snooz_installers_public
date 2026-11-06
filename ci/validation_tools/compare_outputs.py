@@ -185,7 +185,7 @@ def validate_fit_options(options: object) -> tuple[list[str], list[str], dict[st
         raise ValueError("fooof-fit-quality requires keyColumns and fitQuality.")
     keys = validate_key_columns(options["keyColumns"])
     quality = options["fitQuality"]
-    thresholds = {"maxError", "maxErrorIncrease", "minR2", "maxR2Decrease"}
+    thresholds = {"maxErrorIncrease", "maxR2Decrease"}
     if not isinstance(quality, dict) or set(quality) != thresholds | {"fitKeyColumns"}:
         raise ValueError("fitQuality requires fitKeyColumns and " + ", ".join(sorted(thresholds)) + ".")
     fit_keys = quality["fitKeyColumns"]
@@ -201,7 +201,7 @@ def validate_fit_options(options: object) -> tuple[list[str], list[str], dict[st
         if (
             isinstance(value, bool) or not isinstance(value, (int, float))
             or not math.isfinite(value) or value < 0
-            or (name in {"minR2", "maxR2Decrease"} and value > 1)
+            or (name == "maxR2Decrease" and value > 1)
         ):
             raise ValueError(f"{name} must be finite and >= 0 (and <= 1 for R2 thresholds).")
     return keys, fit_keys, {name: float(quality[name]) for name in thresholds}
@@ -270,7 +270,7 @@ def compare_fooof_fit_quality(
             print(message)
             shown += 1
 
-    print(f"FOOOF full-model quality (not component equivalence): {limits}; fit keys={fit_keys!r}")
+    print(f"FOOOF full-model quality degradation (not component equivalence): {limits}; fit keys={fit_keys!r}")
     for key in sorted(ref_rows.keys() - gen_rows.keys()):
         report(f"Missing generated key: {key!r}")
     for key in sorted(gen_rows.keys() - ref_rows.keys()):
@@ -308,11 +308,7 @@ def compare_fooof_fit_quality(
             kind = "err" if is_error else "r2"
             degradation = right - left if is_error else left - right
             stats[kind].append((right, degradation, key, name))
-            bad = (
-                right > limits["maxError"] or degradation > limits["maxErrorIncrease"]
-                if is_error else
-                right < limits["minR2"] or degradation > limits["maxR2Decrease"]
-            )
+            bad = degradation > limits["maxErrorIncrease" if is_error else "maxR2Decrease"]
             if bad or left != right:
                 report(
                     f"{'FAIL' if bad else 'Score change'}: fit={key!r}, column={name!r}, "

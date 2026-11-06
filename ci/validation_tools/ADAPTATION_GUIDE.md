@@ -182,7 +182,7 @@ allowed thresholds.
 #### FOOOF fitting quality
 
 The FOOOF periodic and aperiodic reports use `fileType: "fooof-fit-quality"`.
-This validates full-model fitting quality, **not equivalence of component
+This validates full-model fitting quality degradation, **not equivalence of component
 energies**. Their `_info.tsv` reports keep their existing comparisons.
 
 ```json
@@ -192,25 +192,27 @@ energies**. Their `_info.tsv` reports keep their existing comparisons.
   "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
   "fitQuality": {
     "fitKeyColumns": ["filename", "channel_label"],
-    "maxError": 1.0,
-    "maxErrorIncrease": 1.0,
-    "minR2": 0.0,
-    "maxR2Decrease": 1.0
+    "maxErrorIncrease": 0.005,
+    "maxR2Decrease": 0.015
   },
   "generatedSearchRoots": ["validation-workspaces"]
 }
 ```
 
-The initial thresholds are deliberately permissive and uncalibrated. Tighten
-them after examining accepted cross-environment runs. Error thresholds are
-absolute values in log10 power space; R2 thresholds are absolute score values,
-not relative percentages. For every available score, the generated result must
-satisfy both its quality bound and its one-sided degradation bound:
+These starting tolerances accommodate the examined reference/generated FOOOF
+reports; confirm them against accepted runs on all supported platforms.
+Error increases are absolute differences in log10 power space; R2 decreases
+are absolute score differences, not relative percentages. Every available
+score must satisfy its one-sided degradation bound:
 
-- `err_generated <= maxError`
 - `err_generated - err_reference <= maxErrorIncrease`
-- `r2_generated >= minR2`
 - `r2_reference - r2_generated <= maxR2Decrease`
+
+Improvements do not fail validation. Absolute fitting quality remains visible
+in the logged score ranges but does not determine pass/fail: a poor fit already
+present in the approved reference is not an installer regression. The former
+`maxError` and `minR2` options are no longer supported and must be removed from
+comparison configurations. Numeric domain and integrity checks still apply.
 
 All paired `*_fit_err` / `*_fit_r2` columns are discovered from the header,
 including total, sleep-stage, clock-hour, cycle and stage-hour fits.
