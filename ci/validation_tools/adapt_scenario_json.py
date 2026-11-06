@@ -333,12 +333,15 @@ def main():
     runs = []
     seen = set()
     for tool_name in tools_to_process:
+        tool_definition = adaptations[tool_name]
+        tool_runs = expand_scenarios(tool_name, tool_definition, workspace_dir)
+        if not tool_runs:
+            continue
         source_path = source_dir / f"{tool_name}.json"
         if not source_path.exists():
             raise FileNotFoundError(f"{tool_name}.json not found in {source_dir}")
 
-        tool_definition = adaptations[tool_name]
-        for run in expand_scenarios(tool_name, tool_definition, workspace_dir):
+        for run in tool_runs:
             if run["run_id"].casefold() in seen:
                 raise ValueError(f"Duplicate validation run: {run['run_id']}")
             seen.add(run["run_id"].casefold())
@@ -352,6 +355,10 @@ def main():
             runs.append(run)
             print(f"  [OK] Adapted: {run['run_id']}.json")
             adapted_count += 1
+
+    if not runs:
+        print("No enabled scenarios for the selected tools; validation cannot run.", file=sys.stderr)
+        return 1
 
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(

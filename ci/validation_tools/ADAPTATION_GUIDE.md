@@ -67,6 +67,7 @@ replace the node identifiers and input names with those from the installed tool:
       },
       {
         "id": "irasa",
+        "enabled": true,
         "updates": [
           {
             "identifier": "analysis-node-uuid",
@@ -100,7 +101,16 @@ replace the node identifiers and input names with those from the installed tool:
   scenario. Metadata includes `scenarioId` and `runId`.
 - Tool order comes from [tool_execution_order.json](tool_execution_order.json);
   scenario order is the array order. `tools_to_process` still selects tools,
-  and selecting a tool runs all its scenarios.
+  and selecting a tool runs all its enabled scenarios.
+- Each scenario accepts an optional boolean `enabled` (default: `true`).
+  Set `"enabled": false` to temporarily disable a scenario without removing its
+  configuration. JSON comments are not supported. Disabled scenarios are
+  reported in logs and omitted from adaptation, the manifest, execution and
+  comparisons; their validation rules may remain configured. Names, uniqueness,
+  the `updates` array and the boolean flag are still validated when disabled.
+  A tool with all scenarios disabled is skipped. If no enabled scenario remains
+  for the selected tools, preparation fails explicitly rather than reporting a
+  successful validation. Existing legacy tools without `scenarios` are unchanged.
 - **Dataset changes are cumulative**, both between tools and between scenarios.
   There is no automatic reset or isolated dataset copy. Each scenario is
   captured and compared immediately, before the next one runs.
