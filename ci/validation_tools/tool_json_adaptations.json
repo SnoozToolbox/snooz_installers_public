@@ -506,7 +506,7 @@
             "required": true,
             "value": {
               "kind": "literal",
-              "value": "False",
+              "value": false,
               "required": true
             }
           },
