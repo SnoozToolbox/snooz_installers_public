@@ -373,17 +373,19 @@
         "comparisons": [
           {
             "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
-            "fileType": "table-tolerance",
+            "fileType": "fooof-fit-quality",
             "keyColumns": [
               "filename",
               "channel_label",
               "freq_low_Hz",
               "freq_high_Hz"
             ],
-            "numericTolerance": {
-              "columnPattern": "*_act",
-              "relative": 0.001,
-              "absolute": 1e-8
+            "fitQuality": {
+              "fitKeyColumns": ["filename", "channel_label"],
+              "maxError": 1.0,
+              "maxErrorIncrease": 1.0,
+              "minR2": 0.0,
+              "maxR2Decrease": 1.0
             },
             "generatedSearchRoots": [
               "validation-workspaces"
@@ -391,17 +393,19 @@
           },
           {
             "fileName": "EEG_spectral_power_cohort_report_FOOOF_aperiodic.tsv",
-            "fileType": "table-tolerance",
+            "fileType": "fooof-fit-quality",
             "keyColumns": [
               "filename",
               "channel_label",
               "freq_low_Hz",
               "freq_high_Hz"
             ],
-            "numericTolerance": {
-              "columnPattern": "*_act",
-              "relative": 0.001,
-              "absolute": 1e-8
+            "fitQuality": {
+              "fitKeyColumns": ["filename", "channel_label"],
+              "maxError": 1.0,
+              "maxErrorIncrease": 1.0,
+              "minR2": 0.0,
+              "maxR2Decrease": 1.0
             },
             "generatedSearchRoots": [
               "validation-workspaces"

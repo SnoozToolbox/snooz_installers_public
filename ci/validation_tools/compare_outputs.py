@@ -28,13 +28,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--file-type",
         default="generic",
-        choices=["generic", "bag-comparison", "report", "table-tolerance"],
+        choices=["generic", "bag-comparison", "report", "table-tolerance", "fooof-fit-quality"],
         help="Comparison mode.",
     )
     parser.add_argument(
         "--table-options",
         type=json.loads,
-        help="JSON object containing keyColumns and numericTolerance for table-tolerance.",
+        help="JSON object containing keyColumns and numericTolerance or fitQuality for table modes.",
     )
     parser.add_argument(
         "--precision",
@@ -124,16 +124,20 @@ def compare_as_text(reference: list[str], generated: list[str], max_diff_lines: 
     return 1
 
 
-def validate_table_options(options: object) -> tuple[list[str], str, float, float]:
-    if not isinstance(options, dict) or set(options) != {"keyColumns", "numericTolerance"}:
-        raise ValueError("table-tolerance requires keyColumns and numericTolerance.")
-    keys = options["keyColumns"]
+def validate_key_columns(keys: object) -> list[str]:
     if (
         not isinstance(keys, list) or not keys
         or any(not isinstance(key, str) or not key.strip() for key in keys)
         or len(set(keys)) != len(keys)
     ):
         raise ValueError("keyColumns must be a non-empty list of unique column names.")
+    return keys
+
+
+def validate_table_options(options: object) -> tuple[list[str], str, float, float]:
+    if not isinstance(options, dict) or set(options) != {"keyColumns", "numericTolerance"}:
+        raise ValueError("table-tolerance requires keyColumns and numericTolerance.")
+    keys = validate_key_columns(options["keyColumns"])
     tolerance = options["numericTolerance"]
     if not isinstance(tolerance, dict) or set(tolerance) != {"columnPattern", "relative", "absolute"}:
         raise ValueError("numericTolerance requires columnPattern, relative and absolute.")
@@ -174,6 +178,163 @@ def read_keyed_table(
                 raise ValueError(f"{path}: duplicate key {key!r} at line {reader.line_num}.")
             rows[key] = row
         return header, rows
+
+
+def validate_fit_options(options: object) -> tuple[list[str], list[str], dict[str, float]]:
+    if not isinstance(options, dict) or set(options) != {"keyColumns", "fitQuality"}:
+        raise ValueError("fooof-fit-quality requires keyColumns and fitQuality.")
+    keys = validate_key_columns(options["keyColumns"])
+    quality = options["fitQuality"]
+    thresholds = {"maxError", "maxErrorIncrease", "minR2", "maxR2Decrease"}
+    if not isinstance(quality, dict) or set(quality) != thresholds | {"fitKeyColumns"}:
+        raise ValueError("fitQuality requires fitKeyColumns and " + ", ".join(sorted(thresholds)) + ".")
+    fit_keys = quality["fitKeyColumns"]
+    if (
+        not isinstance(fit_keys, list) or not fit_keys
+        or any(not isinstance(key, str) or key not in keys for key in fit_keys)
+        or len(set(fit_keys)) != len(fit_keys)
+        or set(fit_keys) == set(keys)
+    ):
+        raise ValueError("fitKeyColumns must be a non-empty, unique, proper subset of keyColumns.")
+    for name in thresholds:
+        value = quality[name]
+        if (
+            isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value) or value < 0
+            or (name in {"minR2", "maxR2Decrease"} and value > 1)
+        ):
+            raise ValueError(f"{name} must be finite and >= 0 (and <= 1 for R2 thresholds).")
+    return keys, fit_keys, {name: float(quality[name]) for name in thresholds}
+
+
+def read_fit_number(field: str, context: str) -> float | None:
+    if field in ("", "nan", "NaN"):
+        return None
+    if not NUMERIC_FIELD_PATTERN.fullmatch(field) or not math.isfinite(float(field)):
+        raise ValueError(f"Invalid numeric value at {context}: {field!r}")
+    return float(field)
+
+
+def compare_fooof_fit_quality(
+    reference: Path, generated: Path, delimiter: str, options: object, max_diff_lines: int
+) -> int:
+    keys, fit_keys, limits = validate_fit_options(options)
+    if len(delimiter) != 1:
+        raise ValueError("fooof-fit-quality requires a single-character delimiter.")
+    header, ref_rows = read_keyed_table(reference, delimiter, keys)
+    gen_header, gen_rows = read_keyed_table(generated, delimiter, keys)
+    if header != gen_header:
+        raise ValueError("Table headers differ (including column order).")
+    if not ref_rows or not gen_rows:
+        raise ValueError("Fit-quality tables must contain data rows.")
+    error_names = {name for name in header if name.endswith("_fit_err")}
+    r2_names = {name for name in header if name.endswith("_fit_r2")}
+    if (
+        "total_fit_err" not in error_names
+        or {name.removesuffix("_err") + "_r2" for name in error_names} != r2_names
+    ):
+        raise ValueError("Expected total_fit_err/total_fit_r2 and paired *_fit_err/*_fit_r2 columns.")
+    metric_indices = {i for i, name in enumerate(header) if name in error_names | r2_names}
+    energy_indices = {i for i, name in enumerate(header) if fnmatch.fnmatchcase(name, "*_act")}
+    if not energy_indices or any(header[i] in keys for i in metric_indices | energy_indices):
+        raise ValueError("Expected non-key *_act and fit metric columns.")
+    fit_indices = [header.index(name) for name in fit_keys]
+
+    def group_scores(rows: dict[tuple[str, ...], list[str]], label: str) -> dict[tuple[str, ...], dict[str, float | None]]:
+        groups: dict[tuple[str, ...], dict[str, float | None]] = {}
+        for row in rows.values():
+            fit_key = tuple(row[i] for i in fit_indices)
+            scores = {}
+            for i in sorted(metric_indices):
+                name = header[i]
+                value = read_fit_number(row[i], f"{label}, fit={fit_key!r}, column={name!r}")
+                if value is not None and (value < 0 or (name in r2_names and value > 1)):
+                    raise ValueError(f"{label}: out-of-domain score for fit={fit_key!r}, column={name!r}.")
+                scores[name] = value
+            for name in error_names:
+                if scores[name] is None and scores[name.removesuffix("_err") + "_r2"] is not None:
+                    raise ValueError(f"{label}: R2 present without fit error for fit={fit_key!r}, column={name!r}.")
+            if fit_key in groups and groups[fit_key] != scores:
+                raise ValueError(f"{label}: inconsistent fit scores across bands for fit={fit_key!r}.")
+            groups[fit_key] = scores
+        return groups
+
+    ref_groups = group_scores(ref_rows, "reference")
+    gen_groups = group_scores(gen_rows, "generated")
+    failures = shown = 0
+
+    def report(message: str, failed: bool = True) -> None:
+        nonlocal failures, shown
+        failures += int(failed)
+        if shown < max_diff_lines:
+            print(message)
+            shown += 1
+
+    print(f"FOOOF full-model quality (not component equivalence): {limits}; fit keys={fit_keys!r}")
+    for key in sorted(ref_rows.keys() - gen_rows.keys()):
+        report(f"Missing generated key: {key!r}")
+    for key in sorted(gen_rows.keys() - ref_rows.keys()):
+        report(f"Unexpected generated key: {key!r}")
+    energy_changed = 0
+    max_energy_error = 0.0
+    for key in sorted(ref_rows.keys() & gen_rows.keys()):
+        for i, (ref, gen) in enumerate(zip(ref_rows[key], gen_rows[key])):
+            if i in metric_indices:
+                continue
+            if i in energy_indices:
+                left = read_fit_number(ref, f"reference, key={key!r}, column={header[i]!r}")
+                right = read_fit_number(gen, f"generated, key={key!r}, column={header[i]!r}")
+                if (left is None) != (right is None):
+                    report(f"Energy availability changed: key={key!r}, column={header[i]!r}")
+                elif left is not None and right is not None:
+                    energy_changed += int(left != right)
+                    max_energy_error = max(max_energy_error, abs(right - left))
+            elif ref != gen:
+                report(f"Exact cell mismatch: key={key!r}, column={header[i]!r}, ref={ref!r}, gen={gen!r}")
+
+    compared = missing = 0
+    stats: dict[str, list[tuple[float, float, tuple[str, ...], str]]] = {"err": [], "r2": []}
+    for key in sorted(ref_groups.keys() & gen_groups.keys()):
+        for name, left in ref_groups[key].items():
+            right = gen_groups[key][name]
+            if left is None or right is None:
+                if left != right:
+                    report(f"Score availability changed: fit={key!r}, column={name!r}, ref={left}, gen={right}")
+                else:
+                    missing += 1
+                continue
+            compared += 1
+            is_error = name in error_names
+            kind = "err" if is_error else "r2"
+            degradation = right - left if is_error else left - right
+            stats[kind].append((right, degradation, key, name))
+            bad = (
+                right > limits["maxError"] or degradation > limits["maxErrorIncrease"]
+                if is_error else
+                right < limits["minR2"] or degradation > limits["maxR2Decrease"]
+            )
+            if bad or left != right:
+                report(
+                    f"{'FAIL' if bad else 'Score change'}: fit={key!r}, column={name!r}, "
+                    f"ref={left:.12g}, gen={right:.12g}, degradation={degradation:.12g}", bad
+                )
+    for kind, values in stats.items():
+        if values:
+            worst = max(values, key=lambda value: value[1])
+            print(
+                f"Fit {kind}: count={len(values)}, generated_min={min(v[0] for v in values):.12g}, "
+                f"generated_max={max(v[0] for v in values):.12g}, "
+                f"mean_degradation={sum(v[1] for v in values) / len(values):.12g}, "
+                f"max_degradation={worst[1]:.12g}, worst_fit={worst[2]!r}, column={worst[3]!r}"
+            )
+    if missing:
+        print(f"WARNING: {missing} matching missing scores were not evaluated (counted once per fit).")
+    print(
+        f"Fit-quality summary: reference_groups={len(ref_groups)}, generated_groups={len(gen_groups)}, "
+        f"compared_scores={compared}, unevaluated_scores={missing}, failures={failures}; "
+        f"energy_changes_non_blocking={energy_changed}, max_absolute_energy_change={max_energy_error:.12g}"
+    )
+    return int(failures > 0)
 
 
 def compare_table_tolerance(
@@ -355,11 +516,12 @@ def main() -> int:
         print(f"Reference file not found: {reference}")
         return 1
 
-    if args.file_type == "table-tolerance":
+    if args.file_type in ("table-tolerance", "fooof-fit-quality"):
         try:
             if args.precision is not None:
-                raise ValueError("table-tolerance cannot be combined with precision rounding.")
-            status = compare_table_tolerance(
+                raise ValueError(f"{args.file_type} cannot be combined with precision rounding.")
+            compare = compare_table_tolerance if args.file_type == "table-tolerance" else compare_fooof_fit_quality
+            status = compare(
                 reference, generated, args.delimiter, args.table_options, args.max_diff_lines
             )
         except (ValueError, OSError, UnicodeError, csv.Error) as error:
@@ -368,7 +530,7 @@ def main() -> int:
         print("Comparison succeeded." if status == 0 else "Comparison failed.")
         return status
     if args.table_options is not None:
-        print("Comparison failed: table-options requires file-type table-tolerance.")
+        print("Comparison failed: table-options requires a table comparison mode.")
         return 1
 
     round_precision: int | None = None

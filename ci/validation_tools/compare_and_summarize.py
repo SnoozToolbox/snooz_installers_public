@@ -33,7 +33,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from compare_outputs import validate_table_options
+from compare_outputs import validate_fit_options, validate_table_options
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -181,15 +181,16 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
         precision = comparison.get("precision")
         generated_roots = comparison.get("generatedSearchRoots") or generated_search_roots_default
         table_options = {
-            key: comparison[key] for key in ("keyColumns", "numericTolerance") if key in comparison
+            key: comparison[key] for key in ("keyColumns", "numericTolerance", "fitQuality") if key in comparison
         }
         try:
-            if file_type == "table-tolerance":
-                validate_table_options(table_options)
+            if file_type in ("table-tolerance", "fooof-fit-quality"):
+                validator = validate_table_options if file_type == "table-tolerance" else validate_fit_options
+                validator(table_options)
                 if precision is not None:
-                    raise ValueError("table-tolerance cannot be combined with precision rounding.")
+                    raise ValueError(f"{file_type} cannot be combined with precision rounding.")
             elif table_options:
-                raise ValueError("keyColumns and numericTolerance require fileType table-tolerance.")
+                raise ValueError("keyColumns, numericTolerance and fitQuality require a table comparison mode.")
         except ValueError as error:
             print(f"::error::{tool_name} invalid comparison configuration: {error}")
             return "fail", validated_files, collected_files
@@ -220,7 +221,7 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
         print(f"Resolved generated path: {generated_file}")
         passed, output = run_comparison(
             compare_script, tool_name, generated_file, gold_file, file_type, precision,
-            table_options if file_type == "table-tolerance" else None,
+            table_options if file_type in ("table-tolerance", "fooof-fit-quality") else None,
         )
         print(output)
 

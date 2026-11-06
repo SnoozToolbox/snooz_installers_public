@@ -177,8 +177,63 @@ infinite values fail, even if identical in both files.
 UTF-8 BOMs and empty physical lines are accepted. Extra empty header fields and
 tab-only malformed rows are not silently discarded. Logs report the configured
 tolerances, missing/extra keys and differing cells, with numeric errors and
-allowed thresholds. Only the two FOOOF component reports currently opt in;
-their `_info.tsv` reports and all legacy comparisons keep their existing modes.
+allowed thresholds.
+
+#### FOOOF fitting quality
+
+The FOOOF periodic and aperiodic reports use `fileType: "fooof-fit-quality"`.
+This validates full-model fitting quality, **not equivalence of component
+energies**. Their `_info.tsv` reports keep their existing comparisons.
+
+```json
+{
+  "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
+  "fileType": "fooof-fit-quality",
+  "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+  "fitQuality": {
+    "fitKeyColumns": ["filename", "channel_label"],
+    "maxError": 1.0,
+    "maxErrorIncrease": 1.0,
+    "minR2": 0.0,
+    "maxR2Decrease": 1.0
+  },
+  "generatedSearchRoots": ["validation-workspaces"]
+}
+```
+
+The initial thresholds are deliberately permissive and uncalibrated. Tighten
+them after examining accepted cross-environment runs. Error thresholds are
+absolute values in log10 power space; R2 thresholds are absolute score values,
+not relative percentages. For every available score, the generated result must
+satisfy both its quality bound and its one-sided degradation bound:
+
+- `err_generated <= maxError`
+- `err_generated - err_reference <= maxErrorIncrease`
+- `r2_generated >= minR2`
+- `r2_reference - r2_generated <= maxR2Decrease`
+
+All paired `*_fit_err` / `*_fit_r2` columns are discovered from the header,
+including total, sleep-stage, clock-hour, cycle and stage-hour fits.
+`total_fit_err` and `total_fit_r2` are required. The scores describe the full
+model, even when exported in a component report. They must be consistent across
+bands within each `fitKeyColumns` group and are counted once per group/metric,
+not once per band. `fitKeyColumns` must be a non-empty proper subset of the
+unique row keys. Errors must be finite and non-negative; R2 must be in [0, 1].
+
+Missing scores (`""`, `nan`, `NaN`) are accepted only when missing in both files
+and explicitly reported as unevaluated. A missing R2 with an available error is
+allowed (undefined correlation); an R2 without a fit error fails. Both reports
+must contain rows. Old references lacking the new score columns fail and must
+be regenerated before enabling this comparison against a gold standard.
+
+Headers, row keys and all other cells remain exact. Row order is irrelevant.
+`*_act` energy values are checked for numeric validity and matching availability,
+but their finite numeric differences do not fail validation. Logs include the
+number of changed energy cells and their maximum absolute difference, changed
+scores (limited by `--max-diff-lines`), generated score ranges, mean and maximum
+score degradation, the worst fit, unevaluated scores and failures. The generated
+and reference TSVs remain collected by the existing workflow for detailed review.
+Do not combine this mode with `precision` or `numericTolerance`.
 
 Publish one gold-standard zip per tool, with scenario folders at the archive
 root, for example `pwelch/report.tsv` and `irasa/report.tsv`. After extraction,
