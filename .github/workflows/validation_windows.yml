@@ -143,9 +143,8 @@ jobs:
               $toolTransformations.GetEnumerator() |
                 Where-Object {
                   $_.Value -is [hashtable] -and
-                  $_.Value.ContainsKey("updates") -and
-                  $null -ne $_.Value.updates -and
-                  $_.Value.updates.Count -gt 0
+                  (($_.Value.ContainsKey("updates") -and $_.Value.updates.Count -gt 0) -or
+                   $_.Value.ContainsKey("scenarios"))
                 } |
                 ForEach-Object { [string]$_.Key } |
                 Sort-Object
@@ -212,9 +211,8 @@ jobs:
               $toolTransformations.GetEnumerator() |
                 Where-Object {
                   $_.Value -is [hashtable] -and
-                  $_.Value.ContainsKey("updates") -and
-                  $null -ne $_.Value.updates -and
-                  $_.Value.updates.Count -gt 0
+                  (($_.Value.ContainsKey("updates") -and $_.Value.updates.Count -gt 0) -or
+                   $_.Value.ContainsKey("scenarios"))
                 } |
                 ForEach-Object { [string]$_.Key } |
                 Sort-Object
@@ -473,7 +471,8 @@ jobs:
               --adaptations-file ci/validation_tools/tool_json_adaptations.json `
               --order-file ci/validation_tools/tool_execution_order.json `
               --tools "$toolsToProcessInput" `
-              --format lines
+              --manifest target/validation-logs/scenario-manifest.json `
+              --format tsv
           )
           if ($LASTEXITCODE -ne 0) {
             throw "Unable to resolve validation tool execution order."
@@ -509,11 +508,10 @@ jobs:
             throw "Validation snapshot failed with exit code $LASTEXITCODE"
           }
 
-          foreach ($toolName in $tools) {
-            $scenario = "validation-workspaces/$toolName.json"
+          foreach ($run in $tools) {
+            $toolName, $scenario = $run -split "`t", 2
             if (-not (Test-Path $scenario)) {
-              Write-Host "Warning: Scenario not found: $scenario"
-              continue
+              throw "Scenario not found: $scenario"
             }
 
             $toolSequence += 1
@@ -578,7 +576,11 @@ jobs:
             python ci/validation_tools/build_run_status_json.py `
               --input "$singleStatusTsv" `
               --output "$singleStatusJson" `
+              --manifest target/validation-logs/scenario-manifest.json `
               --exec-log-dir "target/validation-logs"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Unable to build run status for $toolName"
+            }
 
             python ci/validation_tools/compare_and_summarize.py `
               --run-status-file "$singleStatusJson" `
@@ -617,6 +619,8 @@ jobs:
           if-no-files-found: warn
           path: |
             validation-workspaces/*.json
+            validation-workspaces/*.log
+            target/validation-logs/**/*
             tool-run-summary.tsv
             validation-outputs/**/*
             captures/**/*

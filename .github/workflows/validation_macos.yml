@@ -149,7 +149,7 @@ jobs:
               echo "Tool adaptations config not found: $toolTransformationsPath"
               exit 1
             fi
-            toolsToProcess=$(python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); print(",".join(sorted([k for k,v in data.items() if isinstance(v,dict) and v.get("updates")])))' "$toolTransformationsPath")
+            toolsToProcess=$(python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); print(",".join(sorted([k for k,v in data.items() if isinstance(v,dict) and (v.get("updates") or "scenarios" in v)])))' "$toolTransformationsPath")
 
             if [ -z "$toolsToProcess" ]; then
               echo "No tool definitions with updates found in $toolTransformationsPath"
@@ -397,7 +397,8 @@ jobs:
             --adaptations-file ci/validation_tools/tool_json_adaptations.json \
             --order-file ci/validation_tools/tool_execution_order.json \
             --tools "${{ inputs.tools_to_process }}" \
-            --format shell)
+            --manifest target/validation-logs/scenario-manifest.json \
+            --format tsv)
           if [ -z "$TOOLS" ]; then
             echo "No tools resolved to run."
             exit 1
@@ -426,12 +427,11 @@ jobs:
               exit 1
             }
           
-          for TOOL_NAME in $TOOLS; do
-            scenario="validation-workspaces/${TOOL_NAME}.json"
+          while IFS=$'\t' read -r TOOL_NAME scenario; do
             
             if [ ! -f "$scenario" ]; then
-              echo "Warning: Scenario not found: $scenario"
-              continue
+              echo "::error::Scenario not found: $scenario"
+              exit 1
             fi
 
             tool_sequence=$((tool_sequence + 1))
@@ -501,6 +501,7 @@ jobs:
             python3 ci/validation_tools/build_run_status_json.py \
               --input "$single_status_tsv" \
               --output "$single_status_json" \
+              --manifest target/validation-logs/scenario-manifest.json \
               --exec-log-dir target/validation-logs
 
             compare_status=0
@@ -520,7 +521,7 @@ jobs:
 
             echo "=========================================="
             echo ""
-          done
+          done <<< "$TOOLS"
 
           python3 ci/validation_tools/capture_validation_changes.py finalize \
             --output-dir validation-captures \

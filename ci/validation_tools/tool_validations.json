@@ -3,7 +3,8 @@
     "purpose": "Developer-maintained validation rules for generated tool outputs compared to gold-standard files.",
     "how_to_use": [
       "Add one top-level key per tool basename (example: ConvertDOMINO, ConvertEDFbrowser).",
-      "Each tool must define a non-empty comparisons array.",
+      "Each tool must define a non-empty comparisons array, or a scenarios object with a non-empty comparisons array per scenario.",
+      "Scenario keys must match the ids in tool_json_adaptations.json. Scenario comparisons do not inherit tool-level comparisons.",
       "Each item in comparisons defines one generated file to compare against one gold-standard file.",
       "If generated and gold names are identical, use fileName only.",
       "fileType: Use 'bag-comparison' for unordered line comparison (order-independent, counts must match), 'generic' for strict line-by-line order preservation, or 'report' for ordered comparison.",
@@ -14,6 +15,7 @@
     "fields": {
       "<ToolName>": "Top-level key for one tool configuration. Must match the JSON filename of the tool in CEAMSTools package.",
       "comparisons": "Array of comparison rules executed for this tool.",
+      "scenarios": "Object keyed by scenario id, each containing its own comparisons array.",
       "comparisons[].fileName": "Preferred single filename used for both generated output and gold-standard reference.",
       "comparisons[].fileType": "Comparison mode used by compare_outputs.py (examples: bag-comparison, generic, report).",
       "comparisons[].generatedSearchRoots": "Ordered list of roots scanned recursively to find generatedFileName.",
@@ -23,6 +25,7 @@
     },
     "notes": [
       "Keep generatedSearchRoots as specific and as short as possible.",
+      "Scenario gold standards belong under gold-standards/extracted/<ToolName>/<scenario-id>. Legacy tools keep their existing tool-level directory.",
       "For stable CI validation, prefer writing outputs under validation-workspaces and private-dataset only.",
       "Unknown top-level keys are ignored by the current workflow as long as tool names are requested explicitly."
     ]
@@ -309,16 +312,122 @@
     ]
   },
   "PowerSpectralAnalysis": {
-    "comparisons": [
-      {
-        "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
-        "fileType": "bag-comparison",
-        "precision": 4,
-        "generatedSearchRoots": [
-          "validation-workspaces"
+    "scenarios": {
+      "pwelch": {
+        "comparisons": [
+          {
+            "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "EEG_spectral_power_cohort_report_Welch_info.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          }
+        ]
+      },
+      "irasa": {
+        "comparisons": [
+          {
+            "fileName": "EEG_spectral_power_cohort_report_IRASA_periodic.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "EEG_spectral_power_cohort_report_IRASA_periodic_info.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "EEG_spectral_power_cohort_report_IRASA_aperiodic.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "EEG_spectral_power_cohort_report_IRASA_aperiodic_info.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          }
+        ]
+      },
+      "fooof": {
+        "comparisons": [
+          {
+            "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
+            "description": "Rows are matched by keyColumns, independently of row order. Headers and other cells must match exactly, except columns ending in _act, _fit_err or _fit_r2. *_act values require numeric validity and matching availability; numeric differences are informational only. *_fit_err increases and *_fit_r2 decreases are limited by fitQuality thresholds, once per fitKeyColumns group. This checks full-model fit degradation, not component energy equivalence.",
+            "fileType": "fooof-fit-quality",
+            "keyColumns": [
+              "filename",
+              "channel_label",
+              "freq_low_Hz",
+              "freq_high_Hz"
+            ],
+            "fitQuality": {
+              "fitKeyColumns": ["filename", "channel_label"],
+              "maxErrorIncrease": 0.005,
+              "maxR2Decrease": 0.015
+            },
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "EEG_spectral_power_cohort_report_FOOOF_aperiodic.tsv",
+            "description": "Rows are matched by keyColumns, independently of row order. Headers and other cells must match exactly, except columns ending in _act, _fit_err or _fit_r2. *_act values require numeric validity and matching availability; numeric differences are informational only. *_fit_err increases and *_fit_r2 decreases are limited by fitQuality thresholds, once per fitKeyColumns group. This checks full-model fit degradation, not component energy equivalence.",
+            "fileType": "fooof-fit-quality",
+            "keyColumns": [
+              "filename",
+              "channel_label",
+              "freq_low_Hz",
+              "freq_high_Hz"
+            ],
+            "fitQuality": {
+              "fitKeyColumns": ["filename", "channel_label"],
+              "maxErrorIncrease": 0.005,
+              "maxR2Decrease": 0.015
+            },
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic_info.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "EEG_spectral_power_cohort_report_FOOOF_aperiodic_info.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          }
         ]
       }
-    ]
+    }
   },
   "PSAImages": {
     "comparisons": [

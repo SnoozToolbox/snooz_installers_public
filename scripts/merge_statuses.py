@@ -62,7 +62,9 @@ def main():
         for r in rows:
             tool = get_field(r, ['tool_name', 'Tool', 'Tool Name'])
             version = get_field(r, ['tool_version', 'Version'])
-            scenario = get_field(r, ['json_name', 'scenario', 'Scenario'])
+            scenario = get_field(r, ['scenario_id'])
+            if not scenario or scenario == 'default':
+                scenario = get_field(r, ['json_name', 'scenario', 'Scenario'])
             runstat = get_field(r, ['run_status', 'status', 'Run Status'])
             compstat = get_field(r, ['comparison_status', 'comparison', 'Comparison Status'])
             vfiles = get_field(r, ['validated_files', 'validated_files_count', 'Validated Files'])

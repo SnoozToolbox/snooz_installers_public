@@ -7,14 +7,12 @@ import argparse
 import json
 from pathlib import Path
 
+from validation_scenarios import configured_tools, expand_scenarios, load_manifest
+
 
 def load_configured_tools(adaptations_path: Path) -> set[str]:
-    adaptations = json.loads(adaptations_path.read_text(encoding="utf-8"))
-    return {
-        name
-        for name, config in adaptations.items()
-        if isinstance(config, dict) and config.get("updates")
-    }
+    adaptations = json.loads(adaptations_path.read_text(encoding="utf-8-sig"))
+    return configured_tools(adaptations)
 
 
 def resolve_tools(adaptations_path: Path, order_path: Path, requested: str = "") -> list[str]:
@@ -51,11 +49,29 @@ def main() -> int:
     parser.add_argument("--adaptations-file", required=True)
     parser.add_argument("--order-file", required=True)
     parser.add_argument("--tools", default="", help="Optional comma-separated subset")
-    parser.add_argument("--format", choices=("lines", "shell"), default="lines")
+    parser.add_argument("--manifest", help="Resolve run ids from the generated scenario manifest")
+    parser.add_argument("--format", choices=("lines", "shell", "tsv"), default="lines")
     args = parser.parse_args()
 
     tools = resolve_tools(Path(args.adaptations_file), Path(args.order_file), args.tools)
-    if args.format == "shell":
+    if args.manifest:
+        runs = load_manifest(args.manifest)
+        if list(dict.fromkeys(run["tool_name"] for run in runs)) != tools:
+            raise ValueError("Scenario manifest does not match the requested tool execution order")
+        adaptations = json.loads(Path(args.adaptations_file).read_text(encoding="utf-8-sig"))
+        expected = [
+            run["run_id"] for tool in tools
+            for run in expand_scenarios(tool, adaptations[tool], ".")
+        ]
+        tools = [run["run_id"] for run in runs]
+        if tools != expected:
+            raise ValueError("Scenario manifest does not match configured scenarios")
+    if args.format == "tsv":
+        if not args.manifest:
+            raise ValueError("TSV run output requires --manifest")
+        for run in runs:
+            print(f"{run['run_id']}\t{run['json_path']}")
+    elif args.format == "shell":
         if any(any(character.isspace() for character in name) for name in tools):
             raise ValueError("Shell output does not support whitespace in tool names")
         print(" ".join(tools))

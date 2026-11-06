@@ -5,11 +5,9 @@ Adapt extracted CEAMSTools scenario JSON files into runnable validation workspac
 scenarios, applying the per-tool node input updates defined in
 tool_json_adaptations.json.
 
-This is the Linux/macOS (Python) equivalent of the PowerShell
-Convert-ExtractedJson / Resolve-ConfiguredValue logic used in
-validation_windows.yml, so that all three platforms apply identical
-transformations (private dataset paths, workspace paths, literal values,
-embedded JSON file contents, etc.) before running headless scenarios.
+All three platforms use this script to apply identical transformations
+(private dataset paths, workspace paths, literal values, embedded JSON file
+contents, etc.) before running headless scenarios.
 
 Usage:
     python adapt_scenario_json.py \
@@ -25,6 +23,9 @@ import json
 import re
 import sys
 from pathlib import Path
+
+from resolve_tool_order import resolve_tools
+from validation_scenarios import expand_scenarios
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -249,6 +250,9 @@ def adapt_tool_scenario(source_path, dest_path, tool_name, tool_definition, work
     metadata["validationSource"] = "installed-package"
     metadata["validationTarget"] = "validation-workspaces"
     metadata["toolName"] = tool_definition.get("targetToolName", tool_name)
+    if "scenario_id" in tool_definition:
+        metadata["scenarioId"] = tool_definition["scenario_id"]
+        metadata["runId"] = tool_definition["run_id"]
 
     processing_mode = tool_definition.get("processingMode")
     if processing_mode:
@@ -296,7 +300,9 @@ def main():
     parser.add_argument('--workspace-dir', required=True, help='Destination directory for adapted validation workspace scenarios')
     parser.add_argument('--adaptations-file', required=True, help='Path to tool_json_adaptations.json')
     parser.add_argument('--private-dataset-dir', required=True, help='Path to the private dataset directory')
-    parser.add_argument('--tools', default='', help='Comma-separated tool basenames to process (default: all tools with updates in the adaptations file)')
+    parser.add_argument('--tools', default='', help='Comma-separated tool basenames to process (default: all configured tools)')
+    parser.add_argument('--order-file', default=str(Path(__file__).with_name("tool_execution_order.json")))
+    parser.add_argument('--manifest', default='target/validation-logs/scenario-manifest.json')
 
     args = parser.parse_args()
 
@@ -308,15 +314,10 @@ def main():
     with open(adaptations_path, 'r', encoding='utf-8-sig') as f:
         adaptations = json.load(f)
 
-    tools_to_process = [t.strip() for t in args.tools.split(',') if t.strip()]
-    if not tools_to_process:
-        tools_to_process = sorted(
-            k for k, v in adaptations.items()
-            if isinstance(v, dict) and v.get("updates")
-        )
+    tools_to_process = resolve_tools(adaptations_path, Path(args.order_file), args.tools)
 
     if not tools_to_process:
-        print("No tool definitions with updates found in tool_json_adaptations.json", file=sys.stderr)
+        print("No configured tools found in tool_json_adaptations.json", file=sys.stderr)
         return 1
 
     print(f"Tools configured for this run: {', '.join(tools_to_process)}\n")
@@ -327,24 +328,36 @@ def main():
     private_dataset_dir = Path(args.private_dataset_dir)
 
     adapted_count = 0
+    manifest_path = Path(args.manifest)
+    manifest_path.unlink(missing_ok=True)
+    runs = []
+    seen = set()
     for tool_name in tools_to_process:
         source_path = source_dir / f"{tool_name}.json"
         if not source_path.exists():
-            print(f"  x Warning: {tool_name}.json not found in {source_dir}")
-            continue
+            raise FileNotFoundError(f"{tool_name}.json not found in {source_dir}")
 
-        tool_definition = adaptations.get(tool_name, {})
-        dest_path = workspace_dir / f"{tool_name}.json"
-
-        try:
-            adapt_tool_scenario(source_path, dest_path, tool_name, tool_definition, workspace_dir, private_dataset_dir)
-            print(f"  [OK] Adapted: {tool_name}.json")
+        tool_definition = adaptations[tool_name]
+        for run in expand_scenarios(tool_name, tool_definition, workspace_dir):
+            if run["run_id"].casefold() in seen:
+                raise ValueError(f"Duplicate validation run: {run['run_id']}")
+            seen.add(run["run_id"].casefold())
+            effective = dict(tool_definition, updates=run.pop("updates"))
+            if run["explicit_scenario"]:
+                effective.update(scenario_id=run["scenario_id"], run_id=run["run_id"])
+            adapt_tool_scenario(
+                source_path, Path(run["json_path"]), tool_name, effective,
+                workspace_dir, private_dataset_dir,
+            )
+            runs.append(run)
+            print(f"  [OK] Adapted: {run['run_id']}.json")
             adapted_count += 1
-        except Exception as e:
-            print(f"[ERROR] Failed to adapt {tool_name}.json: {e}", file=sys.stderr)
-            return 1
 
-    print(f"\nValidation workspaces prepared with {adapted_count} tool(s)")
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(
+        json.dumps({"schema_version": 1, "runs": runs}, indent=2), encoding="utf-8"
+    )
+    print(f"\nValidation workspaces prepared with {adapted_count} scenario(s)")
     return 0
 
 
