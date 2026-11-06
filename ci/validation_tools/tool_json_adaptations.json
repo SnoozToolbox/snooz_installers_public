@@ -500,6 +500,28 @@
             }
           },
           {
+            "description": "Define the windows length in seconds",
+            "identifier": "989ef4f7-2ce1-4727-bc80-5b6d18c34390",
+            "inputName": "constant", 
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "3",
+              "required": true
+            }
+          },
+          {
+            "description": "Define the windows step in seconds",
+            "identifier": "1279a45a-d0d2-4f7e-85f9-e365ecdcd1d6",
+            "inputName": "constant", 
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "3",
+              "required": true
+            }
+          },
+          {
             "description": "Uncheck the option Analyses events only on their annotated channel.",
             "identifier": "6f9b0e64-2f8d-4a30-b1f7-97f6c41325e2",
             "inputName": "constant", 
