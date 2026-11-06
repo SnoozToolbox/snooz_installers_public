@@ -373,6 +373,7 @@
         "comparisons": [
           {
             "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
+            "description": "Rows are matched by keyColumns, independently of row order. Headers and other cells must match exactly, except columns ending in _act, _fit_err or _fit_r2. *_act values require numeric validity and matching availability; numeric differences are informational only. *_fit_err increases and *_fit_r2 decreases are limited by fitQuality thresholds, once per fitKeyColumns group. This checks full-model fit degradation, not component energy equivalence.",
             "fileType": "fooof-fit-quality",
             "keyColumns": [
               "filename",
@@ -391,6 +392,7 @@
           },
           {
             "fileName": "EEG_spectral_power_cohort_report_FOOOF_aperiodic.tsv",
+            "description": "Rows are matched by keyColumns, independently of row order. Headers and other cells must match exactly, except columns ending in _act, _fit_err or _fit_r2. *_act values require numeric validity and matching availability; numeric differences are informational only. *_fit_err increases and *_fit_r2 decreases are limited by fitQuality thresholds, once per fitKeyColumns group. This checks full-model fit degradation, not component energy equivalence.",
             "fileType": "fooof-fit-quality",
             "keyColumns": [
               "filename",

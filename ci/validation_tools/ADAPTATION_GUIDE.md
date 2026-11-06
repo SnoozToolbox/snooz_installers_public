@@ -185,9 +185,15 @@ The FOOOF periodic and aperiodic reports use `fileType: "fooof-fit-quality"`.
 This validates full-model fitting quality degradation, **not equivalence of component
 energies**. Their `_info.tsv` reports keep their existing comparisons.
 
+Each comparison entry may include an optional `description` string to explain
+its rules in the configuration. This field is informational only: it is not
+passed to the comparator or displayed in workflow logs. Place it beside
+`fileType`, not inside the strictly validated `fitQuality` object.
+
 ```json
 {
   "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
+  "description": "Exact keyed comparison except *_act (informational numeric differences) and *_fit_err/*_fit_r2 (one-sided degradation limits).",
   "fileType": "fooof-fit-quality",
   "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
   "fitQuality": {
@@ -207,6 +213,19 @@ score must satisfy its one-sided degradation bound:
 
 - `err_generated - err_reference <= maxErrorIncrease`
 - `r2_reference - r2_generated <= maxR2Decrease`
+
+| Configuration field | Applies to | Meaning |
+| --- | --- | --- |
+| `keyColumns` | Row matching | Exact column names forming a unique row key. |
+| `fitQuality.fitKeyColumns` | Fit grouping | Subset of `keyColumns` identifying one fit across frequency bands. |
+| `fitQuality.maxErrorIncrease` | Columns ending in `_fit_err` | Maximum allowed `generated - reference`; finite and >= 0. |
+| `fitQuality.maxR2Decrease` | Columns ending in `_fit_r2` | Maximum allowed `reference - generated`; finite and in [0, 1]. |
+
+These configuration names are defined by `validate_fit_options` in
+[`compare_outputs.py`](compare_outputs.py), not by the exported TSV. Column
+suffix matching is case-sensitive and checks the end of the name, not whether
+the label appears anywhere within it. In this mode, `*_act` has no numeric
+tolerance: finite numeric differences are informational only.
 
 Improvements do not fail validation. Absolute fitting quality remains visible
 in the logged score ranges but does not determine pass/fail: a poor fit already
@@ -229,6 +248,8 @@ must contain rows. Old references lacking the new score columns fail and must
 be regenerated before enabling this comparison against a gold standard.
 
 Headers, row keys and all other cells remain exact. Row order is irrelevant.
+This is a keyed comparison, not `bag-comparison`: it does not apply decimal
+rounding or time normalization to the other cells.
 `*_act` energy values are checked for numeric validity and matching availability,
 but their finite numeric differences do not fail validation. Logs include the
 number of changed energy cells and their maximum absolute difference, changed
