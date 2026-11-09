@@ -1238,7 +1238,7 @@
         "required": true,
         "value": {
           "kind": "literal",
-          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,art_snooz_set1_NREM'}",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,non_brain,art_snooz_set1_NREM'}",
           "required": true
         }
       },
@@ -1249,7 +1249,7 @@
         "required": true,
         "value": {
           "kind": "literal",
-          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_snooz_set1_NREM'}",
+          "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_inspector,art_snooz_set1_NREM'}",
           "required": true
         }
       },
@@ -1285,63 +1285,280 @@
           "value": "3",
           "required": true
         }
+      }
+    ],
+    "scenarios": [
+      {
+        "id": "wpli",
+        "enabled": true,
+        "description": "Run weighted phase-lag index connectivity analysis.",
+        "updates": [
+          {
+            "description": "Activate the WpliConnectivity branch.",
+            "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Activate the WPLI ConnectivityDetails report.",
+            "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Activate the WPLI NetworkProperties report.",
+            "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the dPLI connectivity branch.",
+            "identifier": "2c8437e3-9a1b-4584-86b0-54308d9bb6f2",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the dPLI ConnectivityDetails report.",
+            "identifier": "82b687e5-9cb4-43bc-80a8-b1cd735ded9b",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the AEC connectivity branch.",
+            "identifier": "2d967628-7e28-4b27-98f7-2abb069204df",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the AEC ConnectivityDetails report.",
+            "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Set the WPLI epoch length to 10 seconds with no overlap.",
+            "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+            "inputName": "epoch_length_sec",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "10",
+              "required": true
+            }
+          },
+          {
+            "description": "Set the WPLI epoch overlap to 0 seconds.",
+            "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+            "inputName": "overlap_sec",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "0",
+              "required": true
+            }
+          },
+          {
+            "description": "Set the WPLI connectivity output directory.",
+            "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+            "inputName": "output_path",
+            "required": true,
+            "value": {
+              "kind": "workspacePath",
+              "relativePath": "AnalyzeEEGConnectivity_wpli/",
+              "asDirectory": true,
+              "required": true
+            }
+          },
+          {
+            "description": "Use a minimally spanning tree for WPLI network properties.",
+            "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+            "inputName": "threshold_mode",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "minimally_spanning_tree",
+              "required": true
+            }
+          },
+          {
+            "description": "Set the WPLI network properties output directory.",
+            "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+            "inputName": "output_path",
+            "required": true,
+            "value": {
+              "kind": "workspacePath",
+              "relativePath": "AnalyzeEEGConnectivity_wpli/",
+              "asDirectory": true,
+              "required": true
+            }
+          }
+        ]
       },
       {
-        "description": "Update the epoch length for CEAMSModules.EpochSignal (epoch_length_sec=10 s), epochs connected to WpliConnectivity.",
-        "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
-        "inputName": "epoch_length_sec", 
-        "required": true,
-        "value": {
-          "kind": "literal",
-          "value": "10",
-          "required": true
-        }
+        "id": "dpli",
+        "enabled": true,
+        "description": "Run directed phase-lag index connectivity analysis.",
+        "updates": [
+          {
+            "description": "Deactivate the WPLI connectivity branch and its reports.",
+            "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the WPLI ConnectivityDetails report.",
+            "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the WPLI NetworkProperties report.",
+            "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Activate the DpliConnectivity branch.",
+            "identifier": "2c8437e3-9a1b-4584-86b0-54308d9bb6f2",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Activate the dPLI ConnectivityDetails report.",
+            "identifier": "82b687e5-9cb4-43bc-80a8-b1cd735ded9b",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the AEC connectivity branch (CEAMSModules.AECConnectivity).",
+            "identifier": "2d967628-7e28-4b27-98f7-2abb069204df",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the AEC ConnectivityDetails report.",
+            "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Set the dPLI epoch length to 10 seconds with no overlap.",
+            "identifier": "a120bd2f-4d9b-4e08-8e45-ce51d577ae9f",
+            "inputName": "epoch_length_sec",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "10",
+              "required": true
+            }
+          },
+          {
+            "description": "Set the dPLI epoch overlap to 0 seconds.",
+            "identifier": "a120bd2f-4d9b-4e08-8e45-ce51d577ae9f",
+            "inputName": "overlap_sec",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "0",
+              "required": true
+            }
+          },
+          {
+            "description": "Set the dPLI connectivity output directory.",
+            "identifier": "82b687e5-9cb4-43bc-80a8-b1cd735ded9b",
+            "inputName": "output_path",
+            "required": true,
+            "value": {
+              "kind": "workspacePath",
+              "relativePath": "AnalyzeEEGConnectivity_dpli/",
+              "asDirectory": true,
+              "required": true
+            }
+          }
+        ]
       },
       {
-        "description": "Update the epoch length for CEAMSModules.EpochSignal (overlap_sec=0 s), epochs connected to WpliConnectivity.",
-        "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
-        "inputName": "overlap_sec", 
-        "required": true,
-        "value": {
-          "kind": "literal",
-          "value": "0",
-          "required": true
-        }
-      },
-      {
-        "description": "Update output report filename in CEAMSModules.ConnectivityDetails for wdpli with min spanning tree.",
-        "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
-        "inputName": "output_path", 
-        "required": true,
-        "value": {
-          "kind": "workspacePath",
-          "relativePath": "AnalyzeEEGConnectivity_wpli/",
-          "asDirectory": true,
-          "required": true
-        }
-      },
-      {
-        "description": "Update output report filename in CEAMSModules.NetworkProperties for wdpli with min spanning tree.",
-        "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
-        "inputName": "threshold_mode", 
-        "required": true,
-        "value": {
-          "kind": "literal",
-          "value": "minimally_spanning_tree",
-          "required": true
-        }
-      },
-      {
-        "description": "Update output report filename in CEAMSModules.NetworkProperties for wdpli with min spanning tree.",
-        "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
-        "inputName": "output_path", 
-        "required": true,
-        "value": {
-          "kind": "workspacePath",
-          "relativePath": "AnalyzeEEGConnectivity_wpli/",
-          "asDirectory": true,
-          "required": true
-        }
+        "id": "aec",
+        "enabled": true,
+        "description": "Run amplitude-envelope correlation connectivity analysis.",
+        "updates": [
+          {
+            "description": "Deactivate the WPLI connectivity branch and its reports.",
+            "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the WPLI ConnectivityDetails report.",
+            "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the WPLI NetworkProperties report.",
+            "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the dPLI connectivity branch and report.",
+            "identifier": "2c8437e3-9a1b-4584-86b0-54308d9bb6f2",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate the dPLI ConnectivityDetails report.",
+            "identifier": "82b687e5-9cb4-43bc-80a8-b1cd735ded9b",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Activate the AECConnectivity branch.",
+            "identifier": "2d967628-7e28-4b27-98f7-2abb069204df",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Activate the AEC ConnectivityDetails report.",
+            "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Set the AEC epoch length to 10 seconds with no overlap.",
+            "identifier": "41f96138-814c-492c-bac8-fe01b4c3f65e",
+            "inputName": "epoch_length_sec",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "10",
+              "required": true
+            }
+          },
+          {
+            "description": "Set the AEC epoch overlap to 0 seconds.",
+            "identifier": "41f96138-814c-492c-bac8-fe01b4c3f65e",
+            "inputName": "overlap_sec",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "0",
+              "required": true
+            }
+          },
+          {
+            "description": "Set the AEC connectivity output directory.",
+            "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
+            "inputName": "output_path",
+            "required": true,
+            "value": {
+              "kind": "workspacePath",
+              "relativePath": "AnalyzeEEGConnectivity_aec/",
+              "asDirectory": true,
+              "required": true
+            }
+          }
+        ]
       }
     ]
   },
