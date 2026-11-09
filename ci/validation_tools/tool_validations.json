@@ -333,6 +333,26 @@
           }
         ]
       },
+      "annotation": {
+        "comparisons": [
+          {
+            "fileName": "EEG_spectral_power_cohort_report_annotation.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "EEG_spectral_power_cohort_report_annotation_info.tsv",
+            "fileType": "bag-comparison",
+            "precision": 4,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          }
+        ]
+      },
       "irasa": {
         "comparisons": [
           {

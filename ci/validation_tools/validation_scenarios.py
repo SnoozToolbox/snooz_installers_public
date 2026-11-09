@@ -2,6 +2,7 @@
 
 import json
 import re
+import sys
 from pathlib import Path
 
 
@@ -41,6 +42,12 @@ def expand_scenarios(tool_name, definition, workspace_dir):
         updates = scenario.get("updates", [])
         if not isinstance(updates, list):
             raise ValueError(f"{tool_name}:{scenario_id}.updates must be an array")
+        enabled = scenario.get("enabled", True)
+        if not isinstance(enabled, bool):
+            raise ValueError(f"{tool_name}:{scenario_id}.enabled must be a boolean")
+        if not enabled:
+            print(f"Skipping disabled scenario: {tool_name}:{scenario_id}", file=sys.stderr)
+            continue
         run_id = f"{tool_name}__{scenario_id}" if explicit else tool_name
         runs.append({
             "tool_name": tool_name,

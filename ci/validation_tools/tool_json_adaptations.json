@@ -421,6 +421,7 @@
     "scenarios": [
       {
         "id": "pwelch",
+        "enabled": true,
         "description": "Configure the Welch report filename. Analysis parameters remain unchanged.",
         "updates": [
           {
@@ -437,7 +438,128 @@
         ]
       },
       {
+        "id": "annotation",
+        "enabled": true,
+        "description": "Configure analysis parameters to perform spectral analysis on annotations.",
+        "updates": [
+          {
+            "description": "Activate CEAMSModules.SignalsFromEvents module for annotations.",
+            "identifier": "4c9b0f26-21d7-404c-bd38-22326468f129",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Activate CEAMSModules.ResetSignalArtefact module for annotations.",
+            "identifier": "83092505-93c5-4688-acc7-208d00a72ba0",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Activate CEAMSModules.Stft module for annotations.",
+            "identifier": "ea31a87d-038c-4e24-a9c2-66b54aaca483",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Activate CEAMSModules.PSAOnEvents module for annotations.",
+            "identifier": "bd2ef4ac-7b23-4494-8c5b-22f188fd1f87",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Update group annotations.",
+            "identifier": "1ee9e510-d78b-48e4-8a81-dbd37093f2b3",
+            "inputName": "constant",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'REM,REM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'REM,REM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'REM,REM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'REM,REM'}",
+              "required": true
+            }
+          },
+          {
+            "description": "Update name annotations.",
+            "identifier": "57d1acd5-f2a5-49fc-a93a-422b334f2112",
+            "inputName": "constant",
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'EOG_Phasic,EOG_Tonic', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'EOG_Phasic,EOG_Tonic', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'EOG_Phasic,EOG_Tonic', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'EOG_Phasic,EOG_Tonic'}",
+              "required": true
+            }
+          },
+          {
+            "description": "The first freq to analyze is set to 1 because of the low frequency resolution (1/3s=0.33 Hz).",
+            "identifier": "414a9746-fee0-4807-8d2e-44aba2369c16",
+            "inputName": "constant", 
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "1",
+              "required": true
+            }
+          },
+          {
+            "description": "Define the windows length in seconds",
+            "identifier": "989ef4f7-2ce1-4727-bc80-5b6d18c34390",
+            "inputName": "constant", 
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "3",
+              "required": true
+            }
+          },
+          {
+            "description": "Define the windows step in seconds",
+            "identifier": "1279a45a-d0d2-4f7e-85f9-e365ecdcd1d6",
+            "inputName": "constant", 
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": "3",
+              "required": true
+            }
+          },
+          {
+            "description": "Uncheck the option Analyses events only on their annotated channel.",
+            "identifier": "6f9b0e64-2f8d-4a30-b1f7-97f6c41325e2",
+            "inputName": "constant", 
+            "required": true,
+            "value": {
+              "kind": "literal",
+              "value": false,
+              "required": true
+            }
+          },
+          {
+            "description": "Deactivate CEAMSModules.Stft module for pwelch.",
+            "identifier": "159bfdad-5000-474b-ae38-8e95ff4142b2",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Deactivate PSACompilation module for pwelch.",
+            "identifier": "4bb8c9ac-64e8-4cec-9c2c-5a00c80b4eae",
+            "activationState": "deactivated",
+            "required": true
+          },
+          {
+            "description": "Update output report filename in PSA on Events.",
+            "identifier": "bd2ef4ac-7b23-4494-8c5b-22f188fd1f87",
+            "inputName": "PSA_out_filename",
+            "required": true,
+            "value": {
+              "kind": "workspacePath",
+              "relativePath": "EEG_spectral_power_cohort_report_annotation.tsv",
+              "required": true
+            }
+          }
+        ]
+      },
+      {
         "id": "irasa",
+        "enabled": true,
         "description": "Define IRASA analysis parameters including module activation and output filename.",
         "updates": [
           {
@@ -507,6 +629,7 @@
       },
       {
         "id": "fooof",
+        "enabled": true,
         "description": "Define FOOOF analysis parameters including module activation and output filename.",
         "updates": [
           {

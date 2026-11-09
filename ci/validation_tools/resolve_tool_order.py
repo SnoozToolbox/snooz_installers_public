@@ -56,8 +56,6 @@ def main() -> int:
     tools = resolve_tools(Path(args.adaptations_file), Path(args.order_file), args.tools)
     if args.manifest:
         runs = load_manifest(args.manifest)
-        if list(dict.fromkeys(run["tool_name"] for run in runs)) != tools:
-            raise ValueError("Scenario manifest does not match the requested tool execution order")
         adaptations = json.loads(Path(args.adaptations_file).read_text(encoding="utf-8-sig"))
         expected = [
             run["run_id"] for tool in tools
