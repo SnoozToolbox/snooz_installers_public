@@ -904,7 +904,7 @@
           {
             "fileName": "01-01-0001_wpli_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.05,
+            "absoluteTolerance": 0.05,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -912,7 +912,7 @@
           {
             "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_wpli_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.05,
+            "absoluteTolerance": 0.05,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -920,7 +920,7 @@
           {
             "fileName": "learn-nsrr01_wpli_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.05,
+            "absoluteTolerance": 0.05,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -928,7 +928,7 @@
           {
             "fileName": "learn-nsrr02_wpli_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.05,
+            "absoluteTolerance": 0.05,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -940,7 +940,7 @@
           {
             "fileName": "01-01-0001_dpli_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.01,
+            "absoluteTolerance": 0.01,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -948,7 +948,7 @@
           {
             "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_dpli_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.01,
+            "absoluteTolerance": 0.01,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -956,7 +956,7 @@
           {
             "fileName": "learn-nsrr01_dpli_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.01,
+            "absoluteTolerance": 0.01,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -964,7 +964,7 @@
           {
             "fileName": "learn-nsrr02_dpli_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.01,
+            "absoluteTolerance": 0.01,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -976,7 +976,7 @@
           {
             "fileName": "01-01-0001_aec_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.0000000001,
+            "absoluteTolerance": 0.0000000001,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -984,7 +984,7 @@
           {
             "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_aec_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.0000000001,
+            "absoluteTolerance": 0.0000000001,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -992,7 +992,7 @@
           {
             "fileName": "learn-nsrr01_aec_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.0000000001,
+            "absoluteTolerance": 0.0000000001,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
@@ -1000,7 +1000,7 @@
           {
             "fileName": "learn-nsrr02_aec_convalue.tsv",
             "fileType": "absolute-tolerance",
-            "absolute-tolerance": 0.0000000001,
+            "absoluteTolerance": 0.0000000001,
             "generatedSearchRoots": [
               "validation-workspaces"
             ]
