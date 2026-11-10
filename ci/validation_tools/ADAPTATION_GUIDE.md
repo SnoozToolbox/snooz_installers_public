@@ -153,8 +153,6 @@ are errors for explicit scenarios, rather than selecting the first match.
 The existing `exists` checks, numeric precision and bootstrap behavior remain
 available. A skipped gold-standard comparison is not a successful comparison.
 
-#### Numeric table tolerances
-
 ### Absolute numeric tolerance
 
 Use `fileType: "absolute-tolerance"` to compare numeric cells by position without
@@ -165,7 +163,7 @@ rounding. Set `absoluteTolerance` per file, in the same comparison entry where
 {
   "fileName": "01-01-0001_dpli_convalue.tsv",
   "fileType": "absolute-tolerance",
-  "absoluteTolerance": 0.01,
+  "absoluteTolerance": 0.015,
   "generatedSearchRoots": ["validation-workspaces"]
 }
 ```

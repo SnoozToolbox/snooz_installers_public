@@ -906,7 +906,7 @@
             "fileType": "absolute-tolerance",
             "absoluteTolerance": 0.05,
             "generatedSearchRoots": [
-              "validation-workspaces"
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli"
             ]
           },
           {
@@ -914,7 +914,7 @@
             "fileType": "absolute-tolerance",
             "absoluteTolerance": 0.05,
             "generatedSearchRoots": [
-              "validation-workspaces"
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli"
             ]
           },
           {
@@ -922,7 +922,7 @@
             "fileType": "absolute-tolerance",
             "absoluteTolerance": 0.05,
             "generatedSearchRoots": [
-              "validation-workspaces"
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli"
             ]
           },
           {
@@ -930,7 +930,43 @@
             "fileType": "absolute-tolerance",
             "absoluteTolerance": 0.05,
             "generatedSearchRoots": [
-              "validation-workspaces"
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli"
+            ]
+          }
+        ]
+      },
+      "wpli_annotationN2": {
+        "comparisons": [
+          {
+            "fileName": "01-01-0001_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli_annotationN2"
+            ]
+          },
+          {
+            "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli_annotationN2"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr01_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli_annotationN2"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr02_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli_annotationN2"
             ]
           }
         ]
