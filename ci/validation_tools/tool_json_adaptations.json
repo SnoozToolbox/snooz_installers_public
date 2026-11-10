@@ -1300,6 +1300,12 @@
             "required": true
           },
           {
+            "description": "Activate the WPLI EpochSignal.",
+            "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+            "activationState": "activated",
+            "required": true
+          },        
+          {
             "description": "Activate the WPLI ConnectivityDetails report.",
             "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
             "activationState": "activated",
@@ -1400,19 +1406,25 @@
         "description": "Run directed phase-lag index connectivity analysis.",
         "updates": [
           {
-            "description": "Deactivate the WPLI connectivity branch and its reports.",
+            "description": "Deactivate the default WPLI connectivity branch and its reports.",
             "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
             "activationState": "deactivated",
             "required": true
           },
           {
-            "description": "Deactivate the WPLI ConnectivityDetails report.",
+            "description": "Deactivate the default WPLI EpochSignal.",
+            "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+            "activationState": "deactivated",
+            "required": true
+          },      
+          {
+            "description": "Deactivate the default WPLI ConnectivityDetails report.",
             "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
             "activationState": "deactivated",
             "required": true
           },
           {
-            "description": "Deactivate the WPLI NetworkProperties report.",
+            "description": "Deactivate the default WPLI NetworkProperties report.",
             "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
             "activationState": "deactivated",
             "required": true
@@ -1430,15 +1442,9 @@
             "required": true
           },
           {
-            "description": "Deactivate the AEC connectivity branch (CEAMSModules.AECConnectivity).",
-            "identifier": "2d967628-7e28-4b27-98f7-2abb069204df",
-            "activationState": "deactivated",
-            "required": true
-          },
-          {
-            "description": "Deactivate the AEC ConnectivityDetails report.",
-            "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
-            "activationState": "deactivated",
+            "description": "Activate the dPLI EpochSignal.",
+            "identifier": "a120bd2f-4d9b-4e08-8e45-ce51d577ae9f",
+            "activationState": "activated",
             "required": true
           },
           {
@@ -1483,32 +1489,26 @@
         "description": "Run amplitude-envelope correlation connectivity analysis.",
         "updates": [
           {
-            "description": "Deactivate the WPLI connectivity branch and its reports.",
+            "description": "Deactivate the default WPLI connectivity branch and its reports.",
             "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
             "activationState": "deactivated",
             "required": true
           },
           {
-            "description": "Deactivate the WPLI ConnectivityDetails report.",
+            "description": "Deactivate the default WPLI EpochSignal.",
+            "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+            "activationState": "deactivated",
+            "required": true
+          }, 
+          {
+            "description": "Deactivate the default WPLI ConnectivityDetails report.",
             "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
             "activationState": "deactivated",
             "required": true
           },
           {
-            "description": "Deactivate the WPLI NetworkProperties report.",
+            "description": "Deactivate the default WPLI NetworkProperties report.",
             "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
-            "activationState": "deactivated",
-            "required": true
-          },
-          {
-            "description": "Deactivate the dPLI connectivity branch and report.",
-            "identifier": "2c8437e3-9a1b-4584-86b0-54308d9bb6f2",
-            "activationState": "deactivated",
-            "required": true
-          },
-          {
-            "description": "Deactivate the dPLI ConnectivityDetails report.",
-            "identifier": "82b687e5-9cb4-43bc-80a8-b1cd735ded9b",
             "activationState": "deactivated",
             "required": true
           },
@@ -1521,6 +1521,12 @@
           {
             "description": "Activate the AEC ConnectivityDetails report.",
             "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
+            "activationState": "activated",
+            "required": true
+          },
+          {
+            "description": "Activate the AEC EpochSignal.",
+            "identifier": "41f96138-814c-492c-bac8-fe01b4c3f65e",
             "activationState": "activated",
             "required": true
           },
