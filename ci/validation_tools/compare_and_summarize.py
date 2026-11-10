@@ -33,7 +33,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from compare_outputs import validate_fit_options, validate_table_options
+from compare_outputs import validate_absolute_options, validate_fit_options, validate_table_options
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -69,7 +69,7 @@ def get_tool_version(scenario_path):
 
 
 def run_comparison(compare_script, tool_name, generated_file, reference_file, file_type, precision,
-                   table_options=None):
+                   table_options=None, absolute_tolerance=None):
     args = [
         sys.executable, str(compare_script),
         "--tool-name", tool_name,
@@ -80,6 +80,8 @@ def run_comparison(compare_script, tool_name, generated_file, reference_file, fi
     ]
     if precision is not None:
         args += ["--precision", str(precision)]
+    if absolute_tolerance is not None:
+        args += ["--absolute-tolerance", str(absolute_tolerance)]
     if table_options is not None:
         args += ["--table-options", json.dumps(table_options)]
 
@@ -179,11 +181,13 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
         gold_file_name = comparison.get("goldFileName") or file_name
         file_type = comparison.get("fileType", "generic")
         precision = comparison.get("precision")
+        absolute_tolerance = comparison.get("absoluteTolerance")
         generated_roots = comparison.get("generatedSearchRoots") or generated_search_roots_default
         table_options = {
             key: comparison[key] for key in ("keyColumns", "numericTolerance", "fitQuality") if key in comparison
         }
         try:
+            validate_absolute_options(file_type, absolute_tolerance, precision)
             if file_type in ("table-tolerance", "fooof-fit-quality"):
                 validator = validate_table_options if file_type == "table-tolerance" else validate_fit_options
                 validator(table_options)
@@ -222,6 +226,7 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
         passed, output = run_comparison(
             compare_script, tool_name, generated_file, gold_file, file_type, precision,
             table_options if file_type in ("table-tolerance", "fooof-fit-quality") else None,
+            absolute_tolerance,
         )
         print(output)
 

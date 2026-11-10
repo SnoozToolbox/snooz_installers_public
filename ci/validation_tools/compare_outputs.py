@@ -28,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--file-type",
         default="generic",
-        choices=["generic", "bag-comparison", "report", "table-tolerance", "fooof-fit-quality"],
+        choices=["generic", "bag-comparison", "report", "absolute-tolerance", "table-tolerance", "fooof-fit-quality"],
         help="Comparison mode.",
     )
     parser.add_argument(
@@ -41,6 +41,11 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=None,
         help="Numeric rounding precision in decimals (omit for no rounding, use 0 for integer rounding).",
+    )
+    parser.add_argument(
+        "--absolute-tolerance",
+        type=float,
+        help="Maximum absolute difference per numeric cell for absolute-tolerance mode.",
     )
     parser.add_argument(
         "--delimiter",
@@ -132,6 +137,73 @@ def validate_key_columns(keys: object) -> list[str]:
     ):
         raise ValueError("keyColumns must be a non-empty list of unique column names.")
     return keys
+
+
+def validate_absolute_options(file_type: str, tolerance: object, precision: object) -> None:
+    if file_type != "absolute-tolerance":
+        if tolerance is not None:
+            raise ValueError("absoluteTolerance requires absolute-tolerance mode.")
+        return
+    if (
+        isinstance(tolerance, bool) or not isinstance(tolerance, (int, float))
+        or not math.isfinite(tolerance) or tolerance < 0
+    ):
+        raise ValueError("absoluteTolerance must be finite and >= 0.")
+    if precision is not None:
+        raise ValueError("absolute-tolerance cannot be combined with precision rounding.")
+
+
+def compare_absolute_tolerance(
+    reference: Path, generated: Path, delimiter: str, tolerance: float, max_diff_lines: int
+) -> int:
+    """Compare cells by position, keeping headers and nonnumeric labels exact."""
+    if len(delimiter) != 1:
+        raise ValueError("absolute-tolerance requires a single-character delimiter.")
+
+    def read_table(path: Path) -> list[list[str]]:
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            rows = list(csv.reader(stream, delimiter=delimiter, strict=True))
+        if len(rows) < 2 or not rows[0]:
+            raise ValueError(f"{path}: expected a header and at least one data row.")
+        if any(len(row) != len(rows[0]) for row in rows):
+            raise ValueError(f"{path}: inconsistent number of columns.")
+        return rows
+
+    ref_rows = read_table(reference)
+    gen_rows = read_table(generated)
+    if ref_rows[0] != gen_rows[0]:
+        raise ValueError("Table headers differ (including column order).")
+    if len(ref_rows) != len(gen_rows):
+        raise ValueError("Table row counts differ.")
+    differences = numeric_cells = 0
+    max_error = 0.0
+    for row_index, (ref_row, gen_row) in enumerate(zip(ref_rows[1:], gen_rows[1:]), start=2):
+        for column, (left, right) in enumerate(zip(ref_row, gen_row), start=1):
+            if any(field.strip().lower() in ("nan", "+nan", "-nan", "inf", "+inf", "-inf",
+                                             "infinity", "+infinity", "-infinity")
+                   for field in (left, right)):
+                raise ValueError(f"Nonfinite value at row={row_index}, column={column}.")
+            if NUMERIC_FIELD_PATTERN.fullmatch(left) and NUMERIC_FIELD_PATTERN.fullmatch(right):
+                a, b = float(left), float(right)
+                if not math.isfinite(a) or not math.isfinite(b):
+                    raise ValueError(f"Nonfinite value at row={row_index}, column={column}.")
+                error = abs(b - a)
+                max_error = max(max_error, error)
+                numeric_cells += 1
+                equal = error <= tolerance
+            else:
+                equal = left == right
+            if not equal:
+                differences += 1
+                if differences <= max_diff_lines:
+                    print(f"row={row_index}, column={column}: ref={left!r}, gen={right!r}")
+    if not numeric_cells:
+        raise ValueError("No numeric cells found for absolute-tolerance comparison.")
+    print(
+        f"Absolute tolerance: {tolerance}; numeric_cells={numeric_cells}, "
+        f"max_absolute_error={max_error:.12g}, differing_cells={differences}"
+    )
+    return int(differences > 0)
 
 
 def validate_table_options(options: object) -> tuple[list[str], str, float, float]:
@@ -510,6 +582,20 @@ def main() -> int:
         return 1
     if not reference.is_file():
         print(f"Reference file not found: {reference}")
+        return 1
+
+    try:
+        validate_absolute_options(args.file_type, args.absolute_tolerance, args.precision)
+        if args.file_type == "absolute-tolerance":
+            if args.table_options is not None:
+                raise ValueError("absolute-tolerance cannot be combined with table-options.")
+            status = compare_absolute_tolerance(
+                reference, generated, args.delimiter, args.absolute_tolerance, args.max_diff_lines
+            )
+            print("Comparison succeeded." if status == 0 else "Comparison failed.")
+            return status
+    except (ValueError, OSError, UnicodeError, csv.Error) as error:
+        print(f"Comparison failed: {error}")
         return 1
 
     if args.file_type in ("table-tolerance", "fooof-fit-quality"):
