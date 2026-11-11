@@ -153,7 +153,34 @@ are errors for explicit scenarios, rather than selecting the first match.
 The existing `exists` checks, numeric precision and bootstrap behavior remain
 available. A skipped gold-standard comparison is not a successful comparison.
 
-#### Numeric table tolerances
+### Absolute numeric tolerance
+
+Use `fileType: "absolute-tolerance"` to compare numeric cells by position without
+rounding. Set `absoluteTolerance` per file, in the same comparison entry where
+`precision` would normally be specified:
+
+```json
+{
+  "fileName": "01-01-0001_dpli_convalue.tsv",
+  "fileType": "absolute-tolerance",
+  "absoluteTolerance": 0.015,
+  "generatedSearchRoots": ["validation-workspaces"]
+}
+```
+
+Each numeric cell passes when `abs(generated - reference) <= absoluteTolerance`.
+The threshold must be finite and nonnegative; zero requires numeric equality.
+Headers, row/column counts, row order and nonnumeric labels must match exactly.
+An empty top-left header cell is supported for connectivity matrices. NaN,
+infinite values, malformed tables and tables without numeric data are rejected.
+All numeric data cells are checked, including the diagonal.
+
+Do not combine this mode with `precision` or table comparison options.
+The CLI equivalent is `--file-type absolute-tolerance --absolute-tolerance 0.01`.
+Thresholds should be calibrated on repeated runs; the example is not a universal
+threshold for all connectivity methods.
+
+### Keyed table tolerance
 
 Use `fileType: "table-tolerance"` for header-based TSV reports that need numeric
 tolerances instead of decimal rounding. Do not combine this mode with `precision`.

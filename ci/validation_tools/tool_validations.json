@@ -898,40 +898,152 @@
     ]
   },
   "AnalyzeEEGConnectivity": {
-    "comparisons": [
-      {
-        "fileName": "01-01-0001_wpli_convalue.tsv",
-        "fileType": "bag-comparison",
-        "precision": 1,
-        "generatedSearchRoots": [
-          "validation-workspaces"
+    "scenarios": {
+      "wpli": {
+        "comparisons": [
+          {
+            "fileName": "01-01-0001_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli"
+            ]
+          },
+          {
+            "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr01_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr02_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli"
+            ]
+          }
         ]
       },
-      {
-        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_wpli_convalue.tsv",
-        "fileType": "bag-comparison",
-        "precision": 1,
-        "generatedSearchRoots": [
-          "validation-workspaces"
+      "wpli_annotationN2": {
+        "comparisons": [
+          {
+            "fileName": "01-01-0001_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli_annotationN2"
+            ]
+          },
+          {
+            "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli_annotationN2"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr01_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli_annotationN2"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr02_wpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.05,
+            "generatedSearchRoots": [
+              "validation-workspaces/AnalyzeEEGConnectivity_wpli_annotationN2"
+            ]
+          }
         ]
       },
-      {
-        "fileName": "learn-nsrr01_wpli_convalue.tsv",
-        "fileType": "bag-comparison",
-        "precision": 1,
-        "generatedSearchRoots": [
-          "validation-workspaces"
+      "dpli": {
+        "comparisons": [
+          {
+            "fileName": "01-01-0001_dpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.015,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_dpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.015,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr01_dpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.015,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr02_dpli_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.015,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          }
         ]
       },
-      {
-        "fileName": "learn-nsrr02_wpli_convalue.tsv",
-        "fileType": "bag-comparison",
-        "precision": 1,
-        "generatedSearchRoots": [
-          "validation-workspaces"
+      "aec": {
+        "comparisons": [
+          {
+            "fileName": "01-01-0001_aec_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.0000000001,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_aec_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.0000000001,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr01_aec_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.0000000001,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          },
+          {
+            "fileName": "learn-nsrr02_aec_convalue.tsv",
+            "fileType": "absolute-tolerance",
+            "absoluteTolerance": 0.0000000001,
+            "generatedSearchRoots": [
+              "validation-workspaces"
+            ]
+          }
         ]
       }
-    ]
+    }
   },
   "ScoreSleepStagesYASA": {
     "comparisons": [
