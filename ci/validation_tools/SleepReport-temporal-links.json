@@ -1,0 +1,300 @@
+{
+  "$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts": [
+    [
+      true,
+      {
+        "name": "Arousals Report",
+        "min_duration": 3,
+        "max_duration": 30,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "M-EVE",
+            "event_name": "M-EVE"
+          }
+        ],
+        "event_name": null,
+        "group_name": "M-EVE"
+      },
+      {
+        "name": "PLMS Report-sleep only",
+        "min_duration": 0.5,
+        "max_duration": 10,
+        "min_interval": 5,
+        "max_interval": 90,
+        "min_count": 4,
+        "end_period_delay": 15,
+        "sleep_event_association_min": -3.5,
+        "sleep_event_association_max": 8,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "DetecteMJ",
+            "event_name": "MJ"
+          }
+        ],
+        "event_name": null,
+        "group_name": "DetecteMJ"
+      }
+    ],
+    [
+      true,
+      {
+        "name": "Arousals Report",
+        "min_duration": 3,
+        "max_duration": 30,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "M-EVE",
+            "event_name": "M-EVE"
+          }
+        ],
+        "event_name": null,
+        "group_name": "M-EVE"
+      },
+      {
+        "name": "Respiratory Events Report",
+        "min_duration": 10,
+        "max_duration": 0,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES",
+            "event_name": "HYPOPN\u00c9E"
+          },
+          {
+            "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES",
+            "event_name": "APN\u00c9E OBSTRUCTIVE"
+          },
+          {
+            "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES",
+            "event_name": "APN\u00c9E CENTRALE"
+          },
+          {
+            "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES",
+            "event_name": "APN\u00c9E MIXTE"
+          }
+        ],
+        "event_name": null,
+        "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES"
+      }
+    ]
+  ],
+  "$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf": [
+    [
+      true,
+      {
+        "name": "Arousals Report",
+        "min_duration": 3,
+        "max_duration": 30,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "Arousal ()",
+            "event_name": "Arousal ()"
+          }
+        ],
+        "event_name": null,
+        "group_name": "Arousal ()"
+      },
+      {
+        "name": "Respiratory Events Report",
+        "min_duration": 10,
+        "max_duration": 0,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "Hypopnea",
+            "event_name": "Hypopnea"
+          },
+          {
+            "group_name": "Obstructive Apnea",
+            "event_name": "Obstructive Apnea"
+          }
+        ],
+        "event_name": null,
+        "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES"
+      }
+    ]
+  ],
+  "$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf": [
+    [
+      true,
+      {
+        "name": "Arousals Report",
+        "min_duration": 3,
+        "max_duration": 30,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "Arousal ()",
+            "event_name": "Arousal ()"
+          }
+        ],
+        "event_name": null,
+        "group_name": "Arousal ()"
+      },
+      {
+        "name": "Respiratory Events Report",
+        "min_duration": 10,
+        "max_duration": 0,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "Hypopnea",
+            "event_name": "Hypopnea"
+          },
+          {
+            "group_name": "Obstructive Apnea",
+            "event_name": "Obstructive Apnea"
+          }
+        ],
+        "event_name": null,
+        "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES"
+      }
+    ]
+  ],
+  "$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg": [
+    [
+      true,
+      {
+        "name": "Arousals Report",
+        "min_duration": 3,
+        "max_duration": 30,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "M-EVE",
+            "event_name": "M-EVE"
+          }
+        ],
+        "event_name": null,
+        "group_name": "M-EVE"
+      },
+      {
+        "name": "PLMS Report-sleep only",
+        "min_duration": 0.5,
+        "max_duration": 10,
+        "min_interval": 5,
+        "max_interval": 90,
+        "min_count": 4,
+        "end_period_delay": 15,
+        "sleep_event_association_min": -3.5,
+        "sleep_event_association_max": 8,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "DetecteMJ",
+            "event_name": "MJ"
+          }
+        ],
+        "event_name": null,
+        "group_name": "DetecteMJ"
+      }
+    ],
+    [
+      true,
+      {
+        "name": "Arousals Report",
+        "min_duration": 3,
+        "max_duration": 30,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "M-EVE",
+            "event_name": "M-EVE"
+          }
+        ],
+        "event_name": null,
+        "group_name": "M-EVE"
+      },
+      {
+        "name": "Respiratory Events Report",
+        "min_duration": 10,
+        "max_duration": 0,
+        "min_interval": 0,
+        "max_interval": 0,
+        "min_count": 0,
+        "end_period_delay": 0,
+        "sleep_event_association_min": 0,
+        "sleep_event_association_max": 0,
+        "events_section": "Sleep only",
+        "graphics": null,
+        "events_definition": [
+          {
+            "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES",
+            "event_name": "HYPOPN\u00c9E"
+          }
+        ],
+        "event_name": null,
+        "group_name": "\u00c9V\u00c9NEMENTS RESPIRATOIRES"
+      }
+    ]
+  ]
+}

@@ -362,6 +362,79 @@
       }
     ]
   },
+  "SleepReport": {
+    "targetToolName": "SleepReport",
+    "processingMode": "adapted",
+    "updates": [
+      {
+        "description": "Update the files input for CEAMSModules.PSGReader.",
+        "identifier": "f2eccd70-fcb6-4ee8-bea8-76103e706827",
+        "inputName": "files",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/SleepCycleExport-files.json",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the shared output directory for sleep, event and temporal-link reports.",
+        "identifier": "dda1783f-8192-42a2-b736-6602424f1e0a",
+        "inputName": "constant",
+        "required": true,
+        "value": {
+          "kind": "workspacePath",
+          "relativePath": "SleepReport",
+          "asDirectory": true,
+          "required": true
+        }
+      },
+      {
+        "description": "Set the shared report filename prefix.",
+        "identifier": "b23c561c-4201-448e-83ec-2c64a5f94e56",
+        "inputName": "constant",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "snooz",
+          "required": true
+        }
+      },
+      {
+        "description": "Use recording metadata from the local process with first_name and last_name cleared and birthdate set to null.",
+        "identifier": "5866b374-c3e8-4f07-8702-35abd46ce4b2",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/SleepReport-record-info.json",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the per-file event report criteria.",
+        "identifier": "8bf274d1-06bf-440d-893a-03816d737ebb",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/SleepReport-event-reports.json",
+          "required": true
+        }
+      },
+      {
+        "description": "Update the per-file temporal-link criteria.",
+        "identifier": "f141fb03-3258-4b0b-9ef4-d4af40d0b2d7",
+        "inputName": "dictionary",
+        "required": true,
+        "value": {
+          "kind": "workspaceFileJson",
+          "relativePath": "../ci/validation_tools/SleepReport-temporal-links.json",
+          "required": true
+        }
+      }
+    ]
+  },
   "PowerSpectralAnalysis": {
     "targetToolName": "PowerSpectralAnalysis",
     "processingMode": "adapted",

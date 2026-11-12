@@ -311,6 +311,218 @@
       }
     ]
   },
+  "SleepReport": {
+    "comparisons": [
+      {
+        "fileName": "01-01-0001_snooz_EVENTS_Arousals_Report_M-EVE.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "01-01-0001_snooz_EVENTS_PLMS_Report-sleep_only_DetecteMJ.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "01-01-0001_snooz_EVENTS_Respiratory_Events_Report_\u00c9V\u00c9NEMENTS_RESPIRATOIRES.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "01-01-0001_snooz_EVENTS_Respiratory_Events_Report_\u00c9V\u00c9NEMENTS_RESPIRATOIRES_HYPOPN\u00c9E.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_snooz_EVENTS_Arousals_Report_M-EVE.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_snooz_EVENTS_PLMS_Report-sleep_only_DetecteMJ.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_snooz_EVENTS_Respiratory_Events_Report_\u00c9V\u00c9NEMENTS_RESPIRATOIRES.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db_snooz_EVENTS_Respiratory_Events_Report_\u00c9V\u00c9NEMENTS_RESPIRATOIRES_HYPOPN\u00c9E.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_snooz_EVENTS_Arousals_Report_Arousal_().tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_snooz_EVENTS_Respiratory_Events_Report_\u00c9V\u00c9NEMENTS_RESPIRATOIRES.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr01_snooz_EVENTS_Respiratory_Events_Report_\u00c9V\u00c9NEMENTS_RESPIRATOIRES_Hypopnea.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_snooz_EVENTS_Arousals_Report_Arousal_().tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_snooz_EVENTS_Respiratory_Events_Report_\u00c9V\u00c9NEMENTS_RESPIRATOIRES.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "learn-nsrr02_snooz_EVENTS_Respiratory_Events_Report_\u00c9V\u00c9NEMENTS_RESPIRATOIRES_Hypopnea.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_Arousals_Report.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_Arousals_Report_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_PLMS_Report-sleep_only.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_PLMS_Report-sleep_only_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_Respiratory_Events_Report.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_Respiratory_Events_Report_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_temporal_link-Arousals Report-PLMS Report-sleep only.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_temporal_link-Arousals Report-PLMS Report-sleep only_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_temporal_link-Arousals Report-Respiratory Events Report.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      },
+      {
+        "fileName": "snooz_temporal_link-Arousals Report-Respiratory Events Report_info.tsv",
+        "fileType": "bag-comparison",
+        "precision": 4,
+        "generatedSearchRoots": [
+          "validation-workspaces/SleepReport"
+        ]
+      }
+    ]
+  },
   "PowerSpectralAnalysis": {
     "scenarios": {
       "pwelch": {
