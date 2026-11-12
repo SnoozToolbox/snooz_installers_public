@@ -33,6 +33,16 @@
       }
     },
     {
+      "description": "Use a 10-second minimum hold for oxygen desaturations.",
+      "identifier": "88a51ed5-da37-457f-8e32-221b0a600195",
+      "inputName": "parameters_oxy",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'desaturation_drop_percent': 3, 'max_slope_drop_sec': 180, 'min_hold_drop_sec': 10}"
+      }
+    },
+    {
       "description": "Write the cohort report inside the validation workspace.",
       "identifier": "88a51ed5-da37-457f-8e32-221b0a600195",
       "inputName": "cohort_filename",
