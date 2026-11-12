@@ -401,6 +401,17 @@
         }
       },
       {
+        "description": "Save per-subject event lists required by the SleepReport gold-standard comparisons.",
+        "identifier": "281c6b9e-cde3-442a-896f-a1c5bdd89b87",
+        "inputName": "save_events_report",
+        "required": true,
+        "value": {
+          "kind": "literal",
+          "value": "1",
+          "required": true
+        }
+      },
+      {
         "description": "Use recording metadata from the local process with first_name and last_name cleared and birthdate set to null.",
         "identifier": "5866b374-c3e8-4f07-8702-35abd46ce4b2",
         "inputName": "dictionary",
