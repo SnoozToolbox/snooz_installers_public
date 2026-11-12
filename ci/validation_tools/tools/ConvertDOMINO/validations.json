@@ -1,0 +1,19 @@
+{
+  "comparisons": [
+    {
+      "fileName": "DOMINO_log.tsv",
+      "fileType": "bag-comparison",
+      "generatedSearchRoots": [
+        "validation-workspaces",
+        "private-dataset"
+      ]
+    },
+    {
+      "fileName": "patient-CEJUDO_(1).tsv",
+      "fileType": "bag-comparison",
+      "generatedSearchRoots": [
+        "private-dataset/inputs/DOMINO_FILES/subject_3"
+      ]
+    }
+  ]
+}

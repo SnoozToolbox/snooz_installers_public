@@ -1,0 +1,39 @@
+{
+  "targetToolName": "DetectREMsYASA",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Update the files input for CEAMSModules.PSGReader.",
+      "identifier": "c3e6adf4-0698-4655-b2a5-e0cf102bf224",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "inputs/files.json",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the save_directory input for REMsDetectionYasa.",
+      "identifier": "5b36c10e-696e-40d2-be30-12548a806e0c",
+      "inputName": "save_directory",
+      "required": true,
+      "value": {
+        "kind": "workspacePath",
+        "relativePath": "DetectREMsYASA-report.tsv",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the cohort_filename input for CEAMSModules.REMsDetails.",
+      "identifier": "d1489e58-7c3d-490e-9c36-f830c8dc596e",
+      "inputName": "cohort_filename",
+      "required": true,
+      "value": {
+        "kind": "workspacePath",
+        "relativePath": "DetectREMsYASA-report.tsv",
+        "required": true
+      }
+    }
+  ]
+}

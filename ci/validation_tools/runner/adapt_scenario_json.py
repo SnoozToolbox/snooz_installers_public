@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Adapt extracted CEAMSTools scenario JSON files into runnable validation workspace
-scenarios, applying the per-tool node input updates defined in
-tool_json_adaptations.json.
+scenarios, applying the per-tool node input updates in tools/*/adaptations.json.
 
 All three platforms use this script to apply identical transformations
 (private dataset paths, workspace paths, literal values, embedded JSON file
@@ -13,7 +12,7 @@ Usage:
     python adapt_scenario_json.py \
         --source-dir validation-json \
         --workspace-dir validation-workspaces \
-        --adaptations-file ci/validation_tools/tool_json_adaptations.json \
+        --tools-dir ci/validation_tools/tools \
         --private-dataset-dir private-dataset \
         [--tools Tool1,Tool2]
 """
@@ -24,6 +23,7 @@ import re
 import sys
 from pathlib import Path
 
+from configuration import DEFAULT_ORDER_FILE, load_adaptations
 from resolve_tool_order import resolve_tools
 from validation_scenarios import expand_scenarios
 
@@ -80,7 +80,9 @@ def resolve_configured_value(spec, workspace_dir, private_dataset_dir):
         relative_path = spec.get("relativePath")
         if not relative_path:
             raise ValueError("workspaceFileJson specification requires relativePath")
-        full_path = (workspace_dir / relative_path).resolve()
+        full_path = Path(relative_path)
+        if not full_path.is_absolute():
+            raise ValueError("workspaceFileJson paths must be resolved by load_adaptations")
         if not full_path.exists():
             if required:
                 raise FileNotFoundError(f"workspaceFileJson target not found: {full_path}")
@@ -298,26 +300,20 @@ def main():
     parser = argparse.ArgumentParser(description="Adapt extracted CEAMSTools JSON scenarios for headless validation")
     parser.add_argument('--source-dir', required=True, help='Directory containing extracted *.json scenario files')
     parser.add_argument('--workspace-dir', required=True, help='Destination directory for adapted validation workspace scenarios')
-    parser.add_argument('--adaptations-file', required=True, help='Path to tool_json_adaptations.json')
+    parser.add_argument('--tools-dir', required=True, help='Directory containing per-tool adaptations.json files')
     parser.add_argument('--private-dataset-dir', required=True, help='Path to the private dataset directory')
     parser.add_argument('--tools', default='', help='Comma-separated tool basenames to process (default: all configured tools)')
-    parser.add_argument('--order-file', default=str(Path(__file__).with_name("tool_execution_order.json")))
+    parser.add_argument('--order-file', default=str(DEFAULT_ORDER_FILE))
     parser.add_argument('--manifest', default='target/validation-logs/scenario-manifest.json')
 
     args = parser.parse_args()
 
-    adaptations_path = Path(args.adaptations_file)
-    if not adaptations_path.exists():
-        print(f"Tool adaptations config not found: {adaptations_path}", file=sys.stderr)
-        return 1
-
-    with open(adaptations_path, 'r', encoding='utf-8-sig') as f:
-        adaptations = json.load(f)
-
-    tools_to_process = resolve_tools(adaptations_path, Path(args.order_file), args.tools)
+    tools_dir = Path(args.tools_dir)
+    adaptations = load_adaptations(tools_dir)
+    tools_to_process = resolve_tools(tools_dir, Path(args.order_file), args.tools)
 
     if not tools_to_process:
-        print("No configured tools found in tool_json_adaptations.json", file=sys.stderr)
+        print(f"No configured tools found in {tools_dir}", file=sys.stderr)
         return 1
 
     print(f"Tools configured for this run: {', '.join(tools_to_process)}\n")

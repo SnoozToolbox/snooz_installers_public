@@ -31,7 +31,7 @@ on:
         required: true
         default: ""
       tools_to_process:
-        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined in ci/validation_tools/tool_json_adaptations.json"
+        description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined under ci/validation_tools/tools"
         required: false
         default: ""
       gold_standard_repo:
@@ -103,6 +103,14 @@ jobs:
       - name: Checkout workflow repository
         uses: actions/checkout@v5
 
+      - name: Validate configuration and runner tests
+        shell: pwsh
+        run: |
+          python ci/validation_tools/runner/validate_configuration.py
+          if ($LASTEXITCODE -ne 0) { throw "Invalid validation configuration" }
+          python -m unittest discover -s ci/validation_tools/tests -v
+          if ($LASTEXITCODE -ne 0) { throw "Validation runner tests failed" }
+
       - name: Download dataset release assets (private)
         shell: pwsh
         env:
@@ -133,28 +141,13 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
-            if (-not (Test-Path $toolTransformationsPath)) {
-              throw "Tool adaptations config not found: $toolTransformationsPath"
+            $toolsToProcess = @(python ci/validation_tools/runner/resolve_tool_order.py `
+              --tools-dir ci/validation_tools/tools `
+              --order-file ci/validation_tools/config/tool_execution_order.json)
+            if ($LASTEXITCODE -ne 0) {
+              throw "Unable to resolve configured validation tools"
             }
-
-            $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
-            $toolsToProcess = @(
-              $toolTransformations.GetEnumerator() |
-                Where-Object {
-                  $_.Value -is [hashtable] -and
-                  (($_.Value.ContainsKey("updates") -and $_.Value.updates.Count -gt 0) -or
-                   $_.Value.ContainsKey("scenarios"))
-                } |
-                ForEach-Object { [string]$_.Key } |
-                Sort-Object
-            )
-
-            if ($toolsToProcess.Count -eq 0) {
-              throw "No tool definitions with updates found in tool_json_adaptations.json"
-            }
-
-            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json: $($toolsToProcess -join ', ')"
+            Write-Host "No tools_to_process provided; using configured order: $($toolsToProcess -join ', ')"
           }
 
           $tag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
@@ -201,28 +194,13 @@ jobs:
           }
 
           if ($toolsToProcess.Count -eq 0) {
-            $toolTransformationsPath = Join-Path (Resolve-Path ".").Path "ci/validation_tools/tool_json_adaptations.json"
-            if (-not (Test-Path $toolTransformationsPath)) {
-              throw "Tool adaptations config not found: $toolTransformationsPath"
+            $toolsToProcess = @(python ci/validation_tools/runner/resolve_tool_order.py `
+              --tools-dir ci/validation_tools/tools `
+              --order-file ci/validation_tools/config/tool_execution_order.json)
+            if ($LASTEXITCODE -ne 0) {
+              throw "Unable to resolve configured validation tools"
             }
-
-            $toolTransformations = Get-Content -Path $toolTransformationsPath -Raw | ConvertFrom-Json -AsHashtable
-            $toolsToProcess = @(
-              $toolTransformations.GetEnumerator() |
-                Where-Object {
-                  $_.Value -is [hashtable] -and
-                  (($_.Value.ContainsKey("updates") -and $_.Value.updates.Count -gt 0) -or
-                   $_.Value.ContainsKey("scenarios"))
-                } |
-                ForEach-Object { [string]$_.Key } |
-                Sort-Object
-            )
-
-            if ($toolsToProcess.Count -eq 0) {
-              throw "No tool definitions with updates found in tool_json_adaptations.json"
-            }
-
-            Write-Host "No tools_to_process provided; defaulting to all tools from tool_json_adaptations.json: $($toolsToProcess -join ', ')"
+            Write-Host "No tools_to_process provided; using configured order: $($toolsToProcess -join ', ')"
           }
 
           $goldDir = "gold-standards"
@@ -434,10 +412,10 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path "validation-workspaces" -Force | Out-Null
 
-          python ci/validation_tools/adapt_scenario_json.py `
+          python ci/validation_tools/runner/adapt_scenario_json.py `
             --source-dir validation-json `
             --workspace-dir validation-workspaces `
-            --adaptations-file ci/validation_tools/tool_json_adaptations.json `
+            --tools-dir ci/validation_tools/tools `
             --private-dataset-dir private-dataset `
             --tools "${{ inputs.tools_to_process }}"
 
@@ -449,7 +427,7 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Adapting JSON configuration file paths for Windows runner..."
-          python ci/validation_tools/adapt_json_paths.py --workspace-root "${{ github.workspace }}"
+          python ci/validation_tools/runner/adapt_json_paths.py --workspace-root "${{ github.workspace }}"
           if ($LASTEXITCODE -ne 0) {
             throw "JSON path adaptation failed with exit code $LASTEXITCODE"
           }
@@ -467,9 +445,9 @@ jobs:
 
           $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
           $tools = @(
-            python ci/validation_tools/resolve_tool_order.py `
-              --adaptations-file ci/validation_tools/tool_json_adaptations.json `
-              --order-file ci/validation_tools/tool_execution_order.json `
+            python ci/validation_tools/runner/resolve_tool_order.py `
+              --tools-dir ci/validation_tools/tools `
+              --order-file ci/validation_tools/config/tool_execution_order.json `
               --tools "$toolsToProcessInput" `
               --manifest target/validation-logs/scenario-manifest.json `
               --format tsv
@@ -500,7 +478,7 @@ jobs:
           $overallExit = 0
           $toolSequence = 0
 
-          python ci/validation_tools/capture_validation_changes.py snapshot `
+          python ci/validation_tools/runner/capture_validation_changes.py snapshot `
             --root private-dataset `
             --root validation-workspaces `
             --output target/validation-logs/validation-state.json
@@ -515,7 +493,7 @@ jobs:
             }
 
             $toolSequence += 1
-            python ci/validation_tools/capture_validation_changes.py checkpoint `
+            python ci/validation_tools/runner/capture_validation_changes.py checkpoint `
               --output-dir validation-captures `
               --tool "$toolName" `
               --sequence $toolSequence
@@ -554,7 +532,7 @@ jobs:
               $toolStatus = "pass"
             }
 
-            python ci/validation_tools/capture_validation_changes.py capture `
+            python ci/validation_tools/runner/capture_validation_changes.py capture `
               --root private-dataset `
               --root validation-workspaces `
               --manifest target/validation-logs/validation-state.json `
@@ -573,7 +551,7 @@ jobs:
             $singleStatusJson = "target/validation-logs/$toolName-status.json"
             Set-Content -Path $singleStatusTsv -Value "$toolName`t$toolStatus"
 
-            python ci/validation_tools/build_run_status_json.py `
+            python ci/validation_tools/runner/build_run_status_json.py `
               --input "$singleStatusTsv" `
               --output "$singleStatusJson" `
               --manifest target/validation-logs/scenario-manifest.json `
@@ -582,12 +560,12 @@ jobs:
               throw "Unable to build run status for $toolName"
             }
 
-            python ci/validation_tools/compare_and_summarize.py `
+            python ci/validation_tools/runner/compare_and_summarize.py `
               --run-status-file "$singleStatusJson" `
-              --tool-validations-file ci/validation_tools/tool_validations.json `
+              --tools-dir ci/validation_tools/tools `
               --gold-standards-dir gold-standards/extracted `
               --gold-standard-tag "${{ inputs.gold_standard_tag }}" `
-              --compare-script ci/validation_tools/compare_outputs.py `
+              --compare-script ci/validation_tools/runner/compare_outputs.py `
               --workspace-dir validation-workspaces `
               --output-summary-tsv tool-run-summary.tsv `
               --output-dir validation-outputs `
@@ -601,7 +579,7 @@ jobs:
             Write-Host ""
           }
 
-          python ci/validation_tools/capture_validation_changes.py finalize `
+          python ci/validation_tools/runner/capture_validation_changes.py finalize `
             --output-dir validation-captures `
             --sequence $toolSequence
 

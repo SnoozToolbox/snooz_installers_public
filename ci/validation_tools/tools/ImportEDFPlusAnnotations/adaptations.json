@@ -1,0 +1,28 @@
+{
+  "targetToolName": "ImportEDFPlusAnnotations",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "identifier": "b2f4f23b-172a-4655-b976-d153f8e91110",
+      "inputName": "annot_files",
+      "required": true,
+      "value": {
+        "kind": "privateDatasetPath",
+        "relativePath": "inputs/SC4001EC-Hypnogram.edf",
+        "output": "pythonListSingleQuoted",
+        "required": true
+      }
+    },
+    {
+      "identifier": "b2f4f23b-172a-4655-b976-d153f8e91110",
+      "inputName": "psg_files",
+      "required": true,
+      "value": {
+        "kind": "privateDatasetPath",
+        "relativePath": "inputs/SC4001E0-PSG.edf",
+        "output": "pythonListSingleQuoted",
+        "required": true
+      }
+    }
+  ]
+}

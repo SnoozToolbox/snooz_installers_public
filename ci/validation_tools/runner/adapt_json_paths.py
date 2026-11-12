@@ -76,7 +76,7 @@ def main():
     
     # Only scan validation-workspaces directory for actual scenario JSON files
     # Configuration files in ci/validation_tools/ should NOT be adapted
-    validation_workspace_dir = Path(__file__).parent.parent.parent / "validation-workspaces"
+    validation_workspace_dir = Path(__file__).resolve().parents[3] / "validation-workspaces"
     
     if not validation_workspace_dir.exists():
         print(f"[WARNING] validation-workspaces directory not found at {validation_workspace_dir}")

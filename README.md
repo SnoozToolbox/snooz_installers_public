@@ -48,13 +48,13 @@ The goal is to validate the shipped installer exactly as users will run it, not 
 
 Validation assets are under [ci/validation_tools](ci/validation_tools).
 
-Files to maintain:
+Each tool owns `adaptations.json`, `validations.json` and any tool-specific inputs
+under [ci/validation_tools/tools](ci/validation_tools/tools).
+The shared [execution order](ci/validation_tools/config/tool_execution_order.json)
+controls all platforms.
 
-- [ci/validation_tools/tool_json_adaptations.json](ci/validation_tools/tool_json_adaptations.json): per-tool rules used to adapt process JSON inputs for CI headless runs.
-  - **See [ADAPTATION_GUIDE.md](ci/validation_tools/ADAPTATION_GUIDE.md) for full documentation** on how to configure and extend JSON adaptations for new tools.
-- [ci/validation_tools/tool_validations.json](ci/validation_tools/tool_validations.json): per-tool rules used to validate generated outputs against gold standards.
-
-Note: the adaptation file used in this repository is [ci/validation_tools/tool_json_adaptations.json](ci/validation_tools/tool_json_adaptations.json) (not tool_json_adaptation.psd1).
+See the [validation tools guide](ci/validation_tools/README.md) for the directory
+layout, configuration-relative input paths, validation commands and detailed references.
 
 ## 🔐 API Token Setup
 

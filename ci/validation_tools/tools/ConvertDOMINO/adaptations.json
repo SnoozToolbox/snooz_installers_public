@@ -1,0 +1,27 @@
+{
+  "targetToolName": "ConvertDOMINO",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "identifier": "f2492f99-7965-4c48-9aec-7970891415f1",
+      "inputName": "folders",
+      "required": true,
+      "value": {
+        "kind": "privateDatasetPath",
+        "relativePath": "inputs/DOMINO_FILES/subject_3",
+        "output": "pythonListSingleQuoted",
+        "required": true
+      }
+    },
+    {
+      "identifier": "f2492f99-7965-4c48-9aec-7970891415f1",
+      "inputName": "log_filename",
+      "required": true,
+      "value": {
+        "kind": "workspacePath",
+        "relativePath": "DOMINO_log.tsv",
+        "required": true
+      }
+    }
+  ]
+}

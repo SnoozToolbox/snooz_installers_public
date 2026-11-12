@@ -1,0 +1,620 @@
+{
+  "targetToolName": "AnalyzeEEGConnectivity",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Update the CEAMSModules.Dictionary input for artifact name (name_selection).",
+      "identifier": "436be2e9-932b-46d2-afcf-7ff0903d1978",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel,non_brain,art_snooz_set1_NREM'}",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the CEAMSModules.Dictionary input for artifact group (group_selection).",
+      "identifier": "91c5a05d-7239-421a-b2af-72432918e291",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector,art_inspector,art_snooz_set1_NREM'}",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the files input for CEAMSModules.PSGReader.",
+      "identifier": "3d9476b5-9aa0-4df8-8d57-01e1096d18b8",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "inputs/files.json",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the cutoff input for CEAMSModules.FilterSignal (Delta band).",
+      "identifier": "1dbffc28-380f-4ca4-ae73-16cdd6e4b60c",
+      "inputName": "cutoff",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "0.16 4",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the sleep stage selection for CEAMSModules.SleepStageEvents (N3).",
+      "identifier": "3b6e3aba-4c49-4fd9-b41d-0a6a22004957",
+      "inputName": "stages",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "3",
+        "required": true
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "wpli",
+      "enabled": true,
+      "description": "Run weighted phase-lag index connectivity analysis.",
+      "updates": [
+        {
+          "description": "Set an empty event-name selection for every recording consumed by SignalsFromEvents.",
+          "identifier": "92ab2bd0-7063-4b43-8ce0-1c2fa7df1200",
+          "inputName": "dictionary",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+            "required": true
+          }
+        },
+        {
+          "description": "Set an empty event-group selection for every recording consumed by SignalsFromEvents.",
+          "identifier": "3be09df1-eda9-4ef7-a415-74404a6ce78b",
+          "inputName": "dictionary",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+            "required": true
+          }
+        },
+        {
+          "description": "Activate the WpliConnectivity branch.",
+          "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate the WPLI EpochSignal.",
+          "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate the WPLI ConnectivityDetails report.",
+          "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate the WPLI NetworkProperties report.",
+          "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the dPLI connectivity branch.",
+          "identifier": "2c8437e3-9a1b-4584-86b0-54308d9bb6f2",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the dPLI ConnectivityDetails report.",
+          "identifier": "82b687e5-9cb4-43bc-80a8-b1cd735ded9b",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the AEC connectivity branch.",
+          "identifier": "2d967628-7e28-4b27-98f7-2abb069204df",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the AEC ConnectivityDetails report.",
+          "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Set the WPLI epoch length to 10 seconds with no overlap.",
+          "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+          "inputName": "epoch_length_sec",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "10",
+            "required": true
+          }
+        },
+        {
+          "description": "Set the WPLI epoch overlap to 0 seconds.",
+          "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+          "inputName": "overlap_sec",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "0",
+            "required": true
+          }
+        },
+        {
+          "description": "Set the WPLI connectivity output directory.",
+          "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+          "inputName": "output_path",
+          "required": true,
+          "value": {
+            "kind": "workspacePath",
+            "relativePath": "AnalyzeEEGConnectivity_wpli/",
+            "asDirectory": true,
+            "required": true
+          }
+        },
+        {
+          "description": "Use a minimally spanning tree for WPLI network properties.",
+          "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+          "inputName": "threshold_mode",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "minimally_spanning_tree",
+            "required": true
+          }
+        },
+        {
+          "description": "Set the WPLI network properties output directory.",
+          "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+          "inputName": "output_path",
+          "required": true,
+          "value": {
+            "kind": "workspacePath",
+            "relativePath": "AnalyzeEEGConnectivity_wpli/",
+            "asDirectory": true,
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "dpli",
+      "enabled": true,
+      "description": "Run directed phase-lag index connectivity analysis.",
+      "updates": [
+        {
+          "description": "Set an empty event-name selection for every recording consumed by SignalsFromEvents.",
+          "identifier": "92ab2bd0-7063-4b43-8ce0-1c2fa7df1200",
+          "inputName": "dictionary",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+            "required": true
+          }
+        },
+        {
+          "description": "Set an empty event-group selection for every recording consumed by SignalsFromEvents.",
+          "identifier": "3be09df1-eda9-4ef7-a415-74404a6ce78b",
+          "inputName": "dictionary",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+            "required": true
+          }
+        },
+        {
+          "description": "Deactivate the default WPLI connectivity branch and its reports.",
+          "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the default WPLI EpochSignal.",
+          "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the default WPLI ConnectivityDetails report.",
+          "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the default WPLI NetworkProperties report.",
+          "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Activate the DpliConnectivity branch.",
+          "identifier": "2c8437e3-9a1b-4584-86b0-54308d9bb6f2",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate the dPLI ConnectivityDetails report.",
+          "identifier": "82b687e5-9cb4-43bc-80a8-b1cd735ded9b",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate the dPLI EpochSignal.",
+          "identifier": "a120bd2f-4d9b-4e08-8e45-ce51d577ae9f",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Set the dPLI epoch length to 10 seconds with no overlap.",
+          "identifier": "a120bd2f-4d9b-4e08-8e45-ce51d577ae9f",
+          "inputName": "epoch_length_sec",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "10",
+            "required": true
+          }
+        },
+        {
+          "description": "Set the dPLI epoch overlap to 0 seconds.",
+          "identifier": "a120bd2f-4d9b-4e08-8e45-ce51d577ae9f",
+          "inputName": "overlap_sec",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "0",
+            "required": true
+          }
+        },
+        {
+          "description": "Set the dPLI connectivity output directory.",
+          "identifier": "82b687e5-9cb4-43bc-80a8-b1cd735ded9b",
+          "inputName": "output_path",
+          "required": true,
+          "value": {
+            "kind": "workspacePath",
+            "relativePath": "AnalyzeEEGConnectivity_dpli/",
+            "asDirectory": true,
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "aec",
+      "enabled": true,
+      "description": "Run amplitude-envelope correlation connectivity analysis.",
+      "updates": [
+        {
+          "description": "Set an empty event-name selection for every recording consumed by SignalsFromEvents.",
+          "identifier": "92ab2bd0-7063-4b43-8ce0-1c2fa7df1200",
+          "inputName": "dictionary",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+            "required": true
+          }
+        },
+        {
+          "description": "Set an empty event-group selection for every recording consumed by SignalsFromEvents.",
+          "identifier": "3be09df1-eda9-4ef7-a415-74404a6ce78b",
+          "inputName": "dictionary",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': ''}",
+            "required": true
+          }
+        },
+        {
+          "description": "Deactivate the default WPLI connectivity branch and its reports.",
+          "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the default WPLI EpochSignal.",
+          "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the default WPLI ConnectivityDetails report.",
+          "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Deactivate the default WPLI NetworkProperties report.",
+          "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Activate the AECConnectivity branch.",
+          "identifier": "2d967628-7e28-4b27-98f7-2abb069204df",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate the AEC ConnectivityDetails report.",
+          "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate the AEC EpochSignal.",
+          "identifier": "41f96138-814c-492c-bac8-fe01b4c3f65e",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Set the AEC epoch length to 10 seconds with no overlap.",
+          "identifier": "41f96138-814c-492c-bac8-fe01b4c3f65e",
+          "inputName": "epoch_length_sec",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "10",
+            "required": true
+          }
+        },
+        {
+          "description": "Set the AEC epoch overlap to 0 seconds.",
+          "identifier": "41f96138-814c-492c-bac8-fe01b4c3f65e",
+          "inputName": "overlap_sec",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "0",
+            "required": true
+          }
+        },
+        {
+          "description": "Set the AEC connectivity output directory.",
+          "identifier": "7f93939c-b105-4637-a8e9-eae8fc40ceb1",
+          "inputName": "output_path",
+          "required": true,
+          "value": {
+            "kind": "workspacePath",
+            "relativePath": "AnalyzeEEGConnectivity_aec/",
+            "asDirectory": true,
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "wpli_annotationN2",
+      "enabled": true,
+      "description": "Run full-band wPLI on N2 annotations using the annotation branch.",
+      "updates": [
+        {
+          "description": "Select N2 event names for every recording.",
+          "identifier": "92ab2bd0-7063-4b43-8ce0-1c2fa7df1200",
+          "inputName": "dictionary",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'Stade2', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': '2', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': '2', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'Stade2'}",
+            "required": true
+          }
+        },
+        {
+          "description": "Select the corresponding sleep-stage annotation groups.",
+          "identifier": "3be09df1-eda9-4ef7-a415-74404a6ce78b",
+          "inputName": "dictionary",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'Stade', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'stage', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'stage', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'Stade'}",
+            "required": true
+          }
+        },
+        {
+          "description": "Use the full frequency band from the annotation workspace.",
+          "identifier": "1dbffc28-380f-4ca4-ae73-16cdd6e4b60c",
+          "inputName": "cutoff",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "0.16 30",
+            "required": true
+          }
+        },
+        {
+          "description": "Bypass trimming for annotation analysis.",
+          "identifier": "d6266576-d0da-4a9a-adb4-2cc7e01308ef",
+          "activationState": "bypass",
+          "required": true
+        },
+        {
+          "description": "Activate annotation-based signal extraction.",
+          "identifier": "7b92caa3-9e9e-46bc-b790-6175abb7ae45",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Disable generated sleep-stage events.",
+          "identifier": "3b6e3aba-4c49-4fd9-b41d-0a6a22004957",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Disable sleep-branch signal extraction.",
+          "identifier": "57a3efc2-afb7-45ac-9384-b5ab46d77cab",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Activate annotation wPLI epochs.",
+          "identifier": "b680606e-dd88-442e-8969-19b71ea377a0",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate annotation wPLI connectivity.",
+          "identifier": "3cace954-8d81-4039-8730-b2a90a67c93b",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate annotation wPLI connectivity reports.",
+          "identifier": "803b6207-918f-4e3e-b5be-48ad9fc8b01c",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Activate annotation wPLI network properties.",
+          "identifier": "02d58c3b-80ec-4e80-8a3c-33d9ee521c18",
+          "activationState": "activated",
+          "required": true
+        },
+        {
+          "description": "Disable sleep-branch wPLI epochs.",
+          "identifier": "5a62634e-6fad-4e52-8d8a-01e4f3ce6dbd",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Disable sleep-branch wPLI connectivity.",
+          "identifier": "727ba862-fd21-43df-82b9-f399918f587d",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Disable sleep-branch wPLI reports.",
+          "identifier": "209980db-ecf3-4d88-9f66-c27373268a3b",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Disable sleep-branch wPLI network properties.",
+          "identifier": "9b9b5bb5-f0a3-44f4-8d31-b3ee1896f725",
+          "activationState": "deactivated",
+          "required": true
+        },
+        {
+          "description": "Set annotation epochs to 10 seconds.",
+          "identifier": "b680606e-dd88-442e-8969-19b71ea377a0",
+          "inputName": "epoch_length_sec",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "10",
+            "required": true
+          }
+        },
+        {
+          "description": "Disable annotation epoch overlap.",
+          "identifier": "b680606e-dd88-442e-8969-19b71ea377a0",
+          "inputName": "overlap_sec",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "0",
+            "required": true
+          }
+        },
+        {
+          "description": "Use 20 surrogates for annotation wPLI.",
+          "identifier": "3cace954-8d81-4039-8730-b2a90a67c93b",
+          "inputName": "num_surr",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "20",
+            "required": true
+          }
+        },
+        {
+          "description": "Set annotation wPLI significance threshold.",
+          "identifier": "3cace954-8d81-4039-8730-b2a90a67c93b",
+          "inputName": "p_value",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "0.05",
+            "required": true
+          }
+        },
+        {
+          "description": "Match event channels when extracting annotation signals.",
+          "identifier": "7b92caa3-9e9e-46bc-b790-6175abb7ae45",
+          "inputName": "match_event_channels",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": true,
+            "required": true
+          }
+        },
+        {
+          "description": "Create signals from selected annotations.",
+          "identifier": "7b92caa3-9e9e-46bc-b790-6175abb7ae45",
+          "inputName": "create",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": true,
+            "required": true
+          }
+        },
+        {
+          "description": "Set the annotation wPLI report directory.",
+          "identifier": "803b6207-918f-4e3e-b5be-48ad9fc8b01c",
+          "inputName": "output_path",
+          "required": true,
+          "value": {
+            "kind": "workspacePath",
+            "relativePath": "AnalyzeEEGConnectivity_wpli_annotationN2/",
+            "asDirectory": true,
+            "required": true
+          }
+        },
+        {
+          "description": "Use a minimally spanning tree for annotation wPLI network properties.",
+          "identifier": "02d58c3b-80ec-4e80-8a3c-33d9ee521c18",
+          "inputName": "threshold_mode",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "minimally_spanning_tree",
+            "required": true
+          }
+        },
+        {
+          "description": "Set the annotation wPLI network report directory.",
+          "identifier": "02d58c3b-80ec-4e80-8a3c-33d9ee521c18",
+          "inputName": "output_path",
+          "required": true,
+          "value": {
+            "kind": "workspacePath",
+            "relativePath": "AnalyzeEEGConnectivity_wpli_annotationN2/",
+            "asDirectory": true,
+            "required": true
+          }
+        }
+      ]
+    }
+  ]
+}

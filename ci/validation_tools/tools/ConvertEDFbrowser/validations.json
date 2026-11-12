@@ -1,0 +1,11 @@
+{
+  "comparisons": [
+    {
+      "fileName": "learn-nsrr01_annotations.tsv",
+      "fileType": "bag-comparison",
+      "generatedSearchRoots": [
+        "private-dataset"
+      ]
+    }
+  ]
+}

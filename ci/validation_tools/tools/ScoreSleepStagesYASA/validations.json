@@ -1,0 +1,12 @@
+{
+  "comparisons": [
+    {
+      "fileName": "YASA_sleep_staging_metrics_cohort_report.tsv",
+      "fileType": "bag-comparison",
+      "precision": 4,
+      "generatedSearchRoots": [
+        "validation-workspaces"
+      ]
+    }
+  ]
+}

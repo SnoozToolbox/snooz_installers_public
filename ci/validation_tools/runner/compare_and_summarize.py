@@ -17,10 +17,10 @@ a gold standard, so they run whether or not gold_standard_tag is set.
 Usage:
     python compare_and_summarize.py \
         --run-status-file target/validation-logs/run-status.json \
-        --tool-validations-file ci/validation_tools/tool_validations.json \
+        --tools-dir ci/validation_tools/tools \
         --gold-standards-dir gold-standards/extracted \
         --gold-standard-tag v1.0.0 \
-        --compare-script ci/validation_tools/compare_outputs.py \
+        --compare-script ci/validation_tools/runner/compare_outputs.py \
         --workspace-dir validation-workspaces \
         --output-summary-tsv tool-run-summary.tsv \
         --output-dir validation-outputs
@@ -33,7 +33,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from compare_outputs import validate_absolute_options, validate_fit_options, validate_table_options
+from compare_outputs import validate_comparison_options
+from configuration import load_validations
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -187,14 +188,7 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
             key: comparison[key] for key in ("keyColumns", "numericTolerance", "fitQuality") if key in comparison
         }
         try:
-            validate_absolute_options(file_type, absolute_tolerance, precision)
-            if file_type in ("table-tolerance", "fooof-fit-quality"):
-                validator = validate_table_options if file_type == "table-tolerance" else validate_fit_options
-                validator(table_options)
-                if precision is not None:
-                    raise ValueError(f"{file_type} cannot be combined with precision rounding.")
-            elif table_options:
-                raise ValueError("keyColumns, numericTolerance and fitQuality require a table comparison mode.")
+            validate_comparison_options(comparison)
         except ValueError as error:
             print(f"::error::{tool_name} invalid comparison configuration: {error}")
             return "fail", validated_files, collected_files
@@ -262,7 +256,7 @@ def collect_output_files(output_dir, tool_name, collected_files):
 def main():
     parser = argparse.ArgumentParser(description="Compare tool outputs against gold standards and write a run summary")
     parser.add_argument('--run-status-file', required=True, help='JSON mapping run ids to status, execution log and optional scenario identity')
-    parser.add_argument('--tool-validations-file', required=True, help='Path to tool_validations.json')
+    parser.add_argument('--tools-dir', required=True, help='Directory containing per-tool validations.json files')
     parser.add_argument('--gold-standards-dir', required=True, help='Path to extracted gold standards (one subfolder per tool)')
     parser.add_argument('--gold-standard-tag', default='', help='Gold standard release tag (empty disables comparison)')
     parser.add_argument('--compare-script', required=True, help='Path to compare_outputs.py')
@@ -282,11 +276,7 @@ def main():
     with open(args.run_status_file, 'r', encoding='utf-8') as f:
         run_status = json.load(f)
 
-    tool_validations = {}
-    validations_path = Path(args.tool_validations_file)
-    if validations_path.exists():
-        with open(validations_path, 'r', encoding='utf-8') as f:
-            tool_validations = json.load(f)
+    tool_validations = load_validations(Path(args.tools_dir))
 
     generated_search_roots_default = [r.strip() for r in args.generated_search_roots.split(',') if r.strip()]
     workspace_dir = Path(args.workspace_dir)

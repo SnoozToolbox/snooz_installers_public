@@ -1,0 +1,61 @@
+{
+  "targetToolName": "DetectArtifacts",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Update the dictionary for the Artifact name (art_channel).",
+      "identifier": "41a6b6f1-08b3-417c-bafb-30dc2274c24b",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/snooz_installers_public/private-dataset/inputs/learn-nsrr01.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/private-dataset/inputs/learn-nsrr02.edf': 'None', '$GITHUB_WORKSPACE/snooz_installers_public/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_channel', '$GITHUB_WORKSPACE/snooz_installers_public/private-dataset/inputs/01-01-0001.sts': 'None'}",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the dictionary for the Artifact group (art_inspector).",
+      "identifier": "fdffc3b0-7ef0-4b45-98a3-63093adae04a",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'None', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'None', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_inspector', '$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'None'}",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the cutoff value for the preprocessing filter.",
+      "identifier": "e5120882-ba1a-48c6-8414-a51b2286ce65",
+      "inputName": "cutoff",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "62",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the files input for CEAMSModules.PSGReader.",
+      "identifier": "64feff16-15d2-4acf-b2e5-195412e476ba",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "inputs/files.json",
+        "required": true
+      }
+    },
+    {
+      "description": "Update the alias input for CEAMSModules.PSGReader.",
+      "identifier": "64feff16-15d2-4acf-b2e5-195412e476ba",
+      "inputName": "alias",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "inputs/aliases.json",
+        "required": true
+      }
+    }
+  ]
+}

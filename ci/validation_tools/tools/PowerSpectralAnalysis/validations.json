@@ -1,0 +1,144 @@
+{
+  "scenarios": {
+    "pwelch": {
+      "comparisons": [
+        {
+          "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        },
+        {
+          "fileName": "EEG_spectral_power_cohort_report_Welch_info.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        }
+      ]
+    },
+    "annotation": {
+      "comparisons": [
+        {
+          "fileName": "EEG_spectral_power_cohort_report_annotation.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        },
+        {
+          "fileName": "EEG_spectral_power_cohort_report_annotation_info.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        }
+      ]
+    },
+    "irasa": {
+      "comparisons": [
+        {
+          "fileName": "EEG_spectral_power_cohort_report_IRASA_periodic.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        },
+        {
+          "fileName": "EEG_spectral_power_cohort_report_IRASA_periodic_info.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        },
+        {
+          "fileName": "EEG_spectral_power_cohort_report_IRASA_aperiodic.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        },
+        {
+          "fileName": "EEG_spectral_power_cohort_report_IRASA_aperiodic_info.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        }
+      ]
+    },
+    "fooof": {
+      "comparisons": [
+        {
+          "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
+          "description": "Rows are matched by keyColumns, independently of row order. Headers and other cells must match exactly, except columns ending in _act, _fit_err or _fit_r2. *_act values require numeric validity and matching availability; numeric differences are informational only. *_fit_err increases and *_fit_r2 decreases are limited by fitQuality thresholds, once per fitKeyColumns group. This checks full-model fit degradation, not component energy equivalence.",
+          "fileType": "fooof-fit-quality",
+          "keyColumns": [
+            "filename",
+            "channel_label",
+            "freq_low_Hz",
+            "freq_high_Hz"
+          ],
+          "fitQuality": {
+            "fitKeyColumns": [
+              "filename",
+              "channel_label"
+            ],
+            "maxErrorIncrease": 0.005,
+            "maxR2Decrease": 0.015
+          },
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        },
+        {
+          "fileName": "EEG_spectral_power_cohort_report_FOOOF_aperiodic.tsv",
+          "description": "Rows are matched by keyColumns, independently of row order. Headers and other cells must match exactly, except columns ending in _act, _fit_err or _fit_r2. *_act values require numeric validity and matching availability; numeric differences are informational only. *_fit_err increases and *_fit_r2 decreases are limited by fitQuality thresholds, once per fitKeyColumns group. This checks full-model fit degradation, not component energy equivalence.",
+          "fileType": "fooof-fit-quality",
+          "keyColumns": [
+            "filename",
+            "channel_label",
+            "freq_low_Hz",
+            "freq_high_Hz"
+          ],
+          "fitQuality": {
+            "fitKeyColumns": [
+              "filename",
+              "channel_label"
+            ],
+            "maxErrorIncrease": 0.005,
+            "maxR2Decrease": 0.015
+          },
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        },
+        {
+          "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic_info.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        },
+        {
+          "fileName": "EEG_spectral_power_cohort_report_FOOOF_aperiodic_info.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces"
+          ]
+        }
+      ]
+    }
+  }
+}

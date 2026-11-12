@@ -7,16 +7,16 @@ import argparse
 import json
 from pathlib import Path
 
+from configuration import load_adaptations
 from validation_scenarios import configured_tools, expand_scenarios, load_manifest
 
 
-def load_configured_tools(adaptations_path: Path) -> set[str]:
-    adaptations = json.loads(adaptations_path.read_text(encoding="utf-8-sig"))
-    return configured_tools(adaptations)
+def load_configured_tools(tools_dir: Path) -> set[str]:
+    return configured_tools(load_adaptations(tools_dir))
 
 
-def resolve_tools(adaptations_path: Path, order_path: Path, requested: str = "") -> list[str]:
-    configured = load_configured_tools(adaptations_path)
+def resolve_tools(tools_dir: Path, order_path: Path, requested: str = "") -> list[str]:
+    configured = load_configured_tools(tools_dir)
     order = json.loads(order_path.read_text(encoding="utf-8"))
     if not isinstance(order, list) or not all(isinstance(name, str) and name for name in order):
         raise ValueError("Tool execution order must be a JSON array of non-empty tool names")
@@ -46,17 +46,17 @@ def resolve_tools(adaptations_path: Path, order_path: Path, requested: str = "")
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--adaptations-file", required=True)
+    parser.add_argument("--tools-dir", required=True)
     parser.add_argument("--order-file", required=True)
     parser.add_argument("--tools", default="", help="Optional comma-separated subset")
     parser.add_argument("--manifest", help="Resolve run ids from the generated scenario manifest")
-    parser.add_argument("--format", choices=("lines", "shell", "tsv"), default="lines")
+    parser.add_argument("--format", choices=("lines", "shell", "tsv", "csv"), default="lines")
     args = parser.parse_args()
 
-    tools = resolve_tools(Path(args.adaptations_file), Path(args.order_file), args.tools)
+    tools = resolve_tools(Path(args.tools_dir), Path(args.order_file), args.tools)
     if args.manifest:
         runs = load_manifest(args.manifest)
-        adaptations = json.loads(Path(args.adaptations_file).read_text(encoding="utf-8-sig"))
+        adaptations = load_adaptations(Path(args.tools_dir))
         expected = [
             run["run_id"] for tool in tools
             for run in expand_scenarios(tool, adaptations[tool], ".")
@@ -69,6 +69,8 @@ def main() -> int:
             raise ValueError("TSV run output requires --manifest")
         for run in runs:
             print(f"{run['run_id']}\t{run['json_path']}")
+    elif args.format == "csv":
+        print(",".join(tools))
     elif args.format == "shell":
         if any(any(character.isspace() for character in name) for name in tools):
             raise ValueError("Shell output does not support whitespace in tool names")

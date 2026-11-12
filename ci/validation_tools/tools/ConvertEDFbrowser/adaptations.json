@@ -1,0 +1,47 @@
+{
+  "targetToolName": "ConvertEDFbrowser",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "identifier": "663cd8ee-9ca5-4956-9a4f-82561c6adadf",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "privateDatasetPath",
+        "relativePath": "inputs/learn-nsrr01_annotations.txt",
+        "output": "list",
+        "required": true
+      }
+    },
+    {
+      "identifier": "a42e544f-13dc-4148-93fe-6493e383c417",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "pythonDictFromFileMapping",
+        "fileSpec": {
+          "kind": "privateDatasetPath",
+          "relativePath": "inputs/learn-nsrr01_annotations.txt",
+          "required": true
+        },
+        "mapping": {
+          "0": "stage",
+          "1": "stage",
+          "2": "stage",
+          "3": "stage",
+          "5": "stage",
+          "Arousal ()": "expert",
+          "Hypopnea": "expert",
+          "Obstructive Apnea": "expert",
+          "SpO2 artifact": "SpO2",
+          "SpO2 desaturation": "SpO2",
+          "a4": "spindle",
+          "a7": "spindle",
+          "art_snooz": "art_snooz",
+          "sumo": "spindle"
+        },
+        "required": true
+      }
+    }
+  ]
+}

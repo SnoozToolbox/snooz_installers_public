@@ -1,0 +1,11 @@
+{
+  "comparisons": [
+    {
+      "fileName": "SC4001E0-PSG.tsv",
+      "fileType": "bag-comparison",
+      "generatedSearchRoots": [
+        "private-dataset"
+      ]
+    }
+  ]
+}

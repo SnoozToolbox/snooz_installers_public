@@ -16,6 +16,10 @@ from pathlib import Path
 
 NUMERIC_FIELD_PATTERN = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
 TIME_FIELD_PATTERN = re.compile(r"^\d{1,3}:\d{1,2}(:\d{1,2})?(\.\d+)?$")
+COMPARISON_TYPES = (
+    "generic", "bag-comparison", "report", "absolute-tolerance",
+    "table-tolerance", "fooof-fit-quality",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -28,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--file-type",
         default="generic",
-        choices=["generic", "bag-comparison", "report", "absolute-tolerance", "table-tolerance", "fooof-fit-quality"],
+        choices=COMPARISON_TYPES,
         help="Comparison mode.",
     )
     parser.add_argument(
@@ -151,6 +155,29 @@ def validate_absolute_options(file_type: str, tolerance: object, precision: obje
         raise ValueError("absoluteTolerance must be finite and >= 0.")
     if precision is not None:
         raise ValueError("absolute-tolerance cannot be combined with precision rounding.")
+
+
+def validate_comparison_options(comparison):
+    file_type = comparison.get("fileType", "generic")
+    if file_type not in (*COMPARISON_TYPES, "exists"):
+        raise ValueError(f"Unknown comparison fileType: {file_type!r}")
+    precision = comparison.get("precision")
+    if precision is not None and (
+        isinstance(precision, bool) or not isinstance(precision, int) or precision < 0
+    ):
+        raise ValueError("precision must be a nonnegative integer.")
+    validate_absolute_options(file_type, comparison.get("absoluteTolerance"), precision)
+    options = {
+        key: comparison[key]
+        for key in ("keyColumns", "numericTolerance", "fitQuality") if key in comparison
+    }
+    if file_type in ("table-tolerance", "fooof-fit-quality"):
+        validator = validate_table_options if file_type == "table-tolerance" else validate_fit_options
+        validator(options)
+        if precision is not None:
+            raise ValueError(f"{file_type} cannot be combined with precision rounding.")
+    elif options:
+        raise ValueError("keyColumns, numericTolerance and fitQuality require a table comparison mode.")
 
 
 def compare_absolute_tolerance(
