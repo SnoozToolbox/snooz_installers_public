@@ -52,12 +52,12 @@ class ConfigurationTests(unittest.TestCase):
         write_json(self.directory / "adaptations.json", self.adaptations)
         write_json(self.directory / "validations.json", self.validations)
 
-    def run_script(self, name, *arguments):
+    def run_script(self, name, *arguments, expected_status=0):
         result = subprocess.run(
             [sys.executable, str(RUNNER / name), *map(str, arguments)],
             cwd=self.root, capture_output=True, text=True,
         )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, expected_status, result.stdout + result.stderr)
         return result
 
     def test_cli_adapts_config_relative_inputs_and_compares_outputs(self):
@@ -106,6 +106,76 @@ class ConfigurationTests(unittest.TestCase):
         with (self.root / "summary.tsv").open(encoding="utf-8", newline="") as stream:
             row = next(csv.DictReader(stream, delimiter="\t"))
         self.assertEqual(row["comparison_status"], "pass")
+
+    def test_missing_gold_standard_fails_and_preserves_generated_outputs(self):
+        workspace = self.root / "validation-workspaces"
+        output = workspace / "Example"
+        output.mkdir(parents=True)
+        content = "value\n1.1234\n"
+        (output / "report.tsv").write_text(content, encoding="utf-8")
+        for explicit in (False, True):
+            for directory_exists in (False, True):
+                with self.subTest(explicit=explicit, directory_exists=directory_exists):
+                    self.validations = (
+                        {"scenarios": {"example": {"comparisons": [self.comparison]}}}
+                        if explicit else {"comparisons": [self.comparison]}
+                    )
+                    self.save()
+                    name = "Example/example" if explicit else "Example"
+                    gold = self.root / f"gold-{explicit}-{directory_exists}"
+                    if directory_exists:
+                        (gold / name).mkdir(parents=True)
+                    write_json(self.root / "status.json", {"Example": {
+                        "run_status": "pass", "tool_name": "Example",
+                        "scenario_id": "example" if explicit else "default",
+                        "explicit_scenario": explicit,
+                    }})
+                    result = self.run_script(
+                        "compare_and_summarize.py", "--tools-dir", self.tools,
+                        "--run-status-file", self.root / "status.json",
+                        "--gold-standards-dir", gold, "--gold-standard-tag", "test",
+                        "--compare-script", RUNNER / "compare_outputs.py",
+                        "--workspace-dir", workspace,
+                        "--output-summary-tsv", self.root / "summary.tsv",
+                        "--output-dir", self.root / "collected", expected_status=1,
+                    )
+                    with (self.root / "summary.tsv").open(encoding="utf-8", newline="") as stream:
+                        row = next(csv.DictReader(stream, delimiter="\t"))
+                    self.assertEqual(row["comparison_status"], "fail-missing-gold-standard")
+                    self.assertIn("FAIL (fail-missing-gold-standard)", result.stdout)
+                    self.assertEqual(
+                        (self.root / "collected" / name / "generated_report.tsv").read_text(encoding="utf-8"),
+                        content,
+                    )
+
+    def test_empty_gold_tag_and_exists_checks_still_succeed(self):
+        workspace = self.root / "validation-workspaces"
+        output = workspace / "Example"
+        output.mkdir(parents=True)
+        (output / "report.tsv").write_text("value\n1\n", encoding="utf-8")
+        write_json(self.root / "status.json", {"Example": {"run_status": "pass"}})
+        for file_type, tag, status in (
+            ("bag-comparison", "", "skipped-no-gold-standard-tag"),
+            ("exists", "test", "pass"),
+        ):
+            with self.subTest(file_type=file_type):
+                comparison = dict(self.comparison, fileType=file_type)
+                if file_type == "exists":
+                    comparison.pop("precision")
+                self.validations = {"comparisons": [comparison]}
+                self.save()
+                self.run_script(
+                    "compare_and_summarize.py", "--tools-dir", self.tools,
+                    "--run-status-file", self.root / "status.json",
+                    "--gold-standards-dir", self.root / "gold", "--gold-standard-tag", tag,
+                    "--compare-script", RUNNER / "compare_outputs.py",
+                    "--workspace-dir", workspace,
+                    "--output-summary-tsv", self.root / "summary.tsv",
+                    "--output-dir", self.root / "collected",
+                )
+                with (self.root / "summary.tsv").open(encoding="utf-8", newline="") as stream:
+                    row = next(csv.DictReader(stream, delimiter="\t"))
+                self.assertEqual(row["comparison_status"], status)
 
     def test_scenario_overrides_disabled_runs_and_order_are_preserved(self):
         self.adaptations["scenarios"] = [

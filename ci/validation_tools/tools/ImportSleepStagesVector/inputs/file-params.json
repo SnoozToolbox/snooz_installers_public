@@ -1,0 +1,20 @@
+{
+  "sep": null,
+  "encoding": "utf-8",
+  "n_rows_hdr": 0,
+  "column_stages": 1,
+  "stages_sec": 5,
+  "prefix_filename": "HypnogramAASM_",
+  "suffix_filename": "",
+  "case_sensitive": true,
+  "rename_values": {
+    "0": "5",
+    "1": "3",
+    "2": "2",
+    "3": "1",
+    "5": "4",
+    "6": "-1",
+    "7": "-2",
+    "9": "-3"
+  }
+}

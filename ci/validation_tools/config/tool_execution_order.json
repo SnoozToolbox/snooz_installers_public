@@ -20,5 +20,6 @@
   "SpindleDetectionMartin",
   "SpindleDetectionSumo",
   "AnalyzeEEGConnectivity",
+  "ImportSleepStagesVector",
   "ScoreSleepStagesYASA"
 ]

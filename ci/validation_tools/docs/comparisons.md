@@ -20,8 +20,11 @@ to the repository execution directory, not the configuration file.
 - Numeric tolerance modes are detailed below.
 
 An empty gold-standard tag skips gold comparisons, but not `exists` checks.
-Missing gold standards are reported as skipped, not passed. Missing generated
-files fail comparisons. Generated files are collected for bootstrap runs.
+When a gold-standard tag is set, a missing reference directory or file fails
+validation with `comparison_status: fail-missing-gold-standard`. Generated files
+are still collected in the artifacts so references can be published.
+Missing generated files also fail comparisons. To intentionally collect outputs
+without gold comparisons for a bootstrap run, leave the gold-standard tag empty.
 
 ```json
 {
