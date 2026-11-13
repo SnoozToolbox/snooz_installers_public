@@ -7,7 +7,7 @@ validation-outputs/.
 
 Bootstrap behavior:
   - Empty gold_standard_tag  -> skip all comparisons (still collect generated outputs)
-  - Tag set but tool gold missing -> skip that tool's comparison (collect generated)
+  - Tag set but tool gold missing -> fail validation (still collect generated outputs)
   - Tag set and gold present -> compare as usual
 
 Comparisons with fileType 'exists' only check that the generated file was
@@ -171,10 +171,9 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
 
     tool_gold_dir = Path(gold_dir) / tool_name
     if not tool_gold_dir.exists():
-        # First-time / bootstrap: analysis already passed; gold not published yet.
-        print(f"::warning::{tool_name} gold-standard directory not found: {tool_gold_dir}")
-        print(f"Skipping comparison for {tool_name}. Use generated outputs from the artifact to publish gold standards.")
-        return "skipped-missing-gold-standard", [], []
+        print(f"::error::{tool_name} gold-standard directory not found: {tool_gold_dir}")
+        print(f"Comparison failed for {tool_name}. Use generated outputs from the artifact to publish gold standards.")
+        return "fail-missing-gold-standard", [], []
 
     for comparison in comparisons:
         file_name = comparison.get("fileName", "")
@@ -208,9 +207,9 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
 
         gold_matches = sorted(tool_gold_dir.rglob(gold_file_name), key=lambda p: str(p))
         if not gold_matches:
-            print(f"::warning::{tool_name} gold-standard file not found in {tool_gold_dir}: {gold_file_name}")
-            print(f"Skipping comparison for {tool_name}. Use generated outputs from the artifact to publish gold standards.")
-            return "skipped-missing-gold-standard", validated_files, collected_files
+            print(f"::error::{tool_name} gold-standard file not found in {tool_gold_dir}: {gold_file_name}")
+            print(f"Comparison failed for {tool_name}. Use generated outputs from the artifact to publish gold standards.")
+            return "fail-missing-gold-standard", validated_files, collected_files
         gold_file = gold_matches[0]
         if tool_config.get("_strict_paths") and len(gold_matches) > 1:
             raise ValueError(f"Ambiguous scenario gold standard {gold_file_name!r} in {tool_gold_dir}")
@@ -364,9 +363,9 @@ def main():
             validated_files += gold_validated_files
             if collected_files:
                 collect_output_files(output_dir, comparison_name, collected_files)
-            if comparison_status == "fail":
+            if comparison_status in ("fail", "fail-missing-gold-standard"):
                 any_failure = True
-            elif comparison_status == "skipped-missing-gold-standard":
+            if comparison_status == "fail-missing-gold-standard":
                 collect_generated_only(output_dir, comparison_name, gold_config, generated_search_roots_default)
 
         summary_rows.append({
@@ -402,8 +401,6 @@ def main():
         label = f"{row['tool_name']}:{row['scenario_id']}"
         if status == "skipped-no-gold-standard-tag":
             print(f"  \u2298 {label}: SKIPPED (no gold standard tag)")
-        elif status == "skipped-missing-gold-standard":
-            print(f"  \u2298 {label}: SKIPPED (gold standard not published yet)")
         elif status == "skipped-no-comparisons-configured":
             print(f"  \u2298 {label}: SKIPPED (no comparisons configured)")
         elif status == "not-configured":
