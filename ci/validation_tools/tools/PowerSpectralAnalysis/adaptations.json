@@ -75,7 +75,7 @@
     },
     {
       "id": "annotation",
-      "enabled": true,
+      "enabled": false,
       "description": "Configure analysis parameters to perform spectral analysis on annotations.",
       "updates": [
         {
@@ -195,7 +195,7 @@
     },
     {
       "id": "irasa",
-      "enabled": true,
+      "enabled": false,
       "description": "Define IRASA analysis parameters including module activation and output filename.",
       "updates": [
         {
@@ -265,7 +265,7 @@
     },
     {
       "id": "fooof",
-      "enabled": true,
+      "enabled": false,
       "description": "Define FOOOF analysis parameters including module activation and output filename.",
       "updates": [
         {
