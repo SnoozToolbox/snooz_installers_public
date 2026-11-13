@@ -1,0 +1,51 @@
+{
+  "targetToolName": "ImportSleepStagesVector",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Select the PSG file used by the local sleep stage vector import.",
+      "identifier": "ec9f6ff4-1c38-49f9-ad10-fccb841b8dfb",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "inputs/files.json",
+        "required": true
+      }
+    },
+    {
+      "description": "Select the sleep stage vector from the private dataset.",
+      "identifier": "4f765733-3f3c-4334-a703-2c5fc31fad50",
+      "inputName": "stages_files",
+      "required": true,
+      "value": {
+        "kind": "privateDatasetPath",
+        "relativePath": "inputs/HypnogramAASM_subject1.txt",
+        "output": "list",
+        "required": true
+      }
+    },
+    {
+      "description": "Use the parsing and stage label conversion settings from the local process.",
+      "identifier": "4f765733-3f3c-4334-a703-2c5fc31fad50",
+      "inputName": "file_params",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "inputs/file-params.json",
+        "required": true
+      }
+    },
+    {
+      "description": "Overwrite existing sleep stage events as in the local process.",
+      "identifier": "d2838125-a928-4bf8-918d-be3bd905d04f",
+      "inputName": "overwrite_events",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": true,
+        "required": true
+      }
+    }
+  ]
+}

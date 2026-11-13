@@ -1,0 +1,12 @@
+{
+  "comparisons": [
+    {
+      "fileName": "subject1.tsv",
+      "fileType": "bag-comparison",
+      "precision": 4,
+      "generatedSearchRoots": [
+        "private-dataset"
+      ]
+    }
+  ]
+}
