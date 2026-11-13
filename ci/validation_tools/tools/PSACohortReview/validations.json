@@ -1,20 +1,44 @@
 {
-  "comparisons": [
-    {
-      "fileName": "PSACohortReview_clean.tsv",
-      "fileType": "bag-comparison",
-      "precision": 4,
-      "generatedSearchRoots": [
-        "validation-workspaces"
+  "scenarios": {
+    "pwelch": {
+      "comparisons": [
+        {
+          "fileName": "PSACohortReview_Welch_clean.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces/PSACohortReview/pwelch"
+          ]
+        },
+        {
+          "fileName": "PSACohortReview_Welch_transposed.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces/PSACohortReview/pwelch"
+          ]
+        }
       ]
     },
-    {
-      "fileName": "PSACohortReview_transposed.tsv",
-      "fileType": "bag-comparison",
-      "precision": 4,
-      "generatedSearchRoots": [
-        "validation-workspaces"
+    "irasa": {
+      "comparisons": [
+        {
+          "fileName": "PSACohortReview_IRASA_periodic_clean.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces/PSACohortReview/irasa"
+          ]
+        },
+        {
+          "fileName": "PSACohortReview_IRASA_periodic_transposed.tsv",
+          "fileType": "bag-comparison",
+          "precision": 4,
+          "generatedSearchRoots": [
+            "validation-workspaces/PSACohortReview/irasa"
+          ]
+        }
       ]
     }
-  ]
+  }
 }

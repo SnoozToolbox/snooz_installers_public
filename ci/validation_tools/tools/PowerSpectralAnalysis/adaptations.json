@@ -195,7 +195,7 @@
     },
     {
       "id": "irasa",
-      "enabled": false,
+      "enabled": true,
       "description": "Define IRASA analysis parameters including module activation and output filename.",
       "updates": [
         {
