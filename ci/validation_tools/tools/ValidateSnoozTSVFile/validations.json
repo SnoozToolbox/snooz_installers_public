@@ -1,0 +1,39 @@
+{
+  "comparisons": [
+    {
+      "fileName": "subject1_fake_text_annot_validation_log.txt",
+      "fileType": "generic",
+      "generatedSearchRoots": [
+        "validation-workspaces/ValidateSnoozTSVFile"
+      ]
+    },
+    {
+      "fileName": "01-01-0001_fake_text_annot_validation_log.txt",
+      "fileType": "generic",
+      "generatedSearchRoots": [
+        "validation-workspaces/ValidateSnoozTSVFile"
+      ]
+    },
+    {
+      "fileName": "learn-nsrr01_fake_text_annot_validation_log.txt",
+      "fileType": "generic",
+      "generatedSearchRoots": [
+        "validation-workspaces/ValidateSnoozTSVFile"
+      ]
+    },
+    {
+      "fileName": "learn-nsrr02_fake_text_annot_validation_log.txt",
+      "fileType": "generic",
+      "generatedSearchRoots": [
+        "validation-workspaces/ValidateSnoozTSVFile"
+      ]
+    },
+    {
+      "fileName": "SC4001E0-PSG_validation_log.txt",
+      "fileType": "generic",
+      "generatedSearchRoots": [
+        "validation-workspaces/ValidateSnoozTSVFile"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "targetToolName": "ValidateSnoozTSVFile",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Select the annotation TSV files from the private dataset.",
+      "identifier": "b54b5cc7-3364-475c-9500-366c601dc935",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "inputs/files.json",
+        "required": true
+      }
+    },
+    {
+      "description": "Save TSV validation logs in a tool-specific output directory.",
+      "identifier": "b54b5cc7-3364-475c-9500-366c601dc935",
+      "inputName": "log_path",
+      "required": true,
+      "value": {
+        "kind": "workspacePath",
+        "relativePath": "ValidateSnoozTSVFile",
+        "asDirectory": true,
+        "required": true
+      }
+    }
+  ]
+}

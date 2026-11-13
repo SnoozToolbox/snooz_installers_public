@@ -28,6 +28,11 @@ ImportTextAnnotations. SleepReport and SleepBouts use it too. `spindle-files.jso
 the three spindle detection tools. Other input files remain separate because
 their selections may differ.
 
+ValidateSnoozTSVFile checks four private-dataset `*_fake_text_annot.tsv` files
+and `SC4001E0-PSG.tsv`, then compares its five validation text logs exactly.
+Developers must run ImportEDFPlusAnnotations first to generate `SC4001E0-PSG.tsv`.
+Selecting ValidateSnoozTSVFile does not automatically select or run that importer.
+
 ## Paths
 
 - `workspaceFileJson.relativePath` is relative to the **containing

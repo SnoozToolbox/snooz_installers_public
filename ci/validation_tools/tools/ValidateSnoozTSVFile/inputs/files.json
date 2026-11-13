@@ -1,0 +1,7 @@
+[
+  "$GITHUB_WORKSPACE/private-dataset/inputs/subject1_fake_text_annot.tsv",
+  "$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001_fake_text_annot.tsv",
+  "$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01_fake_text_annot.tsv",
+  "$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02_fake_text_annot.tsv",
+  "$GITHUB_WORKSPACE/private-dataset/inputs/SC4001E0-PSG.tsv"
+]
