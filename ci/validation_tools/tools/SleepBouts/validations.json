@@ -1,0 +1,12 @@
+{
+  "comparisons": [
+    {
+      "fileName": "sleep_bouts_report.tsv",
+      "fileType": "bag-comparison",
+      "precision": 4,
+      "generatedSearchRoots": [
+        "validation-workspaces/SleepBouts"
+      ]
+    }
+  ]
+}

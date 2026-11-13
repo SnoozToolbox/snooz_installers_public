@@ -24,7 +24,7 @@ There are no generated or manually maintained aggregate configuration files.
 
 `shared/inputs/psg-files-without-chan-selection.json` replaces the identical input
 files previously named for SleepCycleExport, ExtractAnnotation and
-ImportTextAnnotations. SleepReport uses it too. `spindle-files.json` is shared by
+ImportTextAnnotations. SleepReport and SleepBouts use it too. `spindle-files.json` is shared by
 the three spindle detection tools. Other input files remain separate because
 their selections may differ.
 
