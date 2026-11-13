@@ -9,6 +9,11 @@ to the repository execution directory, not the configuration file.
 
 - `bag-comparison`: unordered lines, preserving duplicate counts; numeric
   fields are rounded using `precision` and time formats are normalized.
+  When the first row contains a column named exactly `filename`, its values
+  are compared by basename (including extension), ignoring Windows and Unix
+  directory paths on every platform. Filename case and duplicate counts remain
+  significant; filename values are not rounded as numbers or normalized as times.
+  Other columns and comparison modes retain their existing behavior.
 - `generic` and `report`: ordered text comparisons.
 - `exists`: generated file must be non-empty; PDFs must have a valid header
   and EOF marker. No gold standard is required.

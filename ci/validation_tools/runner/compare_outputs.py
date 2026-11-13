@@ -8,6 +8,7 @@ import csv
 import fnmatch
 import json
 import math
+import ntpath
 import re
 import sys
 from collections import Counter
@@ -95,10 +96,16 @@ def normalize_time_format(field: str) -> str:
     return f"{hours}:{minutes:02d}:{seconds:.1f}"
 
 
-def normalize_line(line: str, delimiter: str, round_precision: int | None, normalize_time: bool = False) -> str:
+def normalize_line(
+    line: str, delimiter: str, round_precision: int | None, normalize_time: bool = False,
+    filename_columns: tuple[int, ...] = (),
+) -> str:
     fields = line.split(delimiter)
     normalized_fields = []
-    for field in fields:
+    for index, field in enumerate(fields):
+        if index in filename_columns:
+            normalized_fields.append(ntpath.basename(field))
+            continue
         normalized_field = normalize_numeric_field(field, round_precision)
         if normalize_time:
             normalized_field = normalize_time_format(normalized_field)
@@ -107,9 +114,16 @@ def normalize_line(line: str, delimiter: str, round_precision: int | None, norma
 
 
 def normalize_lines(
-    lines: list[str], delimiter: str, round_precision: int | None, normalize_time: bool = False
+    lines: list[str], delimiter: str, round_precision: int | None, normalize_time: bool = False,
+    normalize_filenames: bool = False,
 ) -> list[str]:
-    return [normalize_line(line, delimiter, round_precision, normalize_time) for line in lines]
+    filename_columns = tuple(
+        index for index, name in enumerate(lines[0].split(delimiter)) if name == "filename"
+    ) if normalize_filenames and lines else ()
+    return [
+        normalize_line(line, delimiter, round_precision, normalize_time, filename_columns)
+        for line in lines
+    ]
 
 
 def compare_as_text(reference: list[str], generated: list[str], max_diff_lines: int) -> int:
@@ -655,8 +669,14 @@ def main() -> int:
     normalize_time = args.file_type == "bag-comparison"
     ref_lines = read_normalized_lines(reference)
     gen_lines = read_normalized_lines(generated)
-    ref_lines = normalize_lines(ref_lines, args.delimiter, round_precision, normalize_time)
-    gen_lines = normalize_lines(gen_lines, args.delimiter, round_precision, normalize_time)
+    ref_lines = normalize_lines(
+        ref_lines, args.delimiter, round_precision, normalize_time,
+        normalize_filenames=args.file_type == "bag-comparison",
+    )
+    gen_lines = normalize_lines(
+        gen_lines, args.delimiter, round_precision, normalize_time,
+        normalize_filenames=args.file_type == "bag-comparison",
+    )
 
     if args.file_type == "bag-comparison":
         status = compare_annotation_unordered(ref_lines, gen_lines, args.max_diff_lines)
