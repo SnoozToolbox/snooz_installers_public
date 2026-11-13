@@ -59,6 +59,13 @@ installer; adaptation still fails explicitly if a required node or input is abse
 
 ## Add or change a tool
 
+Recommended starting point: run the tool locally in Snooz with the desired inputs
+and settings, then save the workspace. From Snooz, ask the AI to compare that
+workspace with the installed/distributed tool workspace. The AI can usually create
+the required per-tool files and infer most adaptations. Treat the result as a draft:
+verify node identifiers, input names and types, settings, paths and output names
+against the saved workspace and installed process.
+
 1. Edit or create `tools/<ToolName>/adaptations.json` and `validations.json`.
 2. Keep large values in that tool's `inputs/`. Share only genuinely identical inputs.
 3. Use node identifiers and input types from the installed process.
