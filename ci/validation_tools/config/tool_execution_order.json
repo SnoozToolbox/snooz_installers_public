@@ -9,6 +9,7 @@
   "ImportTextAnnotations",
   "SleepCycleExport",
   "SleepReport",
+  "OxygenSaturationReport",
   "PowerSpectralAnalysis",
   "PSAImages",
   "PSACohortReview",

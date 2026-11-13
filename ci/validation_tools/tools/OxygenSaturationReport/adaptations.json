@@ -1,0 +1,67 @@
+{
+  "targetToolName": "OxygenSaturationReport",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Load the repository-managed PSG files configuration.",
+      "identifier": "c7d4e030-fb0b-4070-b17c-ddb3eaac0583",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "inputs/files.json"
+      }
+    },
+    {
+      "description": "Set invalid event names for each input PSG.",
+      "identifier": "9ec59960-6e97-429e-8614-5049b2827909",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_snooz_set1_NREM'}"
+      }
+    },
+    {
+      "description": "Set invalid event groups for each input PSG.",
+      "identifier": "4315a1ce-77dd-4140-91e6-ecb4c87e77d4",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_snooz_set1_NREM'}"
+      }
+    },
+    {
+      "description": "Use a 10-second minimum hold for oxygen desaturations.",
+      "identifier": "88a51ed5-da37-457f-8e32-221b0a600195",
+      "inputName": "parameters_oxy",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'desaturation_drop_percent': 3, 'max_slope_drop_sec': 180, 'min_hold_drop_sec': 10}"
+      }
+    },
+    {
+      "description": "Write the cohort report inside the validation workspace.",
+      "identifier": "88a51ed5-da37-457f-8e32-221b0a600195",
+      "inputName": "cohort_filename",
+      "required": true,
+      "value": {
+        "kind": "workspacePath",
+        "relativePath": "oxygen_saturation_report.tsv"
+      }
+    },
+    {
+      "description": "Write event tables and plots inside the validation workspace.",
+      "identifier": "88a51ed5-da37-457f-8e32-221b0a600195",
+      "inputName": "picture_dir",
+      "required": true,
+      "value": {
+        "kind": "workspacePath",
+        "relativePath": "oxygen_saturation/",
+        "asDirectory": true
+      }
+    }
+  ]
+}
