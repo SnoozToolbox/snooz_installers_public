@@ -1,0 +1,39 @@
+{
+  "targetToolName": "SleepBouts",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Update the files input for CEAMSModules.PSGReader.",
+      "identifier": "0a402e3d-7266-40fa-b439-6a42a9fbfe2f",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "../../shared/inputs/psg-files-without-chan-selection.json",
+        "required": true
+      }
+    },
+    {
+      "description": "Set the sleep bouts report output filename.",
+      "identifier": "19cc8da0-b11c-4b4a-8b35-dfeaa01e0a5f",
+      "inputName": "output_filename",
+      "required": true,
+      "value": {
+        "kind": "workspacePath",
+        "relativePath": "SleepBouts/sleep_bouts_report.tsv",
+        "required": true
+      }
+    },
+    {
+      "description": "Export sleep bout durations in seconds.",
+      "identifier": "19cc8da0-b11c-4b4a-8b35-dfeaa01e0a5f",
+      "inputName": "export_in_seconds",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "1",
+        "required": true
+      }
+    }
+  ]
+}
