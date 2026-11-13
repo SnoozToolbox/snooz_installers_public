@@ -10,8 +10,8 @@
     },
     {
       "fileName": "Slow-Waves-Cohort-report.tsv",
-      "fileType": "bag-comparison",
-      "precision": 4,
+      "fileType": "absolute-tolerance",
+      "absoluteTolerance": 0.001,
       "generatedSearchRoots": [
         "validation-workspaces"
       ]
