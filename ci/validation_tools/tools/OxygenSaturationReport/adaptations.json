@@ -13,23 +13,23 @@
       }
     },
     {
-      "description": "Set invalid event names for each input PSG.",
+      "description": "Set invalid event names for each input PSG - none since the tool loads the SpO2 channel.",
       "identifier": "9ec59960-6e97-429e-8614-5049b2827909",
       "inputName": "dictionary",
       "required": true,
       "value": {
         "kind": "literal",
-        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_snooz_set1_NREM'}"
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'None', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'None', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'None', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'None'}"
       }
     },
     {
-      "description": "Set invalid event groups for each input PSG.",
+      "description": "Set invalid event groups for each input PSG - none since the tool loads the SpO2 channel.",
       "identifier": "4315a1ce-77dd-4140-91e6-ecb4c87e77d4",
       "inputName": "dictionary",
       "required": true,
       "value": {
         "kind": "literal",
-        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'art_snooz_set1_NREM', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'art_snooz_set1_NREM'}"
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'None', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'None', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'None', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'None'}"
       }
     },
     {
