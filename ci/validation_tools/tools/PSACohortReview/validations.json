@@ -23,7 +23,7 @@
     "irasa": {
       "comparisons": [
         {
-          "fileName": "PSACohortReview_irasa_transposed.tsv",
+          "fileName": "PSACohortReview_irasa_clean.tsv",
           "fileType": "bag-comparison",
           "precision": 4,
           "generatedSearchRoots": [
