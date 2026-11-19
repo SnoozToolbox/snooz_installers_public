@@ -112,7 +112,7 @@
     },
     {
       "id": "irasa",
-      "enabled": false,
+      "enabled": true,
       "description": "Review the IRASA periodic cohort report and write the transposed output only.",
       "updates": [
         {
