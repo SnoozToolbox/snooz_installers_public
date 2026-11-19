@@ -1,0 +1,105 @@
+{
+  "targetToolName": "CompareEventsFromPSG",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Read the shared PSG files without channel selection.",
+      "identifier": "9011a426-1d8c-4ab4-abdf-d98a927cf533",
+      "inputName": "files",
+      "required": true,
+      "value": {
+        "kind": "workspaceFileJson",
+        "relativePath": "../../shared/inputs/psg-files-without-chan-selection.json",
+        "required": true
+      }
+    },
+    {
+      "description": "Reference annotation group for each PSG file.",
+      "identifier": "f56c85a8-529b-44f5-9a23-c4be67fc8742",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'spindle', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'spindle', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'spindle', '$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'spindle'}",
+        "required": true
+      }
+    },
+    {
+      "description": "Reference annotations name for each PSG file.",
+      "identifier": "c98b07ef-a32d-44e5-9ca0-72bb271c108d",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'sumo', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'sumo', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'sumo', '$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'sumo'}",
+        "required": true
+      }
+    },
+    {
+      "description": "Detector annotation group for each PSG file.",
+      "identifier": "039503fc-2f2c-4c6f-a379-4dfc72211dec",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'spindle', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'spindle', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'spindle', '$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'spindle'}",
+        "required": true
+      }
+    },
+    {
+      "description": "Detector annotations name for each PSG file.",
+      "identifier": "fee1a35b-9990-4332-86a7-7528e038c706",
+      "inputName": "dictionary",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr01.edf': 'a7', '$GITHUB_WORKSPACE/private-dataset/inputs/learn-nsrr02.edf': 'a7', '$GITHUB_WORKSPACE/private-dataset/inputs/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db/COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db.eeg': 'a7', '$GITHUB_WORKSPACE/private-dataset/inputs/01-01-0001.sts': 'a7'}",
+        "required": true
+      }
+    },
+    {
+      "description": "Select reference annotations during N2 and N3.",
+      "identifier": "6bb6ff63-c4d6-4be3-96dd-f4e9e0d1387b",
+      "inputName": "stages_selection",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "2,3",
+        "required": true
+      }
+    },
+    {
+      "description": "Select detector annotations during N2 and N3.",
+      "identifier": "14e35396-fdc5-4dc0-a24f-3bfa9d72bd7b",
+      "inputName": "stages_selection",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "2,3",
+        "required": true
+      }
+    },
+    {
+      "description": "Use the Jaccard overlap threshold from the supplied local workspace.",
+      "identifier": "55db0fc9-bb11-4cb8-9286-df8479c3847d",
+      "inputName": "jaccord_thresh",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "0.2",
+        "required": true
+      }
+    },
+    {
+      "description": "Write one performance report beside each PSG file, replacing its extension with _perf.tsv.",
+      "identifier": "5e16792a-8831-4724-8d24-889de631b2f5",
+      "inputName": "suffix",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "_perf.tsv",
+        "required": true
+      }
+    }
+  ]
+}

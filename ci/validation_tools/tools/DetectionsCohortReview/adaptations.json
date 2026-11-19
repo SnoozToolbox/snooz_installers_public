@@ -1,0 +1,94 @@
+{
+  "targetToolName": "DetectionsCohortReview",
+  "processingMode": "adapted",
+  "updates": [
+    {
+      "description": "Input slow wave cohort report written by SlowWaveDetection.",
+      "identifier": "52e946b1-c283-426c-a247-1731a9a549cb",
+      "inputName": "filenames",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "['$GITHUB_WORKSPACE/validation-workspaces/Slow-Waves-Cohort-report.tsv']",
+        "required": true
+      }
+    },
+    {
+      "description": "Keep the selected channel for each subject without renaming it, matching the supplied local workspace.",
+      "identifier": "52e946b1-c283-426c-a247-1731a9a549cb",
+      "inputName": "subject_chans_label",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{'01-01-0001': [['F3'], ['F3'], [True]], 'learn-nsrr01': [['EEG'], ['EEG'], [True]], 'learn-nsrr02': [['EEG'], ['EEG'], [True]], 'COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db': [['F3-RC'], ['F3-RC'], [True]]}",
+        "required": true
+      }
+    },
+    {
+      "description": "No ROI defined at the cohort level.",
+      "identifier": "52e946b1-c283-426c-a247-1731a9a549cb",
+      "inputName": "ROIs_cohort",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{}",
+        "required": true
+      }
+    },
+    {
+      "description": "No ROI selected per subject.",
+      "identifier": "52e946b1-c283-426c-a247-1731a9a549cb",
+      "inputName": "ROIs_subjects",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "{}",
+        "required": true
+      }
+    },
+    {
+      "description": "Export the Total activity variables.",
+      "identifier": "52e946b1-c283-426c-a247-1731a9a549cb",
+      "inputName": "activity_label",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "Total",
+        "required": true
+      }
+    },
+    {
+      "description": "Write the clean report with selected channels only.",
+      "identifier": "52e946b1-c283-426c-a247-1731a9a549cb",
+      "inputName": "clean_flag",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "1",
+        "required": true
+      }
+    },
+    {
+      "description": "Write the transposed report with one row per subject.",
+      "identifier": "52e946b1-c283-426c-a247-1731a9a549cb",
+      "inputName": "transposed_flag",
+      "required": true,
+      "value": {
+        "kind": "literal",
+        "value": "1",
+        "required": true
+      }
+    },
+    {
+      "description": "Base output path: the module writes Slow-Waves-review-report_clean.tsv and Slow-Waves-review-report_transposed.tsv.",
+      "identifier": "52e946b1-c283-426c-a247-1731a9a549cb",
+      "inputName": "output_file",
+      "required": true,
+      "value": {
+        "kind": "workspacePath",
+        "relativePath": "Slow-Waves-review-report.tsv",
+        "required": true
+      }
+    }
+  ]
+}

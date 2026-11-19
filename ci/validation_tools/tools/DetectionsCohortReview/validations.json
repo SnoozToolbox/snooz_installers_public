@@ -1,0 +1,20 @@
+{
+  "comparisons": [
+    {
+      "fileName": "Slow-Waves-review-report_clean.tsv",
+      "fileType": "bag-comparison",
+      "precision": 4,
+      "generatedSearchRoots": [
+        "validation-workspaces"
+      ]
+    },
+    {
+      "fileName": "Slow-Waves-review-report_transposed.tsv",
+      "fileType": "bag-comparison",
+      "precision": 4,
+      "generatedSearchRoots": [
+        "validation-workspaces"
+      ]
+    }
+  ]
+}

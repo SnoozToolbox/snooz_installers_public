@@ -3,28 +3,6 @@
   "processingMode": "adapted",
   "updates": [
     {
-      "description": "Input PSA report: the cohort report written by PowerSpectralAnalysis (all 4 subjects).",
-      "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
-      "inputName": "filenames",
-      "required": true,
-      "value": {
-        "kind": "literal",
-        "value": "['$GITHUB_WORKSPACE/validation-workspaces/EEG_spectral_power_cohort_report_Welch.tsv']",
-        "required": true
-      }
-    },
-    {
-      "description": "Per subject: [original channels, renamed channels, selected flags]. Subject keys are the values of the report's 'filename' column. All channels kept, none renamed.",
-      "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
-      "inputName": "subject_chans_label",
-      "required": true,
-      "value": {
-        "kind": "literal",
-        "value": "{'01-01-0001': [['C3', 'F3', 'O1'], ['C3', 'F3', 'O1'], [True, True, True]], 'learn-nsrr01': [['EEG', 'EEG(sec)'], ['EEG', 'EEG(sec)'], [True, True]], 'learn-nsrr02': [['EEG', 'EEG(sec)'], ['EEG', 'EEG(sec)'], [True, True]], 'COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db': [['C3-RC', 'F3-RC', 'O1-RC'], ['C3-RC', 'F3-RC', 'O1-RC'], [True, True, True]]}",
-        "required": true
-      }
-    },
-    {
       "description": "No ROI defined at the cohort level.",
       "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
       "inputName": "ROIs_cohort",
@@ -100,6 +78,77 @@
         "relativePath": "PSACohortReview",
         "required": true
       }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "pwelch",
+      "enabled": true,
+      "description": "Review the Welch cohort report with the existing clean and transposed outputs.",
+      "updates": [
+        {
+          "description": "Input PSA report: the cohort report written by PowerSpectralAnalysis (all 4 subjects).",
+          "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+          "inputName": "filenames",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "['$GITHUB_WORKSPACE/validation-workspaces/EEG_spectral_power_cohort_report_Welch.tsv']",
+            "required": true
+          }
+        },
+        {
+          "description": "Per subject: [original channels, renamed channels, selected flags]. Subject keys are the values of the report's 'filename' column. All channels kept, none renamed.",
+          "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+          "inputName": "subject_chans_label",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'01-01-0001': [['C3', 'F3', 'O1'], ['C3', 'F3', 'O1'], [True, True, True]], 'learn-nsrr01': [['EEG', 'EEG(sec)'], ['EEG', 'EEG(sec)'], [True, True]], 'learn-nsrr02': [['EEG', 'EEG(sec)'], ['EEG', 'EEG(sec)'], [True, True]], 'COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db': [['C3-RC', 'F3-RC', 'O1-RC'], ['C3-RC', 'F3-RC', 'O1-RC'], [True, True, True]]}",
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "irasa",
+      "enabled": true,
+      "description": "Review the IRASA periodic cohort report and write the transposed output only.",
+      "updates": [
+        {
+          "description": "Input IRASA periodic report written by PowerSpectralAnalysis.",
+          "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+          "inputName": "filenames",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "['$GITHUB_WORKSPACE/validation-workspaces/EEG_spectral_power_cohort_report_IRASA_periodic.tsv']",
+            "required": true
+          }
+        },
+        {
+          "description": "Per subject: [original channels, renamed channels, selected flags]. Subject keys are the values of the report's 'filename' column. All channels kept, none renamed.",
+          "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+          "inputName": "subject_chans_label",
+          "required": true,
+          "value": {
+            "kind": "literal",
+            "value": "{'01-01-0001': [['C3', 'F3', 'O1'], ['C3', 'F3', 'O1'], [True, True, True]], 'learn-nsrr01': [['EEG', 'EEG(sec)'], ['EEG', 'EEG(sec)'], [True, True]], 'learn-nsrr02': [['EEG', 'EEG(sec)'], ['EEG', 'EEG(sec)'], [True, True]], 'COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db': [['C3-RC', 'F3-RC', 'O1-RC'], ['C3-RC', 'F3-RC', 'O1-RC'], [True, True, True]]}",
+            "required": true
+          }
+        },
+        {
+          "description": "Base output path: the module writes PSACohortReview_irasa_transposed.tsv.",
+          "identifier": "8df6ac98-9c6c-4f97-a579-5464ba4b6fe1",
+          "inputName": "output_dir",
+          "required": true,
+          "value": {
+            "kind": "workspacePath",
+            "relativePath": "PSACohortReview_irasa.tsv",
+            "required": true
+          }
+        }
+      ]
     }
   ]
 }
