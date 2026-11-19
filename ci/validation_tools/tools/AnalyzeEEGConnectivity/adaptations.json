@@ -195,7 +195,7 @@
     },
     {
       "id": "dpli",
-      "enabled": true,
+      "enabled": false,
       "description": "Run directed phase-lag index connectivity analysis.",
       "updates": [
         {
@@ -300,7 +300,7 @@
     },
     {
       "id": "aec",
-      "enabled": true,
+      "enabled": false,
       "description": "Run amplitude-envelope correlation connectivity analysis.",
       "updates": [
         {
@@ -405,7 +405,7 @@
     },
     {
       "id": "wpli_annotationN2",
-      "enabled": true,
+      "enabled": false,
       "description": "Run full-band wPLI on N2 annotations using the annotation branch.",
       "updates": [
         {
