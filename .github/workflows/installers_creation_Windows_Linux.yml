@@ -177,8 +177,11 @@ jobs:
         shell: pwsh
         run: |
           choco install nsis -y --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "Failed to install nsis with exit code $LASTEXITCODE" }
           choco install vcredist2010 -y
+          if ($LASTEXITCODE -ne 0) { throw "Failed to install vcredist2010 with exit code $LASTEXITCODE" }
           choco install vcredist2012 -y
+          if ($LASTEXITCODE -ne 0) { throw "Failed to install vcredist2012 with exit code $LASTEXITCODE" }
 
       - name: Verify makensis is available
         shell: pwsh
