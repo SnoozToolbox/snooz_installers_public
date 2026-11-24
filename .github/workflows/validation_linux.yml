@@ -6,6 +6,11 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
+      include_natus:
+        description: Include NATUS inputs and Slow Wave Classification (disable for public installers)
+        required: true
+        type: boolean
+        default: true
       installer_repo:
         description: Installer release repository (owner/name)
         required: true
@@ -53,6 +58,11 @@ on:
 
   workflow_call:
     inputs:
+      include_natus:
+        description: Include NATUS inputs and Slow Wave Classification
+        required: false
+        type: boolean
+        default: true
       installer_repo:
         description: Installer release repository (owner/name)
         required: true
@@ -101,6 +111,8 @@ on:
 jobs:
   validate_linux:
     runs-on: ubuntu-latest
+    env:
+      INCLUDE_NATUS: ${{ inputs.include_natus }}
     steps:
       - name: Checkout workflow repository
         uses: actions/checkout@v5

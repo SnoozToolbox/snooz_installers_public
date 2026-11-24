@@ -24,6 +24,7 @@ import sys
 from pathlib import Path
 
 from configuration import DEFAULT_ORDER_FILE, load_adaptations
+from natus_validation import COHORT_CLASSIFIER, filter_scenario_inputs, include_natus
 from resolve_tool_order import resolve_tools
 from validation_scenarios import expand_scenarios
 
@@ -291,6 +292,9 @@ def adapt_tool_scenario(source_path, dest_path, tool_name, tool_definition, work
         if not did_update and required:
             raise ValueError(f"Unable to update node '{identifier}' input '{input_name}' in {source_path}")
 
+    if not include_natus():
+        filter_scenario_inputs(scenario, tool_name)
+
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     with open(dest_path, 'w', encoding='utf-8') as f:
         json.dump(scenario, f, indent=2, ensure_ascii=False)
@@ -310,7 +314,13 @@ def main():
 
     tools_dir = Path(args.tools_dir)
     adaptations = load_adaptations(tools_dir)
+    excluded_tools = [
+        tool for tool in resolve_tools(tools_dir, Path(args.order_file), args.tools, include_excluded=True)
+        if not include_natus() and tool == COHORT_CLASSIFIER
+    ]
     tools_to_process = resolve_tools(tools_dir, Path(args.order_file), args.tools)
+    for tool in excluded_tools:
+        print(f"Excluded {tool}: include_natus=false (requires a separate cohort gold standard)")
 
     if not tools_to_process:
         print(f"No configured tools found in {tools_dir}", file=sys.stderr)
@@ -358,7 +368,10 @@ def main():
 
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(
-        json.dumps({"schema_version": 1, "runs": runs}, indent=2), encoding="utf-8"
+        json.dumps({
+            "schema_version": 1, "runs": runs, "include_natus": include_natus(),
+            "excluded_tools": excluded_tools,
+        }, indent=2), encoding="utf-8"
     )
     print(f"\nValidation workspaces prepared with {adapted_count} scenario(s)")
     return 0

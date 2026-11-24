@@ -34,6 +34,11 @@ on:
         description: "Comma-separated list of tool basenames to adapt in this run (example: AnalyzeEEGConnectivity,MyOtherTool). Leave empty to run all tools defined under ci/validation_tools/tools"
         required: false
         default: ""
+      include_natus:
+        description: Include NATUS inputs and Slow Wave Classification (disable for public installers)
+        required: true
+        type: boolean
+        default: true
       gold_standard_repo:
         description: Gold-standard repository (owner/name)
         required: false
@@ -45,6 +50,11 @@ on:
 
   workflow_call:
     inputs:
+      include_natus:
+        description: Include NATUS inputs and Slow Wave Classification
+        required: false
+        type: boolean
+        default: true
       installer_repo:
         description: Installer release repository (owner/name)
         required: true
@@ -88,6 +98,8 @@ on:
 jobs:
   validate_windows:
     runs-on: windows-2022
+    env:
+      INCLUDE_NATUS: ${{ inputs.include_natus }}
 
     steps:
       - name: Enable long paths on Windows

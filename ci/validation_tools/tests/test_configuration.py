@@ -1,9 +1,11 @@
 import csv
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 
@@ -12,6 +14,8 @@ RUNNER = ROOT / "runner"
 sys.path.insert(0, str(RUNNER))
 
 from configuration import load_adaptations
+from adapt_scenario_json import filter_scenario_inputs, resolve_configured_value
+from natus_validation import NATUS_SUBJECT, filter_input, filter_report_rows
 from resolve_tool_order import resolve_tools
 from validate_configuration import validate_configuration
 from validation_scenarios import expand_scenarios
@@ -24,6 +28,9 @@ def write_json(path, value):
 
 class ConfigurationTests(unittest.TestCase):
     def setUp(self):
+        self.environment = patch.dict(os.environ, {"INCLUDE_NATUS": "true"})
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
@@ -51,6 +58,135 @@ class ConfigurationTests(unittest.TestCase):
     def save(self):
         write_json(self.directory / "adaptations.json", self.adaptations)
         write_json(self.directory / "validations.json", self.validations)
+
+    def test_natus_filter_covers_all_configured_inputs_and_scenarios(self):
+        definitions = load_adaptations(ROOT / "tools")
+        for tool, definition in definitions.items():
+            if tool == "SlowWaveClassification":
+                continue
+            for run in expand_scenarios(tool, definition, self.root):
+                for update in run["updates"]:
+                    spec = update.get("value")
+                    if not spec or spec["kind"] not in ("literal", "workspaceFileJson"):
+                        continue
+                    with self.subTest(tool=tool, scenario=run["scenario_id"], input=update["inputName"]):
+                        value = resolve_configured_value(spec, self.root, self.root)
+                        self.assertNotIn(NATUS_SUBJECT, repr(filter_input(value)))
+                        filter_scenario_inputs({"process_params": {"nodes": [{
+                            "identifier": update["identifier"],
+                            "inputs": {update["inputName"]: {"value": value}},
+                        }]}}, tool)
+
+    def test_natus_filter_preserves_types_and_checks_inherited_inputs(self):
+        value = {f"{NATUS_SUBJECT}.eeg": {}, "record.edf": {"events": []}}
+        self.assertEqual(filter_input(value), {"record.edf": {"events": []}})
+        encoded = repr({NATUS_SUBJECT: ["F3"], "record": ["EEG"]})
+        self.assertEqual(filter_input([encoded]), [repr({"record": ["EEG"]})])
+        scenario = {"process_params": {"nodes": [{"identifier": "reader", "inputs": {
+            "files": {"value": repr([f"{NATUS_SUBJECT}.eeg", "record.edf"])},
+            "subjects": {"value": encoded},
+        }}]}}
+        filter_scenario_inputs(scenario, "Example")
+        self.assertNotIn(NATUS_SUBJECT, repr(scenario))
+        for value in (f"{NATUS_SUBJECT}.eeg", repr([f"{NATUS_SUBJECT}.eeg"])):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                filter_scenario_inputs({"process_params": {"nodes": [{"inputs": {
+                    "files": {"value": value},
+                }}]}}, "Example")
+
+    def test_natus_exclusion_adapts_manifest_and_summary(self):
+        self.adaptations["updates"][0]["value"] = {
+            "kind": "literal", "value": repr({NATUS_SUBJECT: {}, "record.edf": {}}),
+        }
+        self.save()
+        classifier = self.tools / "SlowWaveClassification"
+        write_json(classifier / "adaptations.json", self.adaptations)
+        write_json(classifier / "validations.json", self.validations)
+        write_json(self.order, ["Example", "SlowWaveClassification"])
+        source = self.root / "source" / "Example.json"
+        write_json(source, {"process_params": {"nodes": [
+            {"identifier": "reader", "inputs": {"files": {"value": ""}}},
+        ]}})
+        workspace = self.root / "validation-workspaces"
+        manifest = self.root / "target" / "validation-logs" / "scenario-manifest.json"
+        with patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
+            self.run_script(
+                "adapt_scenario_json.py", "--tools-dir", self.tools, "--order-file", self.order,
+                "--source-dir", source.parent, "--workspace-dir", workspace,
+                "--private-dataset-dir", self.root / "dataset", "--manifest", manifest,
+            )
+            data = json.loads(manifest.read_text())
+            self.assertEqual(data["excluded_tools"], ["SlowWaveClassification"])
+            self.assertEqual([r["run_id"] for r in data["runs"]], ["Example"])
+            self.assertNotIn(NATUS_SUBJECT, (workspace / "Example.json").read_text())
+            self.run_script(
+                "resolve_tool_order.py", "--tools-dir", self.tools, "--order-file", self.order,
+                "--manifest", manifest, "--format", "tsv",
+            )
+            self.validations["comparisons"] = [
+                {"fileName": f"{NATUS_SUBJECT}.tsv", "fileType": "exists"},
+            ]
+            self.save()
+            write_json(self.root / "status.json", {"Example": {"run_status": "pass"}})
+            result = self.run_script(
+                "compare_and_summarize.py", "--tools-dir", self.tools,
+                "--run-status-file", self.root / "status.json",
+                "--gold-standards-dir", self.root / "gold", "--gold-standard-tag", "test",
+                "--compare-script", RUNNER / "compare_outputs.py", "--workspace-dir", workspace,
+                "--output-summary-tsv", self.root / "summary.tsv",
+                "--output-dir", self.root / "collected", "--append",
+            )
+            self.assertIn("SKIPPED (include_natus=false)", result.stdout)
+            with (self.root / "summary.tsv").open() as stream:
+                rows = list(csv.DictReader(stream, delimiter="\t"))
+            self.assertEqual([r["comparison_status"] for r in rows],
+                             ["skipped-natus-excluded", "skipped-natus-excluded"])
+            self.validations["comparisons"].append({
+                "fileName": "record.tsv", "fileType": "exists",
+                "generatedSearchRoots": [str(workspace)],
+            })
+            self.save()
+            self.run_script(
+                "compare_and_summarize.py", "--tools-dir", self.tools,
+                "--run-status-file", self.root / "status.json",
+                "--gold-standards-dir", self.root / "gold", "--gold-standard-tag", "test",
+                "--compare-script", RUNNER / "compare_outputs.py", "--workspace-dir", workspace,
+                "--output-summary-tsv", self.root / "summary.tsv",
+                "--output-dir", self.root / "collected", "--append", expected_status=1,
+            )
+            with (self.root / "summary.tsv").open() as stream:
+                rows = list(csv.DictReader(stream, delimiter="\t"))
+            self.assertEqual(rows[-1]["comparison_status"], "fail")
+            self.assertEqual(sum(r["tool_name"] == "SlowWaveClassification" for r in rows), 1)
+
+    def test_natus_report_filter_keeps_other_subject_failures(self):
+        reference = self.root / "reference.tsv"
+        generated = self.root / "generated.tsv"
+        reference.write_text(f"filename\tvalue\nrecord.edf\t2\n{NATUS_SUBJECT}.eeg\t9\n")
+        generated.write_text("filename\tvalue\nrecord.edf\t2\n")
+        for mode in ("generic", "bag-comparison", "absolute-tolerance", "table-tolerance"):
+            extra = []
+            if mode == "absolute-tolerance":
+                extra = ["--absolute-tolerance", "0"]
+            if mode == "table-tolerance":
+                extra = ["--table-options", json.dumps({
+                    "keyColumns": ["filename"],
+                    "numericTolerance": {"columnPattern": "value", "relative": 0, "absolute": 0},
+                })]
+            with self.subTest(mode=mode), patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
+                self.run_script("compare_outputs.py", "--tool-name", "Example",
+                                "--reference-file", reference, "--generated-file", generated,
+                                "--file-type", mode, *extra)
+                generated.write_text("filename\tvalue\nrecord.edf\t3\n")
+                self.run_script("compare_outputs.py", "--tool-name", "Example",
+                                "--reference-file", reference, "--generated-file", generated,
+                                "--file-type", mode, *extra, expected_status=1)
+                generated.write_text("filename\tvalue\nrecord.edf\t2\n")
+        self.run_script("compare_outputs.py", "--tool-name", "Example",
+                        "--reference-file", reference, "--generated-file", generated, expected_status=1)
+        for rows in ([["filename"], [NATUS_SUBJECT]], [[NATUS_SUBJECT], ["record"]]):
+            with self.assertRaises(ValueError):
+                filter_report_rows(rows, "report")
 
     def run_script(self, name, *arguments, expected_status=0):
         result = subprocess.run(

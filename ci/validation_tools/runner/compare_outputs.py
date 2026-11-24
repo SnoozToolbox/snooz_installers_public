@@ -14,6 +14,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from natus_validation import filter_report_rows, include_natus, is_natus
+
 
 NUMERIC_FIELD_PATTERN = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$")
 TIME_FIELD_PATTERN = re.compile(r"^\d{1,3}:\d{1,2}(:\d{1,2})?(\.\d+)?$")
@@ -69,7 +71,10 @@ def parse_args() -> argparse.Namespace:
 def read_normalized_lines(path: Path) -> list[str]:
     content = path.read_text(encoding="utf-8")
     content = content.replace("\r\n", "\n").replace("\r", "\n")
-    return content.split("\n")
+    lines = content.split("\n")
+    if not include_natus():
+        lines = [row[0] for row in filter_report_rows([[line] for line in lines], path)]
+    return lines
 
 
 def normalize_numeric_field(field: str, round_precision: int | None) -> str:
@@ -204,6 +209,8 @@ def compare_absolute_tolerance(
     def read_table(path: Path) -> list[list[str]]:
         with path.open(encoding="utf-8-sig", newline="") as stream:
             rows = list(csv.reader(stream, delimiter=delimiter, strict=True))
+        if not include_natus():
+            rows = filter_report_rows(rows, path)
         if len(rows) < 2 or not rows[0]:
             raise ValueError(f"{path}: expected a header and at least one data row.")
         if any(len(row) != len(rows[0]) for row in rows):
@@ -279,7 +286,14 @@ def read_keyed_table(
             raise ValueError(f"{path}: missing key columns {keys!r}.")
         key_indices = [header.index(key) for key in keys]
         rows: dict[tuple[str, ...], list[str]] = {}
+        exclude_natus = not include_natus()
+        removed = 0
+        if exclude_natus and any(is_natus(cell) for cell in header):
+            raise ValueError(f"{path}: NATUS appears in the header; row exclusion is insufficient")
         for row in reader:
+            if exclude_natus and any(is_natus(cell) for cell in row):
+                removed += 1
+                continue
             if not row:
                 continue
             if len(row) != len(header):
@@ -290,6 +304,11 @@ def read_keyed_table(
             if key in rows:
                 raise ValueError(f"{path}: duplicate key {key!r} at line {reader.line_num}.")
             rows[key] = row
+        if exclude_natus:
+            if removed:
+                print(f"{path}: excluded {removed} NATUS row(s)")
+            if not rows:
+                raise ValueError(f"{path}: no data remains for comparison")
         return header, rows
 
 

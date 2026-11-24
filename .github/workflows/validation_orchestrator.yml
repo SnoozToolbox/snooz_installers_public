@@ -42,6 +42,11 @@ on:
         description: "Comma-separated list of tool basenames to adapt in this run. Leave empty to run all tools."
         required: false
         default: ""
+      include_natus:
+        description: Include NATUS inputs and Slow Wave Classification (disable for public installers)
+        required: true
+        type: boolean
+        default: true
       gold_standard_repo:
         description: Gold-standard repository (owner/name)
         required: false
@@ -57,6 +62,7 @@ jobs:
     with:
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_windows }}
+      include_natus: ${{ inputs.include_natus }}
       installer_asset_pattern: "Snooz*.exe"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
@@ -72,6 +78,7 @@ jobs:
       arch: x64
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_macos_x64 }}
+      include_natus: ${{ inputs.include_natus }}
       installer_asset_pattern: "Snooz*-x64.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
@@ -87,6 +94,7 @@ jobs:
       arch: arm64
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_macos_arm64 }}
+      include_natus: ${{ inputs.include_natus }}
       installer_asset_pattern: "Snooz*-arm64.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
@@ -101,6 +109,7 @@ jobs:
     with:
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_linux }}
+      include_natus: ${{ inputs.include_natus }}
       installer_asset_pattern: "Snooz*.deb"
       installer_type: "deb"
       package_version: ${{ inputs.package_version }}

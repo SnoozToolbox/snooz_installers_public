@@ -87,6 +87,30 @@ files; split scenarios further only if a concrete maintenance need justifies it.
 
 ## CI entry points
 
+### Installers without NATUS
+
+The orchestrator and all platform workflows expose `include_natus` (default:
+`true`, preserving the complete CEAMS validation). Set it to `false` when
+validating public `snooz-toolbox` installers without the NATUS reader.
+
+The runners receive this option through `INCLUDE_NATUS=true|false`. They exclude
+the configured NATUS subject from all final scenario node inputs, including
+shared JSON values, tool-specific values and Python-literal containers. An
+unfilterable scalar reference or an input emptied by exclusion fails explicitly.
+Source configurations and installed workspaces are not modified.
+
+Individual NATUS output checks are excluded. Text and table comparisons remove
+NATUS data rows from both generated and reference reports, without changing
+headers, tolerances or saved artifacts. Other missing outputs still fail.
+An empty comparison or a NATUS reference in a header fails rather than passing.
+The same gold standards can therefore be used for per-subject reports.
+
+`SlowWaveClassification` is excluded from execution when `include_natus=false`
+because its classification depends on the entire cohort. The scenario manifest
+records the exclusion, and the summary reports `skipped-natus-excluded`, never
+`pass`. Supporting this tool without NATUS requires a separate gold standard.
+Selecting only this excluded tool fails because no runnable scenarios remain.
+
 Adaptation and comparison commands take `--tools-dir ci/validation_tools/tools`.
 The former `--adaptations-file` and `--tool-validations-file` aggregate-file
 arguments have been removed.

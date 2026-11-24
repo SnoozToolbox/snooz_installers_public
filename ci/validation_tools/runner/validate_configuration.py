@@ -109,7 +109,7 @@ def validate_comparisons(definition, context):
 def validate_configuration(tools_dir, order_file):
     adaptations = load_adaptations(tools_dir)
     validations = load_validations(tools_dir)
-    order = resolve_tools(tools_dir, order_file)
+    order = resolve_tools(tools_dir, order_file, include_excluded=True)
     run_count = 0
     for tool in order:
         definition = adaptations[tool]

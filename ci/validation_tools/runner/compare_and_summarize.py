@@ -35,6 +35,7 @@ from pathlib import Path
 
 from compare_outputs import validate_comparison_options
 from configuration import load_validations
+from natus_validation import filter_comparisons, include_natus
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -287,6 +288,16 @@ def main():
 
     summary_rows = []
     any_failure = False
+    manifest_path = Path("target/validation-logs/scenario-manifest.json")
+    summary_path = Path(args.output_summary_tsv)
+    if not include_natus() and (not args.append or not summary_path.exists()) and manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for tool in manifest.get("excluded_tools", []):
+            summary_rows.append({
+                "tool_name": tool, "tool_version": "not-run", "scenario_id": "default",
+                "json_name": f"{tool}.json", "run_status": "skipped-natus-excluded",
+                "comparison_status": "skipped-natus-excluded", "validated_files": "none",
+            })
 
     for run_id, run_info in run_status.items():
         tool_name = run_info.get("tool_name", run_id)
@@ -327,6 +338,13 @@ def main():
 
         # 'exists' checks need no gold standard; the rest are gold-standard comparisons.
         comparisons = tool_config.get("comparisons", []) if tool_config else []
+        excluded_comparisons = False
+        if not include_natus():
+            filtered = filter_comparisons(comparisons, comparison_name)
+            excluded_comparisons = len(filtered) != len(comparisons)
+            comparisons = filtered
+            if tool_config:
+                tool_config = dict(tool_config, comparisons=comparisons)
         exists_checks = [c for c in comparisons if c.get("fileType") == "exists"]
         gold_config = None
         if tool_config:
@@ -341,6 +359,8 @@ def main():
         if tool_run_status != "pass":
             comparison_status = tool_run_status
             any_failure = True
+        elif excluded_comparisons and not comparisons:
+            comparison_status = "skipped-natus-excluded"
         elif not exists_ok:
             comparison_status = "fail"
             any_failure = True
@@ -403,6 +423,8 @@ def main():
             print(f"  \u2298 {label}: SKIPPED (no gold standard tag)")
         elif status == "skipped-no-comparisons-configured":
             print(f"  \u2298 {label}: SKIPPED (no comparisons configured)")
+        elif status == "skipped-natus-excluded":
+            print(f"  \u2298 {label}: SKIPPED (include_natus=false)")
         elif status == "not-configured":
             print(f"  \u2298 {label}: NOT CONFIGURED")
         elif status == "pass":
