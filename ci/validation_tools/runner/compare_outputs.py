@@ -68,12 +68,12 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def read_normalized_lines(path: Path) -> list[str]:
+def read_normalized_lines(path: Path, *, has_header: bool = True) -> list[str]:
     content = path.read_text(encoding="utf-8")
     content = content.replace("\r\n", "\n").replace("\r", "\n")
     lines = content.split("\n")
     if not include_natus():
-        lines = [row[0] for row in filter_report_rows([[line] for line in lines], path)]
+        lines = [row[0] for row in filter_report_rows([[line] for line in lines], path, has_header=has_header)]
     return lines
 
 
@@ -686,8 +686,9 @@ def main() -> int:
         round_precision = int(args.precision)
 
     normalize_time = args.file_type == "bag-comparison"
-    ref_lines = read_normalized_lines(reference)
-    gen_lines = read_normalized_lines(generated)
+    has_header = args.file_type == "bag-comparison"
+    ref_lines = read_normalized_lines(reference, has_header=has_header)
+    gen_lines = read_normalized_lines(generated, has_header=has_header)
     ref_lines = normalize_lines(
         ref_lines, args.delimiter, round_precision, normalize_time,
         normalize_filenames=args.file_type == "bag-comparison",

@@ -71,17 +71,20 @@ def filter_comparisons(comparisons, tool_name):
     return retained
 
 
-def filter_report_rows(rows, source):
+def filter_report_rows(rows, source, *, has_header=True):
     if not rows:
         return rows
-    if any(is_natus(cell) for cell in rows[0]):
+    if has_header and any(is_natus(cell) for cell in rows[0]):
         raise ValueError(f"{source}: NATUS appears in the header; row exclusion is insufficient")
-    retained = [rows[0]] + [
-        row for row in rows[1:] if not any(is_natus(cell) for cell in row)
+    header = rows[:1] if has_header else []
+    data = rows[1:] if has_header else rows
+    retained_data = [
+        row for row in data if not any(is_natus(cell) for cell in row)
     ]
+    retained = header + retained_data
     removed = len(rows) - len(retained)
     if removed:
         print(f"{source}: excluded {removed} NATUS row(s)")
-    if not any(any(cell.strip() for cell in row) for row in retained[1:]):
+    if not any(any(cell.strip() for cell in row) for row in retained_data):
         raise ValueError(f"{source}: no data remains for comparison")
     return retained

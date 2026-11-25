@@ -15,6 +15,9 @@ to the repository execution directory, not the configuration file.
   significant; filename values are not rounded as numbers or normalized as times.
   Other columns and comparison modes retain their existing behavior.
 - `generic` and `report`: ordered text comparisons.
+  In non-NATUS mode, each line is data (no table header is assumed), so
+  single-line validation logs are supported. Removing all non-blank lines
+  through NATUS exclusion still fails.
 - `exists`: generated file must be non-empty; PDFs must have a valid header
   and EOF marker. No gold standard is required.
 - Numeric tolerance modes are detailed below.

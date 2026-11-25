@@ -421,6 +421,31 @@ class ConfigurationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 filter_report_rows(rows, "report")
 
+    def test_non_natus_text_comparison_accepts_one_line_and_detects_differences(self):
+        reference = self.root / "reference.txt"
+        generated = self.root / "generated.txt"
+        for mode in ("generic", "report"):
+            for newline in ("", "\n", "\r\n"):
+                with self.subTest(mode=mode, newline=newline), patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
+                    reference.write_bytes(("Validation successful. No issues found." + newline).encode())
+                    generated.write_bytes(reference.read_bytes())
+                    args = ("--tool-name", "ValidateSnoozTSVFile", "--reference-file", reference,
+                            "--generated-file", generated, "--file-type", mode)
+                    self.run_script("compare_outputs.py", *args)
+                    generated.write_bytes(("Validation failed." + newline).encode())
+                    self.run_script("compare_outputs.py", *args, expected_status=1)
+                    reference.write_bytes((NATUS_SUBJECT + "\nValidation failed." + newline).encode())
+                    self.run_script("compare_outputs.py", *args)
+                    reference.write_text(NATUS_SUBJECT + "\n")
+                    result = self.run_script("compare_outputs.py", *args, expected_status=1)
+                    self.assertIn("no data remains for comparison", result.stderr)
+        with patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
+            reference.write_text("filename\tvalue\n")
+            generated.write_text(reference.read_text())
+            self.run_script("compare_outputs.py", "--tool-name", "Example",
+                            "--reference-file", reference, "--generated-file", generated,
+                            "--file-type", "bag-comparison", expected_status=1)
+
     def run_script(self, name, *arguments, expected_status=0):
         result = subprocess.run(
             [sys.executable, str(RUNNER / name), *map(str, arguments)],
