@@ -76,6 +76,7 @@
       "value": {
         "kind": "workspacePath",
         "relativePath": "PSACohortReview",
+        "relativePathWithoutNatus": "PSACohortReview_without_natus",
         "required": true
       }
     }
@@ -145,6 +146,7 @@
           "value": {
             "kind": "workspacePath",
             "relativePath": "PSACohortReview_irasa.tsv",
+            "relativePathWithoutNatus": "PSACohortReview_irasa_without_natus.tsv",
             "required": true
           }
         }

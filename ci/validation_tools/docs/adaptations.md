@@ -97,6 +97,8 @@ Create a path relative to the validation workspace; ensures parent directories e
 
 **Parameters:**
 - `relativePath` (string): Path relative to validation-workspaces directory
+- `relativePathWithoutNatus` (string, optional): Alternative workspace path when
+  `INCLUDE_NATUS=false`, for example `PSACohortReview_without_natus`.
 - `asDirectory` (boolean, optional): If `true` (or if `relativePath` ends with `/`), create the path as a directory and return it with a trailing `/`. Use this for folder inputs such as `SavedDestination`.
 
 **Example:** Output file path for a report:

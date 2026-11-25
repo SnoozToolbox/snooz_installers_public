@@ -4,6 +4,8 @@
       "comparisons": [
         {
           "fileName": "PSACohortReview_clean.tsv",
+          "generatedFileNameWithoutNatus": "PSACohortReview_without_natus_clean.tsv",
+          "goldFileNameWithoutNatus": "PSACohortReview_without_natus_clean.tsv",
           "fileType": "bag-comparison",
           "precision": 4,
           "generatedSearchRoots": [
@@ -12,6 +14,8 @@
         },
         {
           "fileName": "PSACohortReview_transposed.tsv",
+          "generatedFileNameWithoutNatus": "PSACohortReview_without_natus_transposed.tsv",
+          "goldFileNameWithoutNatus": "PSACohortReview_without_natus_transposed.tsv",
           "fileType": "bag-comparison",
           "precision": 4,
           "generatedSearchRoots": [
@@ -24,6 +28,8 @@
       "comparisons": [
         {
           "fileName": "PSACohortReview_irasa_clean.tsv",
+          "generatedFileNameWithoutNatus": "PSACohortReview_irasa_without_natus_clean.tsv",
+          "goldFileNameWithoutNatus": "PSACohortReview_irasa_without_natus_clean.tsv",
           "fileType": "bag-comparison",
           "precision": 4,
           "generatedSearchRoots": [
@@ -32,6 +38,8 @@
         },
         {
           "fileName": "PSACohortReview_irasa_transposed.tsv",
+          "generatedFileNameWithoutNatus": "PSACohortReview_irasa_without_natus_transposed.tsv",
+          "goldFileNameWithoutNatus": "PSACohortReview_irasa_without_natus_transposed.tsv",
           "fileType": "bag-comparison",
           "precision": 4,
           "generatedSearchRoots": [

@@ -66,6 +66,8 @@ def resolve_configured_value(spec, workspace_dir, private_dataset_dir):
 
     if kind == "workspacePath":
         relative_path = spec.get("relativePath")
+        if not include_natus() and "relativePathWithoutNatus" in spec:
+            relative_path = spec["relativePathWithoutNatus"]
         if not relative_path:
             raise ValueError("workspacePath specification requires relativePath")
         as_directory = bool(spec.get("asDirectory")) or str(relative_path).endswith(("/", "\\"))

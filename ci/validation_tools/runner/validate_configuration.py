@@ -23,6 +23,10 @@ def validate_value(spec):
     if not isinstance(spec, dict):
         raise ValueError("Value specification must be an object")
     kind = spec.get("kind")
+    if "relativePathWithoutNatus" in spec:
+        if kind != "workspacePath":
+            raise ValueError("relativePathWithoutNatus requires workspacePath")
+        require_string(spec["relativePathWithoutNatus"], "workspacePath.relativePathWithoutNatus")
     for flag in ("required", "asDirectory"):
         if flag in spec and not isinstance(spec[flag], bool):
             raise ValueError(f"{flag} must be a boolean")
@@ -97,6 +101,8 @@ def validate_comparisons(definition, context):
             require_string(gold, f"{context} gold filename")
         if "goldFileNameWithoutNatus" in comparison:
             require_string(comparison["goldFileNameWithoutNatus"], f"{context} non-NATUS gold filename")
+        if "generatedFileNameWithoutNatus" in comparison:
+            require_string(comparison["generatedFileNameWithoutNatus"], f"{context} non-NATUS generated filename")
         key = generated.casefold()
         if key in seen:
             raise ValueError(f"{context}: duplicate comparison for {generated}")

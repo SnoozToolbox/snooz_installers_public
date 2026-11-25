@@ -283,6 +283,115 @@ class ConfigurationTests(unittest.TestCase):
             (output / "report.tsv").write_text("subject\tvalue\nrecord\t2\n")
             self.run_script("compare_and_summarize.py", *args)
 
+    def test_psa_cohort_review_mode_specific_outputs_and_comparisons(self):
+        definition = load_adaptations(ROOT / "tools")["PSACohortReview"]
+        updates = definition["updates"] + [
+            update for scenario in definition["scenarios"] for update in scenario["updates"]
+        ]
+        identifier = updates[0]["identifier"]
+        source = self.root / "source" / "PSACohortReview.json"
+        write_json(source, {"process_params": {"nodes": [{
+            "identifier": identifier,
+            "inputs": {update["inputName"]: {"value": ""} for update in updates},
+        }]}})
+        for enabled in ("true", "false"):
+            with self.subTest(include_natus=enabled), patch.dict(os.environ, {"INCLUDE_NATUS": enabled}):
+                workspace = self.root / "validation-workspaces"
+                manifest = self.root / enabled / "manifest.json"
+                self.run_script(
+                    "adapt_scenario_json.py", "--tools-dir", ROOT / "tools",
+                    "--source-dir", source.parent, "--workspace-dir", workspace,
+                    "--private-dataset-dir", self.root / "dataset", "--manifest", manifest,
+                    "--tools", "PSACohortReview",
+                )
+                status = {}
+                for scenario, base in (("pwelch", "PSACohortReview"), ("irasa", "PSACohortReview_irasa")):
+                    run_id = f"PSACohortReview__{scenario}"
+                    adapted = json.loads((workspace / f"{run_id}.json").read_text())
+                    inputs = adapted["process_params"]["nodes"][0]["inputs"]
+                    expected_base = base + ("_without_natus" if enabled == "false" else "")
+                    self.assertEqual(Path(inputs["output_dir"]["value"]).stem, expected_base)
+                    if enabled == "false":
+                        self.assertNotIn(NATUS_SUBJECT, repr(inputs))
+                    gold = self.root / enabled / "gold" / "PSACohortReview" / scenario
+                    gold.mkdir(parents=True)
+                    for suffix in ("clean", "transposed"):
+                        filename = f"{expected_base}_{suffix}.tsv"
+                        (workspace / filename).write_text("subject\tvalue\nrecord\t1\n")
+                        (gold / filename).write_text("subject\tvalue\nrecord\t1\n")
+                    status[run_id] = {
+                        "run_status": "pass", "tool_name": "PSACohortReview",
+                        "scenario_id": scenario, "explicit_scenario": True,
+                        "json_path": str(workspace / f"{run_id}.json"),
+                    }
+                status_file = self.root / enabled / "status.json"
+                write_json(status_file, status)
+                arguments = (
+                    "--tools-dir", ROOT / "tools", "--run-status-file", status_file,
+                    "--gold-standards-dir", self.root / enabled / "gold",
+                    "--compare-script", RUNNER / "compare_outputs.py", "--workspace-dir", workspace,
+                    "--output-summary-tsv", self.root / enabled / "summary.tsv",
+                    "--output-dir", self.root / enabled / "collected",
+                )
+                self.run_script("compare_and_summarize.py", *arguments, "--gold-standard-tag", "test")
+                self.run_script("compare_and_summarize.py", *arguments)
+                collected = self.root / enabled / "collected" / "PSACohortReview" / "pwelch"
+                expected_name = "PSACohortReview" + ("_without_natus" if enabled == "false" else "")
+                self.assertTrue((collected / f"generated_{expected_name}_clean.tsv").is_file())
+
+    def test_detections_review_non_natus_input_outputs_and_references(self):
+        definition = load_adaptations(ROOT / "tools")["DetectionsCohortReview"]
+        updates = definition["updates"]
+        source = self.root / "source" / "DetectionsCohortReview.json"
+        write_json(source, {"process_params": {"nodes": [{
+            "identifier": updates[0]["identifier"],
+            "inputs": {update["inputName"]: {"value": ""} for update in updates},
+        }]}})
+        workspace = self.root / "validation-workspaces"
+        gold = self.root / "gold"
+        cohort = gold / "SlowWaveDetection" / "Slow-Waves-Cohort-report_without_natus.tsv"
+        cohort.parent.mkdir(parents=True)
+        cohort.write_text("filename\tvalue\nrecord.edf\t1\n")
+        for enabled in ("false", "true"):
+            with self.subTest(include_natus=enabled), patch.dict(os.environ, {"INCLUDE_NATUS": enabled}):
+                prepare_inputs(ROOT / "tools", ROOT / "config" / "tool_execution_order.json",
+                               "DetectionsCohortReview", gold, workspace)
+                self.run_script(
+                    "adapt_scenario_json.py", "--tools-dir", ROOT / "tools",
+                    "--source-dir", source.parent, "--workspace-dir", workspace,
+                    "--private-dataset-dir", self.root / "dataset", "--tools", "DetectionsCohortReview",
+                )
+                adapted = json.loads((workspace / "DetectionsCohortReview.json").read_text())
+                inputs = adapted["process_params"]["nodes"][0]["inputs"]
+                base = "Slow-Waves-review-report" + ("_without_natus" if enabled == "false" else "")
+                self.assertEqual(Path(inputs["output_file"]["value"]).name, base + ".tsv")
+                if enabled == "false":
+                    self.assertNotIn(NATUS_SUBJECT, repr(inputs))
+                    self.assertIn("Slow-Waves-Cohort-report.tsv", inputs["filenames"]["value"])
+                    self.assertEqual((workspace / "Slow-Waves-Cohort-report.tsv").read_bytes(),
+                                     cohort.read_bytes())
+                references = gold / "DetectionsCohortReview"
+                references.mkdir(exist_ok=True)
+                for suffix in ("clean", "transposed"):
+                    filename = f"{base}_{suffix}.tsv"
+                    (workspace / filename).write_text("subject\tvalue\nrecord\t1\n")
+                    (references / filename).write_text("subject\tvalue\nrecord\t1\n")
+                write_json(self.root / "status.json", {"DetectionsCohortReview": {"run_status": "pass"}})
+                arguments = (
+                    "--tools-dir", ROOT / "tools", "--run-status-file", self.root / "status.json",
+                    "--gold-standards-dir", gold, "--compare-script", RUNNER / "compare_outputs.py",
+                    "--workspace-dir", workspace, "--output-summary-tsv", self.root / "summary.tsv",
+                    "--output-dir", self.root / "collected",
+                )
+                self.run_script("compare_and_summarize.py", *arguments, "--gold-standard-tag", "test")
+                self.run_script("compare_and_summarize.py", *arguments)
+                self.assertTrue((self.root / "collected" / "DetectionsCohortReview" /
+                                 f"generated_{base}_clean.tsv").is_file())
+                (references / f"{base}_clean.tsv").unlink()
+                result = self.run_script("compare_and_summarize.py", *arguments,
+                                         "--gold-standard-tag", "test", expected_status=1)
+                self.assertIn("fail-missing-gold-standard", result.stdout)
+
     def test_natus_report_filter_keeps_other_subject_failures(self):
         reference = self.root / "reference.tsv"
         generated = self.root / "generated.tsv"

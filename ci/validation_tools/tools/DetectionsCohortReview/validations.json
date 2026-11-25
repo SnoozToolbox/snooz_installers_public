@@ -2,6 +2,8 @@
   "comparisons": [
     {
       "fileName": "Slow-Waves-review-report_clean.tsv",
+      "generatedFileNameWithoutNatus": "Slow-Waves-review-report_without_natus_clean.tsv",
+      "goldFileNameWithoutNatus": "Slow-Waves-review-report_without_natus_clean.tsv",
       "fileType": "bag-comparison",
       "precision": 4,
       "generatedSearchRoots": [
@@ -10,6 +12,8 @@
     },
     {
       "fileName": "Slow-Waves-review-report_transposed.tsv",
+      "generatedFileNameWithoutNatus": "Slow-Waves-review-report_without_natus_transposed.tsv",
+      "goldFileNameWithoutNatus": "Slow-Waves-review-report_without_natus_transposed.tsv",
       "fileType": "bag-comparison",
       "precision": 4,
       "generatedSearchRoots": [

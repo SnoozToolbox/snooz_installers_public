@@ -64,7 +64,10 @@ def filter_comparisons(comparisons, tool_name):
         )):
             print(f"{tool_name}: excluded NATUS comparison {comparison.get('fileName')}")
         else:
-            retained.append(comparison)
+            resolved = dict(comparison)
+            if "generatedFileNameWithoutNatus" in comparison:
+                resolved["generatedFileName"] = comparison["generatedFileNameWithoutNatus"]
+            retained.append(resolved)
     return retained
 
 

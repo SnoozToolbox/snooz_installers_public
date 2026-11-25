@@ -30,6 +30,8 @@ NATUS subject; it is excluded when `include_natus=false`.
 When an output depends on the entire cohort, `goldFileNameWithoutNatus` selects
 a separately generated reference when `include_natus=false`; if it is missing,
 the comparison fails rather than falling back to the full-cohort reference.
+Use `generatedFileNameWithoutNatus` as well when the generated output has a
+different name in this mode. This name is also used to collect bootstrap outputs.
 
 ```json
 {
