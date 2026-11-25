@@ -43,7 +43,7 @@ on:
         required: false
         default: ""
       include_natus:
-        description: Include NATUS inputs and Slow Wave Classification (disable for public installers)
+        description: Include NATUS inputs (disable for public installers)
         required: true
         type: boolean
         default: true

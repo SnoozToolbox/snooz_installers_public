@@ -2,6 +2,7 @@
   "comparisons": [
     {
       "fileName": "EEG_spectral_power_cohort_report_Welch_C3-RC_psa_Total_N2N3+R_mean_std.pdf",
+      "requiresNatus": true,
       "fileType": "exists",
       "generatedSearchRoots": [
         "validation-workspaces"
@@ -30,6 +31,7 @@
     },
     {
       "fileName": "EEG_spectral_power_cohort_report_Welch_F3-RC_psa_Total_N2N3+R_mean_std.pdf",
+      "requiresNatus": true,
       "fileType": "exists",
       "generatedSearchRoots": [
         "validation-workspaces"
@@ -44,6 +46,7 @@
     },
     {
       "fileName": "EEG_spectral_power_cohort_report_Welch_O1-RC_psa_Total_N2N3+R_mean_std.pdf",
+      "requiresNatus": true,
       "fileType": "exists",
       "generatedSearchRoots": [
         "validation-workspaces"
@@ -72,6 +75,7 @@
     },
     {
       "fileName": "cohort_psa_mean_std_Total_C3-RC.pdf",
+      "requiresNatus": true,
       "fileType": "exists",
       "generatedSearchRoots": [
         "validation-workspaces"
@@ -100,6 +104,7 @@
     },
     {
       "fileName": "cohort_psa_mean_std_Total_F3-RC.pdf",
+      "requiresNatus": true,
       "fileType": "exists",
       "generatedSearchRoots": [
         "validation-workspaces"
@@ -114,6 +119,7 @@
     },
     {
       "fileName": "cohort_psa_mean_std_Total_O1-RC.pdf",
+      "requiresNatus": true,
       "fileType": "exists",
       "generatedSearchRoots": [
         "validation-workspaces"

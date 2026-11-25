@@ -35,7 +35,7 @@ on:
         required: false
         default: ""
       include_natus:
-        description: Include NATUS inputs and Slow Wave Classification (disable for public installers)
+        description: Include NATUS inputs (disable for public installers)
         required: true
         type: boolean
         default: true
@@ -51,7 +51,7 @@ on:
   workflow_call:
     inputs:
       include_natus:
-        description: Include NATUS inputs and Slow Wave Classification
+        description: Include NATUS inputs
         required: false
         type: boolean
         default: true
@@ -190,29 +190,13 @@ jobs:
           Write-Host "Gold-standard files downloaded:"
           Get-ChildItem -Path $goldDir -Recurse -File | Select-Object -ExpandProperty FullName
 
-      - name: Extract gold standards assets for requested tools (optional)
+      - name: Extract gold standards assets (optional)
         shell: pwsh
         run: |
           $goldTag = "${{ inputs.gold_standard_tag }}".Trim().Trim('"')
           if ([string]::IsNullOrWhiteSpace($goldTag)) {
             Write-Host "No gold_standard_tag provided; skipping gold standards extraction."
             exit 0
-          }
-
-          $toolsToProcessInput = "${{ inputs.tools_to_process }}".Trim().Trim('"')
-          $toolsToProcess = @()
-          if (-not [string]::IsNullOrWhiteSpace($toolsToProcessInput)) {
-            $toolsToProcess = $toolsToProcessInput -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-          }
-
-          if ($toolsToProcess.Count -eq 0) {
-            $toolsToProcess = @(python ci/validation_tools/runner/resolve_tool_order.py `
-              --tools-dir ci/validation_tools/tools `
-              --order-file ci/validation_tools/config/tool_execution_order.json)
-            if ($LASTEXITCODE -ne 0) {
-              throw "Unable to resolve configured validation tools"
-            }
-            Write-Host "No tools_to_process provided; using configured order: $($toolsToProcess -join ', ')"
           }
 
           $goldDir = "gold-standards"
@@ -232,23 +216,11 @@ jobs:
           }
           New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
 
-          foreach ($toolName in $toolsToProcess) {
-            $toolZipCandidates = $zipFiles | Where-Object {
-              $_.BaseName -ieq $toolName -or $_.Name -imatch [regex]::Escape($toolName)
-            }
-
-            if ($toolZipCandidates.Count -eq 0) {
-              Write-Host "No gold-standard zip matched tool '$toolName'."
-              continue
-            }
-
-            $toolExtractDir = Join-Path $extractRoot $toolName
+          foreach ($zipFile in $zipFiles) {
+            $toolExtractDir = Join-Path $extractRoot $zipFile.BaseName
             New-Item -ItemType Directory -Path $toolExtractDir -Force | Out-Null
-
-            foreach ($zipFile in $toolZipCandidates) {
-              Write-Host "Extracting $($zipFile.Name) for tool $toolName"
-              Expand-Archive -Path $zipFile.FullName -DestinationPath $toolExtractDir -Force
-            }
+            Write-Host "Extracting $($zipFile.Name)"
+            Expand-Archive -Path $zipFile.FullName -DestinationPath $toolExtractDir -Force
           }
 
           Write-Host "Gold-standard extracted files:"
@@ -444,6 +416,21 @@ jobs:
             throw "JSON path adaptation failed with exit code $LASTEXITCODE"
           }
           Write-Host "JSON paths successfully adapted."
+
+      - name: Prepare non-NATUS cohort inputs for independent tools
+        shell: pwsh
+        env:
+          TOOLS_TO_PROCESS: ${{ inputs.tools_to_process }}
+        run: |
+          python ci/validation_tools/runner/prepare_cohort_inputs.py `
+            --tools-dir ci/validation_tools/tools `
+            --order-file ci/validation_tools/config/tool_execution_order.json `
+            --tools "$env:TOOLS_TO_PROCESS" `
+            --gold-standards-dir gold-standards/extracted `
+            --workspace-dir validation-workspaces
+          if ($LASTEXITCODE -ne 0) {
+            throw "Preparing cohort inputs failed"
+          }
 
       - name: Run adapted headless scenarios and validate each tool immediately
         shell: pwsh

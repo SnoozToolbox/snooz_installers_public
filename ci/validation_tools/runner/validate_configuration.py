@@ -88,11 +88,15 @@ def validate_comparisons(definition, context):
     for comparison in comparisons:
         if not isinstance(comparison, dict):
             raise ValueError(f"{context}: each comparison must be an object")
+        if "requiresNatus" in comparison and not isinstance(comparison["requiresNatus"], bool):
+            raise ValueError(f"{context}: requiresNatus must be a boolean")
         generated = comparison.get("generatedFileName") or comparison.get("fileName")
         gold = comparison.get("goldFileName") or comparison.get("fileName")
         require_string(generated, f"{context} generated filename")
         if comparison.get("fileType") != "exists":
             require_string(gold, f"{context} gold filename")
+        if "goldFileNameWithoutNatus" in comparison:
+            require_string(comparison["goldFileNameWithoutNatus"], f"{context} non-NATUS gold filename")
         key = generated.casefold()
         if key in seen:
             raise ValueError(f"{context}: duplicate comparison for {generated}")
@@ -109,7 +113,7 @@ def validate_comparisons(definition, context):
 def validate_configuration(tools_dir, order_file):
     adaptations = load_adaptations(tools_dir)
     validations = load_validations(tools_dir)
-    order = resolve_tools(tools_dir, order_file, include_excluded=True)
+    order = resolve_tools(tools_dir, order_file)
     run_count = 0
     for tool in order:
         definition = adaptations[tool]

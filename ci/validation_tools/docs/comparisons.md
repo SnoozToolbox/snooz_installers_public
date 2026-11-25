@@ -25,6 +25,11 @@ validation with `comparison_status: fail-missing-gold-standard`. Generated files
 are still collected in the artifacts so references can be published.
 Missing generated files also fail comparisons. To intentionally collect outputs
 without gold comparisons for a bootstrap run, leave the gold-standard tag empty.
+Set `requiresNatus: true` on a comparison only when its output depends on the
+NATUS subject; it is excluded when `include_natus=false`.
+When an output depends on the entire cohort, `goldFileNameWithoutNatus` selects
+a separately generated reference when `include_natus=false`; if it is missing,
+the comparison fails rather than falling back to the full-cohort reference.
 
 ```json
 {

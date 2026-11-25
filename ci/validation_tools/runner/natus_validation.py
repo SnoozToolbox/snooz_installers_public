@@ -5,9 +5,6 @@ import os
 
 
 NATUS_SUBJECT = "COV-015~ Covid_5250d3a3-5e68-4a00-ad3c-628b6639c9db"
-COHORT_CLASSIFIER = "SlowWaveClassification"
-
-
 def include_natus():
     value = os.environ.get("INCLUDE_NATUS", "true").lower()
     if value not in ("true", "false"):
@@ -62,7 +59,7 @@ def filter_scenario_inputs(scenario, tool_name):
 def filter_comparisons(comparisons, tool_name):
     retained = []
     for comparison in comparisons:
-        if any(is_natus(comparison.get(key)) for key in (
+        if comparison.get("requiresNatus") is True or any(is_natus(comparison.get(key)) for key in (
             "fileName", "generatedFileName", "goldFileName",
         )):
             print(f"{tool_name}: excluded NATUS comparison {comparison.get('fileName')}")

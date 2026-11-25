@@ -105,11 +105,39 @@ headers, tolerances or saved artifacts. Other missing outputs still fail.
 An empty comparison or a NATUS reference in a header fails rather than passing.
 The same gold standards can therefore be used for per-subject reports.
 
-`SlowWaveClassification` is excluded from execution when `include_natus=false`
-because its classification depends on the entire cohort. The scenario manifest
-records the exclusion, and the summary reports `skipped-natus-excluded`, never
-`pass`. Supporting this tool without NATUS requires a separate gold standard.
-Selecting only this excluded tool fails because no runnable scenarios remain.
+When `include_natus=false`, selecting PSAImages or PSACohortReview without
+PowerSpectralAnalysis, or DetectionsCohortReview or SlowWaveClassification without SlowWaveDetection,
+requires a gold-standard tag and these inputs in the producer archives:
+
+- `PowerSpectralAnalysis.zip`: `pwelch/EEG_spectral_power_cohort_report_Welch_without_natus.tsv`
+  and, for PSACohortReview, `irasa/EEG_spectral_power_cohort_report_IRASA_periodic_without_natus.tsv`.
+- `SlowWaveDetection.zip`: `Slow-Waves-Cohort-report_without_natus.tsv`.
+- For SlowWaveClassification, `SlowWaveDetection.zip` also needs each non-NATUS
+  subject's `slow_wave_characteristics/*_sw_carrier.tsv` and
+  `slow_wave_sleep_stages/*_sw_carrier_stages.tsv` files.
+
+The inputs must contain no NATUS subject. They are copied under the normal
+report names into `validation-workspaces`, so existing scenario paths and PDF
+names remain unchanged. When a producer is selected, its generated report is
+used instead; a missing generated report is not replaced by a gold standard.
+Without a gold-standard tag, run the producers with the consumers.
+PSAImages checks for plots of NATUS-only channels are excluded in this mode.
+
+`SlowWaveClassification` uses the non-NATUS cohort and per-subject inputs.
+Its results depend on the complete cohort, so `SlowWaveClassification.zip` must
+contain separate gold standards for the non-NATUS run:
+
+- `01-01-0001_sw_carrier_without_natus.tsv`
+- `learn-nsrr01_sw_carrier_without_natus.tsv`
+- `learn-nsrr02_sw_carrier_without_natus.tsv`
+- `sw_cohort_details_per_categories_without_natus.tsv`
+- `sw_cohort_details_per_categories_info_without_natus.tsv`
+
+Generate these references from a validated non-NATUS run; removing rows from
+the full-cohort classification results is not sufficient. With a gold-standard
+tag, a missing non-NATUS reference fails comparison. For the first run, leave
+the tag empty and select SlowWaveDetection as well as SlowWaveClassification;
+then inspect the captured outputs before publishing the new references.
 
 Adaptation and comparison commands take `--tools-dir ci/validation_tools/tools`.
 The former `--adaptations-file` and `--tool-validations-file` aggregate-file

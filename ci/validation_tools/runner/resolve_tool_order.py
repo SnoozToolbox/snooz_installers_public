@@ -8,7 +8,6 @@ import json
 from pathlib import Path
 
 from configuration import load_adaptations
-from natus_validation import COHORT_CLASSIFIER, include_natus
 from validation_scenarios import configured_tools, expand_scenarios, load_manifest
 
 
@@ -16,7 +15,7 @@ def load_configured_tools(tools_dir: Path) -> set[str]:
     return configured_tools(load_adaptations(tools_dir))
 
 
-def resolve_tools(tools_dir: Path, order_path: Path, requested: str = "", include_excluded: bool = False) -> list[str]:
+def resolve_tools(tools_dir: Path, order_path: Path, requested: str = "") -> list[str]:
     configured = load_configured_tools(tools_dir)
     order = json.loads(order_path.read_text(encoding="utf-8"))
     if not isinstance(order, list) or not all(isinstance(name, str) and name for name in order):
@@ -33,12 +32,8 @@ def resolve_tools(tools_dir: Path, order_path: Path, requested: str = "", includ
         raise ValueError(f"Execution order contains tools without adaptations: {', '.join(unknown)}")
 
     requested_tools = [name.strip() for name in requested.split(",") if name.strip()]
-    retain_classifier = include_excluded or include_natus()
     if not requested_tools:
-        return [
-            name for name in order
-            if retain_classifier or name != COHORT_CLASSIFIER
-        ]
+        return order
     if len(requested_tools) != len(set(requested_tools)):
         raise ValueError("Requested tool list contains duplicate names")
 
@@ -46,10 +41,7 @@ def resolve_tools(tools_dir: Path, order_path: Path, requested: str = "", includ
     invalid_requested = sorted(requested_set - configured)
     if invalid_requested:
         raise ValueError(f"Requested tools are not configured: {', '.join(invalid_requested)}")
-    return [
-        name for name in order if name in requested_set
-        and (retain_classifier or name != COHORT_CLASSIFIER)
-    ]
+    return [name for name in order if name in requested_set]
 
 
 def main() -> int:

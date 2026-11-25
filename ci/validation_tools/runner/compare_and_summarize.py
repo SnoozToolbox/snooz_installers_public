@@ -180,6 +180,8 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
         file_name = comparison.get("fileName", "")
         generated_file_name = comparison.get("generatedFileName") or file_name
         gold_file_name = comparison.get("goldFileName") or file_name
+        if not include_natus() and "goldFileNameWithoutNatus" in comparison:
+            gold_file_name = comparison["goldFileNameWithoutNatus"]
         file_type = comparison.get("fileType", "generic")
         precision = comparison.get("precision")
         absolute_tolerance = comparison.get("absoluteTolerance")

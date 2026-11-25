@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       include_natus:
-        description: Include NATUS inputs and Slow Wave Classification (disable for public installers)
+        description: Include NATUS inputs (disable for public installers)
         required: true
         type: boolean
         default: true
@@ -55,7 +55,7 @@ on:
   workflow_call:
     inputs:
       include_natus:
-        description: Include NATUS inputs and Slow Wave Classification
+        description: Include NATUS inputs
         required: false
         type: boolean
         default: true
@@ -178,7 +178,7 @@ jobs:
             --repo "${{ inputs.gold_standard_repo }}" \
             --dir gold-standards
 
-      - name: Extract gold standards assets for requested tools (optional)
+      - name: Extract gold standards assets (optional)
         shell: bash
         run: |
           GOLD_TAG="${{ inputs.gold_standard_tag }}"
@@ -391,6 +391,18 @@ jobs:
             exit 1
           fi
           echo "JSON paths successfully adapted."
+
+      - name: Prepare non-NATUS cohort inputs for independent tools
+        shell: bash
+        env:
+          TOOLS_TO_PROCESS: ${{ inputs.tools_to_process }}
+        run: |
+          python3 ci/validation_tools/runner/prepare_cohort_inputs.py \
+            --tools-dir ci/validation_tools/tools \
+            --order-file ci/validation_tools/config/tool_execution_order.json \
+            --tools "$TOOLS_TO_PROCESS" \
+            --gold-standards-dir gold-standards/extracted \
+            --workspace-dir validation-workspaces
 
       - name: Run adapted headless scenarios and validate each tool immediately
         shell: bash

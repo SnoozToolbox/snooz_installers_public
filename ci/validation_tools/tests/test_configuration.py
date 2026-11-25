@@ -15,7 +15,8 @@ sys.path.insert(0, str(RUNNER))
 
 from configuration import load_adaptations
 from adapt_scenario_json import filter_scenario_inputs, resolve_configured_value
-from natus_validation import NATUS_SUBJECT, filter_input, filter_report_rows
+from natus_validation import NATUS_SUBJECT, filter_comparisons, filter_input, filter_report_rows
+from prepare_cohort_inputs import prepare_inputs
 from resolve_tool_order import resolve_tools
 from validate_configuration import validate_configuration
 from validation_scenarios import expand_scenarios
@@ -62,8 +63,6 @@ class ConfigurationTests(unittest.TestCase):
     def test_natus_filter_covers_all_configured_inputs_and_scenarios(self):
         definitions = load_adaptations(ROOT / "tools")
         for tool, definition in definitions.items():
-            if tool == "SlowWaveClassification":
-                continue
             for run in expand_scenarios(tool, definition, self.root):
                 for update in run["updates"]:
                     spec = update.get("value")
@@ -94,6 +93,97 @@ class ConfigurationTests(unittest.TestCase):
                     "files": {"value": value},
                 }}]}}, "Example")
 
+    def test_prepare_independent_non_natus_cohort_inputs(self):
+        gold = self.root / "gold"
+        workspace = self.root / "workspace"
+        order = ROOT / "config" / "tool_execution_order.json"
+        inputs = {
+            "PowerSpectralAnalysis/pwelch/EEG_spectral_power_cohort_report_Welch_without_natus.tsv":
+                "EEG_spectral_power_cohort_report_Welch.tsv",
+            "PowerSpectralAnalysis/irasa/EEG_spectral_power_cohort_report_IRASA_periodic_without_natus.tsv":
+                "EEG_spectral_power_cohort_report_IRASA_periodic.tsv",
+            "SlowWaveDetection/Slow-Waves-Cohort-report_without_natus.tsv":
+                "Slow-Waves-Cohort-report.tsv",
+        }
+        for path in inputs:
+            source = gold / path
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_text("filename\tvalue\nrecord.edf\t1\n", encoding="utf-8")
+        requested = "PSAImages,PSACohortReview,DetectionsCohortReview"
+        with patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
+            prepare_inputs(ROOT / "tools", order, requested, gold, workspace)
+            self.assertEqual({p.name for p in workspace.iterdir()}, set(inputs.values()))
+            for source, target in inputs.items():
+                self.assertEqual((workspace / target).read_bytes(), (gold / source).read_bytes())
+            with self.assertRaises(FileExistsError):
+                prepare_inputs(ROOT / "tools", order, requested, gold, workspace)
+
+            other_workspace = self.root / "generated"
+            prepare_inputs(ROOT / "tools", order,
+                           requested + ",PowerSpectralAnalysis,SlowWaveDetection",
+                           self.root / "missing", other_workspace)
+            self.assertFalse(other_workspace.exists())
+            partial_workspace = self.root / "partial"
+            prepare_inputs(ROOT / "tools", order, requested + ",PowerSpectralAnalysis", gold, partial_workspace)
+            self.assertEqual([p.name for p in partial_workspace.iterdir()], ["Slow-Waves-Cohort-report.tsv"])
+
+        with patch.dict(os.environ, {"INCLUDE_NATUS": "true"}):
+            prepare_inputs(ROOT / "tools", order, requested, self.root / "missing", self.root / "full")
+            self.assertFalse((self.root / "full").exists())
+
+    def test_prepare_inputs_rejects_missing_or_invalid_reference(self):
+        gold = self.root / "gold"
+        workspace = self.root / "workspace"
+        source = gold / "PowerSpectralAnalysis" / "pwelch" / (
+            "EEG_spectral_power_cohort_report_Welch_without_natus.tsv"
+        )
+        source.parent.mkdir(parents=True)
+        order = ROOT / "config" / "tool_execution_order.json"
+        with patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
+            for content, error in ((None, FileNotFoundError), ("header\n", ValueError),
+                                   (f"filename\n{NATUS_SUBJECT}\n", ValueError)):
+                with self.subTest(content=content):
+                    if content is not None:
+                        source.write_text(content, encoding="utf-8")
+                    with self.assertRaises(error):
+                        prepare_inputs(ROOT / "tools", order, "PSAImages", gold, workspace)
+                    self.assertFalse(workspace.exists())
+
+    def test_psa_images_excludes_only_natus_channel_outputs(self):
+        validations = json.loads((ROOT / "tools" / "PSAImages" / "validations.json").read_text())
+        comparisons = validations["comparisons"]
+        retained = filter_comparisons(comparisons, "PSAImages")
+        excluded = {item["fileName"] for item in comparisons if item not in retained}
+        self.assertEqual(len(excluded), 6)
+        self.assertTrue(all(any(channel in name for channel in ("C3-RC", "F3-RC", "O1-RC"))
+                            for name in excluded))
+        self.assertTrue(any("cohort_psa_mean_std_Total_C3.pdf" == item["fileName"] for item in retained))
+
+    def test_classifier_independent_inputs_and_missing_files(self):
+        gold = self.root / "gold" / "SlowWaveDetection"
+        gold.mkdir(parents=True)
+        (gold / "Slow-Waves-Cohort-report_without_natus.tsv").write_text("filename\nrecord.edf\n")
+        for directory, suffix in (("slow_wave_characteristics", "_sw_carrier.tsv"),
+                                  ("slow_wave_sleep_stages", "_sw_carrier_stages.tsv")):
+            (gold / directory).mkdir()
+            for subject in ("01-01-0001", "learn-nsrr01", "learn-nsrr02"):
+                (gold / directory / (subject + suffix)).write_text("header\ndata\n")
+        workspace = self.root / "workspace"
+        order = ROOT / "config" / "tool_execution_order.json"
+        with patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
+            prepare_inputs(ROOT / "tools", order, "SlowWaveClassification", gold.parent, workspace)
+            self.assertEqual(len(list(workspace.rglob("*.tsv"))), 7)
+            self.assertTrue((workspace / "Slow-Waves-Cohort-report.tsv").is_file())
+            self.assertNotIn(NATUS_SUBJECT, repr([str(p) for p in workspace.rglob("*")]))
+            missing = gold / "slow_wave_sleep_stages" / "learn-nsrr01_sw_carrier_stages.tsv"
+            missing.unlink()
+            with self.assertRaises(FileNotFoundError):
+                prepare_inputs(ROOT / "tools", order, "SlowWaveClassification", gold.parent, self.root / "missing")
+            self.assertFalse((self.root / "missing").exists())
+            prepare_inputs(ROOT / "tools", order, "SlowWaveDetection,SlowWaveClassification",
+                           self.root / "absent", self.root / "generated")
+            self.assertFalse((self.root / "generated").exists())
+
     def test_natus_exclusion_adapts_manifest_and_summary(self):
         self.adaptations["updates"][0]["value"] = {
             "kind": "literal", "value": repr({NATUS_SUBJECT: {}, "record.edf": {}}),
@@ -107,6 +197,7 @@ class ConfigurationTests(unittest.TestCase):
         write_json(source, {"process_params": {"nodes": [
             {"identifier": "reader", "inputs": {"files": {"value": ""}}},
         ]}})
+        write_json(source.parent / "SlowWaveClassification.json", json.loads(source.read_text()))
         workspace = self.root / "validation-workspaces"
         manifest = self.root / "target" / "validation-logs" / "scenario-manifest.json"
         with patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
@@ -116,9 +207,10 @@ class ConfigurationTests(unittest.TestCase):
                 "--private-dataset-dir", self.root / "dataset", "--manifest", manifest,
             )
             data = json.loads(manifest.read_text())
-            self.assertEqual(data["excluded_tools"], ["SlowWaveClassification"])
-            self.assertEqual([r["run_id"] for r in data["runs"]], ["Example"])
+            self.assertEqual(data["excluded_tools"], [])
+            self.assertEqual([r["run_id"] for r in data["runs"]], ["Example", "SlowWaveClassification"])
             self.assertNotIn(NATUS_SUBJECT, (workspace / "Example.json").read_text())
+            self.assertNotIn(NATUS_SUBJECT, (workspace / "SlowWaveClassification.json").read_text())
             self.run_script(
                 "resolve_tool_order.py", "--tools-dir", self.tools, "--order-file", self.order,
                 "--manifest", manifest, "--format", "tsv",
@@ -139,8 +231,7 @@ class ConfigurationTests(unittest.TestCase):
             self.assertIn("SKIPPED (include_natus=false)", result.stdout)
             with (self.root / "summary.tsv").open() as stream:
                 rows = list(csv.DictReader(stream, delimiter="\t"))
-            self.assertEqual([r["comparison_status"] for r in rows],
-                             ["skipped-natus-excluded", "skipped-natus-excluded"])
+            self.assertEqual([r["comparison_status"] for r in rows], ["skipped-natus-excluded"])
             self.validations["comparisons"].append({
                 "fileName": "record.tsv", "fileType": "exists",
                 "generatedSearchRoots": [str(workspace)],
@@ -157,7 +248,40 @@ class ConfigurationTests(unittest.TestCase):
             with (self.root / "summary.tsv").open() as stream:
                 rows = list(csv.DictReader(stream, delimiter="\t"))
             self.assertEqual(rows[-1]["comparison_status"], "fail")
-            self.assertEqual(sum(r["tool_name"] == "SlowWaveClassification" for r in rows), 1)
+            self.assertEqual(sum(r["tool_name"] == "SlowWaveClassification" for r in rows), 0)
+
+    def test_distinct_non_natus_gold_reference_is_required(self):
+        self.validations = {"comparisons": [{
+            "fileName": "report.tsv", "goldFileNameWithoutNatus": "report_without_natus.tsv",
+            "fileType": "bag-comparison", "generatedSearchRoots": [str(self.root / "output")],
+        }]}
+        self.save()
+        gold = self.root / "gold" / "Example"
+        gold.mkdir(parents=True)
+        (gold / "report.tsv").write_text("subject\tvalue\nrecord\t2\n")
+        alternate = gold / "report_without_natus.tsv"
+        alternate.write_text("subject\tvalue\nrecord\t1\n")
+        output = self.root / "output"
+        output.mkdir()
+        (output / "report.tsv").write_text("subject\tvalue\nrecord\t1\n")
+        write_json(self.root / "status.json", {"Example": {"run_status": "pass"}})
+        args = (
+            "--tools-dir", self.tools, "--run-status-file", self.root / "status.json",
+            "--gold-standards-dir", gold.parent, "--gold-standard-tag", "test",
+            "--compare-script", RUNNER / "compare_outputs.py", "--workspace-dir", self.root,
+            "--output-summary-tsv", self.root / "summary.tsv", "--output-dir", self.root / "collected",
+        )
+        with patch.dict(os.environ, {"INCLUDE_NATUS": "false"}):
+            result = self.run_script("compare_and_summarize.py", *args)
+            self.assertIn("report_without_natus.tsv", result.stdout)
+            alternate.unlink()
+            result = self.run_script("compare_and_summarize.py", *args, expected_status=1)
+            self.assertIn("fail-missing-gold-standard", result.stdout)
+        with patch.dict(os.environ, {"INCLUDE_NATUS": "true"}):
+            result = self.run_script("compare_and_summarize.py", *args, expected_status=1)
+            self.assertIn("Comparison FAILED", result.stdout)
+            (output / "report.tsv").write_text("subject\tvalue\nrecord\t2\n")
+            self.run_script("compare_and_summarize.py", *args)
 
     def test_natus_report_filter_keeps_other_subject_failures(self):
         reference = self.root / "reference.tsv"
@@ -380,6 +504,7 @@ class ConfigurationTests(unittest.TestCase):
             {"absoluteTolerance": 0.1},
             {"fileType": "absolute-tolerance", "absoluteTolerance": 0.1},
             {"fileType": "table-tolerance", "keyColumns": []},
+            {"requiresNatus": "true"},
         ):
             with self.subTest(invalid=invalid):
                 self.validations = {"comparisons": [dict(self.comparison, **invalid)]}

@@ -24,7 +24,7 @@ import sys
 from pathlib import Path
 
 from configuration import DEFAULT_ORDER_FILE, load_adaptations
-from natus_validation import COHORT_CLASSIFIER, filter_scenario_inputs, include_natus
+from natus_validation import filter_scenario_inputs, include_natus
 from resolve_tool_order import resolve_tools
 from validation_scenarios import expand_scenarios
 
@@ -314,13 +314,7 @@ def main():
 
     tools_dir = Path(args.tools_dir)
     adaptations = load_adaptations(tools_dir)
-    excluded_tools = [
-        tool for tool in resolve_tools(tools_dir, Path(args.order_file), args.tools, include_excluded=True)
-        if not include_natus() and tool == COHORT_CLASSIFIER
-    ]
     tools_to_process = resolve_tools(tools_dir, Path(args.order_file), args.tools)
-    for tool in excluded_tools:
-        print(f"Excluded {tool}: include_natus=false (requires a separate cohort gold standard)")
 
     if not tools_to_process:
         print(f"No configured tools found in {tools_dir}", file=sys.stderr)
@@ -370,7 +364,7 @@ def main():
     manifest_path.write_text(
         json.dumps({
             "schema_version": 1, "runs": runs, "include_natus": include_natus(),
-            "excluded_tools": excluded_tools,
+            "excluded_tools": [],
         }, indent=2), encoding="utf-8"
     )
     print(f"\nValidation workspaces prepared with {adapted_count} scenario(s)")
