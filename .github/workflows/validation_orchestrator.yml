@@ -9,23 +9,23 @@ on:
       installer_repo:
         description: Installer release repository (owner/name)
         required: true
-        default: SnoozToolbox/snooz-toolbox-ceams
+        default: SnoozToolbox/snooz-toolbox
       installer_tag_windows:
         description: Windows installer release tag to validate
         required: true
-        default: v1.0.1-rc3
+        default: v1.1.0
       installer_tag_linux:
         description: Linux installer release tag to validate
         required: true
-        default: v1.0.1-rc3
+        default: v1.1.0
       installer_tag_macos_x64:
         description: macOS x64 installer release tag to validate (leave empty to auto-derive)
         required: true
-        default: "v1.0.1-rc3"
+        default: "v1.1.0"
       installer_tag_macos_arm64:
         description: macOS arm64 installer release tag to validate (leave empty to auto-derive)
         required: true
-        default: "v1.0.1-rc3"
+        default: "v1.1.0"
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -37,7 +37,7 @@ on:
       dataset_tag:
         description: Dataset release tag
         required: true
-        default: v1.0.0
+        default: "v1.0.0"
       tools_to_process:
         description: "Comma-separated list of tool basenames to adapt in this run. Leave empty to run all tools."
         required: false
@@ -46,7 +46,7 @@ on:
         description: Include NATUS inputs (disable for public installers)
         required: true
         type: boolean
-        default: true
+        default: false
       gold_standard_repo:
         description: Gold-standard repository (owner/name)
         required: false
@@ -54,7 +54,7 @@ on:
       gold_standard_tag:
         description: "Gold-standard release tag. Leave empty to skip comparison (first-run bootstrap). Set e.g. v1.0.0 to compare."
         required: false
-        default: ""
+        default: "v1.1.0"
 
 jobs:
   validate_windows:
