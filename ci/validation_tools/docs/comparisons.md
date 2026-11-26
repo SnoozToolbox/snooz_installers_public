@@ -82,13 +82,14 @@ For example:
 
 ```json
 {
-  "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
+  "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
   "fileType": "table-tolerance",
   "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+  "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
   "numericTolerance": {
-    "columnPattern": "*_act",
-    "relative": 0.001,
-    "absolute": 1e-8
+    "columnPattern": "*",
+    "relative": 0,
+    "absolute": 0.0001
   },
   "generatedSearchRoots": ["validation-workspaces"]
 }
@@ -96,11 +97,27 @@ For example:
 
 Rows are matched by the exact key values, independently of row order. Missing,
 extra, empty or duplicate keys fail, as do mismatched headers or malformed rows.
-The case-sensitive glob `columnPattern` must match at least one non-key column
-and no key columns. Matched numeric cells pass when
+Except for the special `"*"` mode below, the case-sensitive glob `columnPattern`
+must match at least one non-key column and no key columns. Matched numeric cells pass when
 `abs(generated - reference) <= absolute + relative * abs(reference)`.
 Both tolerances must be finite and non-negative. `relative: 0.001` means 0.1%.
 All other cells are compared exactly, without rounding or time normalization.
+The special `columnPattern: "*"` selects all non-key columns: numeric values
+receive the tolerance, while text remains exact. A numeric value paired with
+invalid text fails; missing values must still match exactly. Infinite values
+are rejected.
+
+Optional `numericKeyColumns` lists a subset of `keyColumns` to match by exact
+decimal numeric value, without tolerance (`0` equals `0.0`). Other keys remain
+exact strings. Numeric keys must be valid numbers; equivalent duplicate keys
+fail rather than being merged. This option is specific to `table-tolerance`.
+
+Welch, annotation and both IRASA reports in PowerSpectralAnalysis, and both
+PSACohortReview `_clean` reports, use this all-numeric mode with absolute
+tolerance `0.0001` and relative tolerance `0`. Their keys are `filename`,
+`channel_label`, `freq_low_Hz`, and `freq_high_Hz`; the frequency keys are numeric.
+The `_info`, `_transposed`, and FOOOF comparison modes remain unchanged.
+
 Empty strings, `nan` and `NaN` are recognized missing values in tolerant columns
 and must match exactly; they are never equivalent to zero. Other non-numeric or
 infinite values fail, even if identical in both files.

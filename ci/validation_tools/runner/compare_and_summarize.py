@@ -187,7 +187,7 @@ def compare_tool(tool_name, tool_config, gold_dir, generated_search_roots_defaul
         absolute_tolerance = comparison.get("absoluteTolerance")
         generated_roots = comparison.get("generatedSearchRoots") or generated_search_roots_default
         table_options = {
-            key: comparison[key] for key in ("keyColumns", "numericTolerance", "fitQuality") if key in comparison
+            key: comparison[key] for key in ("keyColumns", "numericKeyColumns", "numericTolerance", "fitQuality") if key in comparison
         }
         try:
             validate_comparison_options(comparison)

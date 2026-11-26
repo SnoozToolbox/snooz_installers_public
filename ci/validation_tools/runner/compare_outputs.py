@@ -12,6 +12,7 @@ import ntpath
 import re
 import sys
 from collections import Counter
+from decimal import Decimal
 from pathlib import Path
 
 from natus_validation import filter_report_rows, include_natus, is_natus
@@ -188,7 +189,7 @@ def validate_comparison_options(comparison):
     validate_absolute_options(file_type, comparison.get("absoluteTolerance"), precision)
     options = {
         key: comparison[key]
-        for key in ("keyColumns", "numericTolerance", "fitQuality") if key in comparison
+        for key in ("keyColumns", "numericKeyColumns", "numericTolerance", "fitQuality") if key in comparison
     }
     if file_type in ("table-tolerance", "fooof-fit-quality"):
         validator = validate_table_options if file_type == "table-tolerance" else validate_fit_options
@@ -255,9 +256,17 @@ def compare_absolute_tolerance(
 
 
 def validate_table_options(options: object) -> tuple[list[str], str, float, float]:
-    if not isinstance(options, dict) or set(options) != {"keyColumns", "numericTolerance"}:
+    if (
+        not isinstance(options, dict)
+        or not {"keyColumns", "numericTolerance"} <= set(options)
+        or set(options) - {"keyColumns", "numericKeyColumns", "numericTolerance"}
+    ):
         raise ValueError("table-tolerance requires keyColumns and numericTolerance.")
     keys = validate_key_columns(options["keyColumns"])
+    if "numericKeyColumns" in options:
+        numeric_keys = validate_key_columns(options["numericKeyColumns"])
+        if not set(numeric_keys) <= set(keys):
+            raise ValueError("numericKeyColumns must be a subset of keyColumns.")
     tolerance = options["numericTolerance"]
     if not isinstance(tolerance, dict) or set(tolerance) != {"columnPattern", "relative", "absolute"}:
         raise ValueError("numericTolerance requires columnPattern, relative and absolute.")
@@ -275,7 +284,7 @@ def validate_table_options(options: object) -> tuple[list[str], str, float, floa
 
 
 def read_keyed_table(
-    path: Path, delimiter: str, keys: list[str]
+    path: Path, delimiter: str, keys: list[str], numeric_keys: list[str] | None = None,
 ) -> tuple[list[str], dict[tuple[str, ...], list[str]]]:
     with path.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.reader(stream, delimiter=delimiter, strict=True)
@@ -285,6 +294,7 @@ def read_keyed_table(
         if any(key not in header for key in keys):
             raise ValueError(f"{path}: missing key columns {keys!r}.")
         key_indices = [header.index(key) for key in keys]
+        numeric_key_indices = {header.index(key) for key in (numeric_keys or [])}
         rows: dict[tuple[str, ...], list[str]] = {}
         exclude_natus = not include_natus()
         removed = 0
@@ -298,7 +308,13 @@ def read_keyed_table(
                 continue
             if len(row) != len(header):
                 raise ValueError(f"{path}: line {reader.line_num} has {len(row)} fields; expected {len(header)}.")
-            key = tuple(row[index] for index in key_indices)
+            for index in numeric_key_indices:
+                if not NUMERIC_FIELD_PATTERN.fullmatch(row[index]):
+                    raise ValueError(f"{path}: invalid numeric key in {header[index]!r} at line {reader.line_num}.")
+            key = tuple(
+                str(Decimal(row[index]).as_integer_ratio()) if index in numeric_key_indices else row[index]
+                for index in key_indices
+            )
             if any(not value.strip() for value in key):
                 raise ValueError(f"{path}: empty key at line {reader.line_num}.")
             if key in rows:
@@ -471,11 +487,16 @@ def compare_table_tolerance(
     keys, pattern, relative, absolute = validate_table_options(options)
     if len(delimiter) != 1:
         raise ValueError("table-tolerance requires a single-character delimiter.")
-    header, ref_rows = read_keyed_table(reference, delimiter, keys)
-    gen_header, gen_rows = read_keyed_table(generated, delimiter, keys)
+    numeric_keys = options.get("numericKeyColumns", [])
+    header, ref_rows = read_keyed_table(reference, delimiter, keys, numeric_keys)
+    gen_header, gen_rows = read_keyed_table(generated, delimiter, keys, numeric_keys)
     if header != gen_header:
         raise ValueError("Table headers differ (including column order).")
-    tolerant_indices = {i for i, name in enumerate(header) if fnmatch.fnmatchcase(name, pattern)}
+    all_numeric = pattern == "*"
+    tolerant_indices = {
+        i for i, name in enumerate(header)
+        if fnmatch.fnmatchcase(name, pattern) and (not all_numeric or name not in keys)
+    }
     if not tolerant_indices:
         raise ValueError(f"columnPattern {pattern!r} matches no columns.")
     if any(header[i] in keys for i in tolerant_indices):
@@ -498,8 +519,19 @@ def compare_table_tolerance(
         report(f"Unexpected generated key: {key!r}")
     for key in sorted(ref_rows.keys() & gen_rows.keys()):
         for i, (ref, gen) in enumerate(zip(ref_rows[key], gen_rows[key])):
+            if header[i] in numeric_keys:
+                continue
             detail = ""
-            if i in tolerant_indices:
+            numeric_cell = (
+                NUMERIC_FIELD_PATTERN.fullmatch(ref) or NUMERIC_FIELD_PATTERN.fullmatch(gen)
+                or ref in ("", "nan", "NaN") or gen in ("", "nan", "NaN")
+            )
+            if all_numeric and any(
+                field.strip().lower() in ("inf", "+inf", "-inf", "infinity", "+infinity", "-infinity", "+nan", "-nan")
+                for field in (ref, gen)
+            ):
+                raise ValueError(f"Nonfinite value at key={key!r}, column={header[i]!r}.")
+            if i in tolerant_indices and (not all_numeric or numeric_cell):
                 values = []
                 for field in (ref, gen):
                     if field in ("", "nan", "NaN"):

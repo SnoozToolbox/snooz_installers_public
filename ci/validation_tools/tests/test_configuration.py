@@ -317,8 +317,12 @@ class ConfigurationTests(unittest.TestCase):
                     gold.mkdir(parents=True)
                     for suffix in ("clean", "transposed"):
                         filename = f"{expected_base}_{suffix}.tsv"
-                        (workspace / filename).write_text("subject\tvalue\nrecord\t1\n")
-                        (gold / filename).write_text("subject\tvalue\nrecord\t1\n")
+                        content = (
+                            "filename\tchannel_label\tfreq_low_Hz\tfreq_high_Hz\ttotal_act\nrecord\tC3\t0\t1\t272.02105\n"
+                            if suffix == "clean" else "subject\tvalue\nrecord\t1\n"
+                        )
+                        (workspace / filename).write_text(content)
+                        (gold / filename).write_text(content)
                     status[run_id] = {
                         "run_status": "pass", "tool_name": "PSACohortReview",
                         "scenario_id": scenario, "explicit_scenario": True,
@@ -391,6 +395,41 @@ class ConfigurationTests(unittest.TestCase):
                 result = self.run_script("compare_and_summarize.py", *arguments,
                                          "--gold-standard-tag", "test", expected_status=1)
                 self.assertIn("fail-missing-gold-standard", result.stdout)
+
+    def test_spectral_table_tolerance_numeric_fields_and_exact_keys(self):
+        reference = self.root / "reference.tsv"
+        generated = self.root / "generated.tsv"
+        header = "filename\tchannel_label\tfreq_low_Hz\tfreq_high_Hz\ttotal_act\tcyc1_length_min\tcount\tlabel\n"
+        reference.write_text(header + "record\tC3\t0\t1\t272.02105\t0\t360\tkept\n"
+                             + "record\tC3\t1\t2\t1\t10\t2\tkept\n")
+        options = {
+            "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+            "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
+            "numericTolerance": {"columnPattern": "*", "relative": 0, "absolute": 0.0001},
+        }
+        first = "record\tC3\t0.0\t1.0\t272.0210499878328\t0.0001\t360.0\tkept\n"
+        second = "record\tC3\t1.0\t2.0\t1\t10\t2\tkept\n"
+        args = ("--tool-name", "Spectral", "--file-type", "table-tolerance",
+                "--reference-file", reference, "--generated-file", generated,
+                "--table-options", json.dumps(options))
+        for enabled in ("true", "false"):
+            with self.subTest(include_natus=enabled), patch.dict(os.environ, {"INCLUDE_NATUS": enabled}):
+                generated.write_text(header + second + first)
+                self.run_script("compare_outputs.py", *args)
+                for changed in (
+                    first.replace("0.0001\t", "0.00010001\t"),
+                    first.replace("kept", "changed"),
+                    first.replace("0.0\t", "0.00001\t", 1),
+                    first.replace("360.0", "361"),
+                    first.replace("272.0210499878328", "inf"),
+                    first.replace("272.0210499878328", "invalid"),
+                ):
+                    with self.subTest(changed=changed):
+                        generated.write_text(header + second + changed)
+                        self.run_script("compare_outputs.py", *args, expected_status=1)
+                generated.write_text(header + first + first.replace("0.0\t", "0\t", 1))
+                result = self.run_script("compare_outputs.py", *args, expected_status=1)
+                self.assertIn("duplicate key", result.stdout)
 
     def test_natus_report_filter_keeps_other_subject_failures(self):
         reference = self.root / "reference.tsv"
