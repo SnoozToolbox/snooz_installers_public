@@ -283,6 +283,34 @@ class ConfigurationTests(unittest.TestCase):
             (output / "report.tsv").write_text("subject\tvalue\nrecord\t2\n")
             self.run_script("compare_and_summarize.py", *args)
 
+    def test_classification_info_uses_shared_gold_reference(self):
+        definition = json.loads((ROOT / "tools" / "SlowWaveClassification" / "validations.json").read_text())
+        comparison = next(c for c in definition["comparisons"] if c["fileName"].endswith("_info.tsv"))
+        output = self.root / "output"
+        output.mkdir()
+        comparison["generatedSearchRoots"] = [str(output)]
+        self.validations = {"comparisons": [comparison]}
+        self.save()
+        gold = self.root / "gold" / "Example"
+        gold.mkdir(parents=True)
+        content = "property\tvalue\nsetting\t1\n"
+        (gold / comparison["fileName"]).write_text(content)
+        generated = output / comparison["fileName"]
+        write_json(self.root / "status.json", {"Example": {"run_status": "pass"}})
+        args = (
+            "--tools-dir", self.tools, "--run-status-file", self.root / "status.json",
+            "--gold-standards-dir", gold.parent, "--gold-standard-tag", "test",
+            "--compare-script", RUNNER / "compare_outputs.py", "--workspace-dir", self.root,
+            "--output-summary-tsv", self.root / "summary.tsv", "--output-dir", self.root / "collected",
+        )
+        for enabled in ("true", "false"):
+            with self.subTest(include_natus=enabled), patch.dict(os.environ, {"INCLUDE_NATUS": enabled}):
+                generated.write_text(content)
+                self.run_script("compare_and_summarize.py", *args)
+                generated.write_text("property\tvalue\nsetting\t2\n")
+                result = self.run_script("compare_and_summarize.py", *args, expected_status=1)
+                self.assertIn("Comparison FAILED", result.stdout)
+
     def test_psa_cohort_review_mode_specific_outputs_and_comparisons(self):
         definition = load_adaptations(ROOT / "tools")["PSACohortReview"]
         updates = definition["updates"] + [

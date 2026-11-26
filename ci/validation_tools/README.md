@@ -157,7 +157,9 @@ contain separate gold standards for the non-NATUS run:
 - `learn-nsrr01_sw_carrier_without_natus.tsv`
 - `learn-nsrr02_sw_carrier_without_natus.tsv`
 - `sw_cohort_details_per_categories_without_natus.tsv`
-- `sw_cohort_details_per_categories_info_without_natus.tsv`
+
+The `_info` reports use the same gold-standard filenames with and without NATUS;
+no separate `_info_without_natus` references are required.
 
 Generate these references from a validated non-NATUS run; removing rows from
 the full-cohort classification results is not sufficient. With a gold-standard

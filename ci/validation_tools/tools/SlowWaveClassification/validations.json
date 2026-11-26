@@ -46,7 +46,6 @@
     },
     {
       "fileName": "sw_cohort_details_per_categories_info.tsv",
-      "goldFileNameWithoutNatus": "sw_cohort_details_per_categories_info_without_natus.tsv",
       "fileType": "bag-comparison",
       "generatedSearchRoots": [
         "validation-workspaces/SlowWaveClassification_outputs"
