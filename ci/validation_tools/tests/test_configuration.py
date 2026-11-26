@@ -319,7 +319,7 @@ class ConfigurationTests(unittest.TestCase):
                         filename = f"{expected_base}_{suffix}.tsv"
                         content = (
                             "filename\tchannel_label\tfreq_low_Hz\tfreq_high_Hz\ttotal_act\nrecord\tC3\t0\t1\t272.02105\n"
-                            if suffix == "clean" else "subject\tvalue\nrecord\t1\n"
+                            if suffix == "clean" else "filename\ttotal_W_act_abs_EEG(sec)_11_16\nrecord\t1\n"
                         )
                         (workspace / filename).write_text(content)
                         (gold / filename).write_text(content)
@@ -342,6 +342,31 @@ class ConfigurationTests(unittest.TestCase):
                 collected = self.root / enabled / "collected" / "PSACohortReview" / "pwelch"
                 expected_name = "PSACohortReview" + ("_without_natus" if enabled == "false" else "")
                 self.assertTrue((collected / f"generated_{expected_name}_clean.tsv").is_file())
+
+    def test_psa_transposed_tolerance_matches_embedded_act_columns(self):
+        definitions = json.loads((ROOT / "tools" / "PSACohortReview" / "validations.json").read_text())
+        reference = self.root / "reference.tsv"
+        generated = self.root / "generated.tsv"
+        header = "filename\ttotal_W_act_abs_EEG(sec)_11_16\ttotal_act_abs_C3_1_4\n"
+        reference.write_text(header + "first\t272.02105\t0\nsecond\t1\t2\n")
+        for scenario, definition in definitions["scenarios"].items():
+            comparison = next(c for c in definition["comparisons"] if c["fileName"].endswith("_transposed.tsv"))
+            options = {key: comparison[key] for key in ("keyColumns", "numericTolerance")}
+            args = ("--tool-name", "PSACohortReview", "--file-type", comparison["fileType"],
+                    "--reference-file", reference, "--generated-file", generated,
+                    "--table-options", json.dumps(options))
+            for enabled in ("true", "false"):
+                with self.subTest(scenario=scenario, include_natus=enabled), patch.dict(os.environ, {"INCLUDE_NATUS": enabled}):
+                    first = "first\t272.0210499878328\t0.0001\n"
+                    generated.write_text(header + "second\t1\t2\n" + first)
+                    self.run_script("compare_outputs.py", *args)
+                    for changed in (
+                        first.replace("0.0001", "0.00010001"),
+                        first.replace("first", "other"),
+                        first + first,
+                    ):
+                        generated.write_text(header + "second\t1\t2\n" + changed)
+                        self.run_script("compare_outputs.py", *args, expected_status=1)
 
     def test_detections_review_non_natus_input_outputs_and_references(self):
         definition = load_adaptations(ROOT / "tools")["DetectionsCohortReview"]

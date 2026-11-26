@@ -116,7 +116,11 @@ Welch, annotation and both IRASA reports in PowerSpectralAnalysis, and both
 PSACohortReview `_clean` reports, use this all-numeric mode with absolute
 tolerance `0.0001` and relative tolerance `0`. Their keys are `filename`,
 `channel_label`, `freq_low_Hz`, and `freq_high_Hz`; the frequency keys are numeric.
-The `_info`, `_transposed`, and FOOOF comparison modes remain unchanged.
+PSACohortReview `_transposed` reports use `filename` as their only key and
+`columnPattern: "*act*"` with the same tolerances. This includes columns such
+as `total_W_act_abs_EEG(sec)_11_16`, where `act` is not a suffix.
+Both full-cohort and non-NATUS variants use these rules.
+The `_info` and FOOOF comparison modes remain unchanged.
 
 Empty strings, `nan` and `NaN` are recognized missing values in tolerant columns
 and must match exactly; they are never equivalent to zero. Other non-numeric or
