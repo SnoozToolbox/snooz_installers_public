@@ -109,7 +109,16 @@ jobs:
             $json | ConvertTo-Json -Depth 10 | Set-Content 'src/build/settings/base.json'
           } else {
             Write-Host "No release_tag provided, keeping default version from repository"
+            $json = Get-Content 'src/build/settings/base.json' | ConvertFrom-Json
+            $normalizedTag = "$($json.version)"
+            if (-not [string]::IsNullOrWhiteSpace($json.release_label)) {
+              $normalizedTag += "-$($json.release_label)"
+            }
           }
+          if ($normalizedTag -notmatch '^\d+(?:\.\d+){2,3}(?:-[a-zA-Z0-9][a-zA-Z0-9.-]*)?$') {
+            throw "Invalid installer version for filename: $normalizedTag"
+          }
+          "INSTALLER_VERSION=$normalizedTag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Patch is_dev for release
         shell: pwsh
@@ -429,12 +438,23 @@ jobs:
           $outputPdfSize = (Get-Item $outputPdf).Length
           Write-Host "Verified runtime smoke PDF: $outputPdf (size: $outputPdfSize bytes)"
 
+      - name: Package Windows installer
+        if: ${{ !inputs.freeze_only }}
+        shell: pwsh
+        run: |
+          $installers = @(Get-ChildItem -Path target -Filter "*.exe" -File)
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one Windows installer in target, found $($installers.Count)"
+          }
+          $archive = "target/Snooz-Windows-Installer-$env:INSTALLER_VERSION.zip"
+          Compress-Archive -LiteralPath $installers[0].FullName -DestinationPath $archive
+
       - name: Upload Windows installer artifact
         if: ${{ inputs.upload_artifacts || inputs.freeze_only }}
         uses: actions/upload-artifact@v4
         with:
-          name: SnoozSetup.exe
-          path: target/*.exe
+          name: Snooz-Windows-Installer
+          path: target/Snooz-Windows-Installer-*.zip
           retention-days: 2
 
       - name: Upload target folder for debug (Windows)
@@ -465,7 +485,7 @@ jobs:
           name: ${{ inputs.release_name != '' && inputs.release_name || inputs.release_tag }}
           draft: ${{ inputs.release_draft }}
           prerelease: ${{ inputs.release_prerelease }}
-          files: target/*.exe
+          files: target/Snooz-Windows-Installer-*.zip
           fail_on_unmatched_files: true
 
   build_linux:
@@ -504,7 +524,13 @@ jobs:
             fi
           else
             echo "No release_tag provided, keeping default version from repository"
+            NORMALIZED_TAG="$(python3 -c "import json; d=json.load(open('src/build/settings/base.json')); print(str(d['version']) + ('-' + d['release_label'] if d.get('release_label') else ''))")"
           fi
+          if [[ ! "$NORMALIZED_TAG" =~ ^[0-9]+(\.[0-9]+){2,3}(-[a-zA-Z0-9][a-zA-Z0-9.-]*)?$ ]]; then
+            echo "::error::Invalid installer version for filename: $NORMALIZED_TAG"
+            exit 1
+          fi
+          echo "INSTALLER_VERSION=$NORMALIZED_TAG" >> "$GITHUB_ENV"
 
       - name: Patch is_dev for release
         run: |
@@ -978,6 +1004,22 @@ jobs:
           OUTPUT_PDF_SIZE="$(wc -c < "$OUTPUT_PDF" | tr -d ' ')"
           echo "Verified runtime smoke PDF: $OUTPUT_PDF (size: ${OUTPUT_PDF_SIZE} bytes)"
 
+      - name: Rename Linux packages
+        if: ${{ !inputs.freeze_only }}
+        run: |
+          shopt -s nullglob
+          DEBS=(target/*.deb)
+          ZIPS=(target/*.zip)
+          if [ "${#DEBS[@]}" -ne 1 ] || [ "${#ZIPS[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one DEB and one ZIP in target/."
+            ls -la target
+            exit 1
+          fi
+          DEB_DEST="target/Snooz-Linux-${INSTALLER_VERSION}.deb"
+          ZIP_DEST="target/Snooz-Linux-${INSTALLER_VERSION}.zip"
+          if [ "${DEBS[0]}" != "$DEB_DEST" ]; then mv -- "${DEBS[0]}" "$DEB_DEST"; fi
+          if [ "${ZIPS[0]}" != "$ZIP_DEST" ]; then mv -- "${ZIPS[0]}" "$ZIP_DEST"; fi
+
       - name: Validate Linux package outputs
         if: ${{ !inputs.freeze_only }}
         run: |
@@ -991,8 +1033,8 @@ jobs:
         with:
           name: SnoozSetup-linux
           path: |
-            target/*.zip
-            target/*.deb
+            target/Snooz-Linux-*.zip
+            target/Snooz-Linux-*.deb
           retention-days: 2
 
       - name: Upload target folder for debug (Linux)
@@ -1024,6 +1066,6 @@ jobs:
           draft: ${{ inputs.release_draft }}
           prerelease: ${{ inputs.release_prerelease }}
           files: |
-            target/*.zip
-            target/*.deb
+            target/Snooz-Linux-*.zip
+            target/Snooz-Linux-*.deb
           fail_on_unmatched_files: true

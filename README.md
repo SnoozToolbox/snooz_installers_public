@@ -32,6 +32,21 @@ target behavior is preserved because the source commit may not exist there.
 For multi-platform releases, keep the source branch unchanged until all builds
 have checked it out, or use the same source commit SHA for every workflow.
 
+## Installer release assets
+
+For `release_tag` `v1.1.0`, the workflows publish:
+
+- `Snooz-Windows-Installer-1.1.0.zip` (containing the Windows installer `.exe`)
+- `Snooz-macOS-x64-1.1.0.dmg`
+- `Snooz-macOS-ARM64-1.1.0.dmg`
+- `Snooz-Linux-1.1.0.deb`
+- `Snooz-Linux-1.1.0.zip` (portable application)
+
+The filenames use the release tag without `v` or `release-`, retaining any
+prerelease suffix (for example `v1.1.0-rc.1` becomes `1.1.0-rc.1`). Without a
+tag, artifact filenames use the version and optional release label from
+`src/build/settings/base.json` in the source repository.
+
 ## Validation flow strategy
 
 The long-term plan is to keep installer creation and installer validation in separate workflows.

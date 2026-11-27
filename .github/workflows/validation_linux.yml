@@ -20,7 +20,7 @@ on:
         required: true
         default: v1.0.1-rc3
       installer_asset_pattern:
-        description: Installer asset name pattern (e.g. Snooz*.deb or SnoozSetup-portable-linux.zip)
+        description: Installer asset name pattern (e.g. Snooz-Linux-*.deb or Snooz-Linux-*.zip)
         required: true
         default: "Snooz*.deb"
       installer_type:
@@ -279,13 +279,16 @@ jobs:
             exit 1
           fi
 
-          # The DEB package installs to /opt/Snooz Toolbox/
-          SNOOZ_APP_DIR="$INSTALL_DIR/opt/Snooz Toolbox"
+          if [ "$INSTALLER_TYPE" = "zip" ]; then
+            SNOOZ_APP_DIR="$INSTALL_DIR/Snooz Toolbox"
+          else
+            SNOOZ_APP_DIR="$INSTALL_DIR/opt/Snooz Toolbox"
+          fi
           
           if [ ! -d "$SNOOZ_APP_DIR" ]; then
             echo "Snooz application directory not found at: $SNOOZ_APP_DIR"
-            echo "Available directories under $INSTALL_DIR/opt:"
-            ls -la "$INSTALL_DIR/opt" 2>/dev/null || echo "No opt directory found"
+            echo "Available directories under $INSTALL_DIR:"
+            ls -la "$INSTALL_DIR"
             exit 1
           fi
           

@@ -17,7 +17,7 @@ on:
       installer_asset_pattern:
         description: Installer asset name pattern
         required: true
-        default: "Snooz*.exe"
+        default: "Snooz-Windows-Installer-*.zip"
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -267,6 +267,9 @@ jobs:
             "--dir", "installer"
           )
           & gh @ghArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to download Windows installer from $repo@$tag using pattern '$pattern'"
+          }
 
       - name: Show downloaded files
         shell: pwsh
@@ -279,12 +282,18 @@ jobs:
       - name: Install Snooz and extract JSON files
         shell: pwsh
         run: |
-          $installer = Get-ChildItem -Path installer -Filter "*.exe" -Recurse |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-          if ($null -eq $installer) {
-            throw "No installer executable found under installer directory"
+          $archives = @(Get-ChildItem -Path installer -Filter "*.zip" -File)
+          if ($archives.Count -gt 1) {
+            throw "Expected at most one Windows installer archive, found $($archives.Count)"
           }
+          if ($archives.Count -eq 1) {
+            Expand-Archive -LiteralPath $archives[0].FullName -DestinationPath "installer/extracted"
+          }
+          $installers = @(Get-ChildItem -Path installer -Filter "*.exe" -Recurse -File)
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one installer executable under installer directory, found $($installers.Count)"
+          }
+          $installer = $installers[0]
 
           $installDir = "C:\snooz_ci_install"
           if (Test-Path $installDir) {
