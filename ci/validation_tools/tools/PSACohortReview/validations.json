@@ -4,16 +4,31 @@
       "comparisons": [
         {
           "fileName": "PSACohortReview_clean.tsv",
-          "fileType": "bag-comparison",
-          "precision": 4,
+          "generatedFileNameWithoutNatus": "PSACohortReview_without_natus_clean.tsv",
+          "goldFileNameWithoutNatus": "PSACohortReview_without_natus_clean.tsv",
+          "fileType": "table-tolerance",
+          "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+          "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
+          "numericTolerance": {
+            "columnPattern": "*",
+            "relative": 0,
+            "absolute": 0.0001
+          },
           "generatedSearchRoots": [
             "validation-workspaces"
           ]
         },
         {
           "fileName": "PSACohortReview_transposed.tsv",
-          "fileType": "bag-comparison",
-          "precision": 4,
+          "generatedFileNameWithoutNatus": "PSACohortReview_without_natus_transposed.tsv",
+          "goldFileNameWithoutNatus": "PSACohortReview_without_natus_transposed.tsv",
+          "fileType": "table-tolerance",
+          "keyColumns": ["filename"],
+          "numericTolerance": {
+            "columnPattern": "*act*",
+            "relative": 0,
+            "absolute": 0.0001
+          },
           "generatedSearchRoots": [
             "validation-workspaces"
           ]
@@ -24,16 +39,31 @@
       "comparisons": [
         {
           "fileName": "PSACohortReview_irasa_clean.tsv",
-          "fileType": "bag-comparison",
-          "precision": 4,
+          "generatedFileNameWithoutNatus": "PSACohortReview_irasa_without_natus_clean.tsv",
+          "goldFileNameWithoutNatus": "PSACohortReview_irasa_without_natus_clean.tsv",
+          "fileType": "table-tolerance",
+          "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+          "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
+          "numericTolerance": {
+            "columnPattern": "*",
+            "relative": 0,
+            "absolute": 0.0001
+          },
           "generatedSearchRoots": [
             "validation-workspaces"
           ]
         },
         {
           "fileName": "PSACohortReview_irasa_transposed.tsv",
-          "fileType": "bag-comparison",
-          "precision": 4,
+          "generatedFileNameWithoutNatus": "PSACohortReview_irasa_without_natus_transposed.tsv",
+          "goldFileNameWithoutNatus": "PSACohortReview_irasa_without_natus_transposed.tsv",
+          "fileType": "table-tolerance",
+          "keyColumns": ["filename"],
+          "numericTolerance": {
+            "columnPattern": "*act*",
+            "relative": 0,
+            "absolute": 0.0001
+          },
           "generatedSearchRoots": [
             "validation-workspaces"
           ]

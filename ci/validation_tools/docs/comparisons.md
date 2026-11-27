@@ -15,6 +15,9 @@ to the repository execution directory, not the configuration file.
   significant; filename values are not rounded as numbers or normalized as times.
   Other columns and comparison modes retain their existing behavior.
 - `generic` and `report`: ordered text comparisons.
+  In non-NATUS mode, each line is data (no table header is assumed), so
+  single-line validation logs are supported. Removing all non-blank lines
+  through NATUS exclusion still fails.
 - `exists`: generated file must be non-empty; PDFs must have a valid header
   and EOF marker. No gold standard is required.
 - Numeric tolerance modes are detailed below.
@@ -25,6 +28,13 @@ validation with `comparison_status: fail-missing-gold-standard`. Generated files
 are still collected in the artifacts so references can be published.
 Missing generated files also fail comparisons. To intentionally collect outputs
 without gold comparisons for a bootstrap run, leave the gold-standard tag empty.
+Set `requiresNatus: true` on a comparison only when its output depends on the
+NATUS subject; it is excluded when `include_natus=false`.
+When an output depends on the entire cohort, `goldFileNameWithoutNatus` selects
+a separately generated reference when `include_natus=false`; if it is missing,
+the comparison fails rather than falling back to the full-cohort reference.
+Use `generatedFileNameWithoutNatus` as well when the generated output has a
+different name in this mode. This name is also used to collect bootstrap outputs.
 
 ```json
 {
@@ -72,13 +82,14 @@ For example:
 
 ```json
 {
-  "fileName": "EEG_spectral_power_cohort_report_FOOOF_periodic.tsv",
+  "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
   "fileType": "table-tolerance",
   "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+  "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
   "numericTolerance": {
-    "columnPattern": "*_act",
-    "relative": 0.001,
-    "absolute": 1e-8
+    "columnPattern": "*",
+    "relative": 0,
+    "absolute": 0.0001
   },
   "generatedSearchRoots": ["validation-workspaces"]
 }
@@ -86,11 +97,31 @@ For example:
 
 Rows are matched by the exact key values, independently of row order. Missing,
 extra, empty or duplicate keys fail, as do mismatched headers or malformed rows.
-The case-sensitive glob `columnPattern` must match at least one non-key column
-and no key columns. Matched numeric cells pass when
+Except for the special `"*"` mode below, the case-sensitive glob `columnPattern`
+must match at least one non-key column and no key columns. Matched numeric cells pass when
 `abs(generated - reference) <= absolute + relative * abs(reference)`.
 Both tolerances must be finite and non-negative. `relative: 0.001` means 0.1%.
 All other cells are compared exactly, without rounding or time normalization.
+The special `columnPattern: "*"` selects all non-key columns: numeric values
+receive the tolerance, while text remains exact. A numeric value paired with
+invalid text fails; missing values must still match exactly. Infinite values
+are rejected.
+
+Optional `numericKeyColumns` lists a subset of `keyColumns` to match by exact
+decimal numeric value, without tolerance (`0` equals `0.0`). Other keys remain
+exact strings. Numeric keys must be valid numbers; equivalent duplicate keys
+fail rather than being merged. This option is specific to `table-tolerance`.
+
+Welch, annotation and both IRASA reports in PowerSpectralAnalysis, and both
+PSACohortReview `_clean` reports, use this all-numeric mode with absolute
+tolerance `0.0001` and relative tolerance `0`. Their keys are `filename`,
+`channel_label`, `freq_low_Hz`, and `freq_high_Hz`; the frequency keys are numeric.
+PSACohortReview `_transposed` reports use `filename` as their only key and
+`columnPattern: "*act*"` with the same tolerances. This includes columns such
+as `total_W_act_abs_EEG(sec)_11_16`, where `act` is not a suffix.
+Both full-cohort and non-NATUS variants use these rules.
+The `_info` and FOOOF comparison modes remain unchanged.
+
 Empty strings, `nan` and `NaN` are recognized missing values in tolerant columns
 and must match exactly; they are never equivalent to zero. Other non-numeric or
 infinite values fail, even if identical in both files.

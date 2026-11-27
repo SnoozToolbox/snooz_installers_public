@@ -15,7 +15,7 @@ This workflow automates the validation of Snooz tools by:
 
 macOS x64 validation uses the self-hosted runner with labels `self-hosted`, `macOS`, and `X64`. macOS arm64 validation uses `macos-latest`.
 
-The downloaded installer must include the architecture suffix `-x64.dmg` or `-arm64.dmg`. Validation selects exactly one DMG matching the requested architecture, even when the download pattern matches both, and checks the executable architecture with `lipo` before running scenarios.
+The downloaded installer must use `Snooz-macOS-x64-<version>.dmg` or `Snooz-macOS-ARM64-<version>.dmg`. The standalone workflow also supports older DMGs ending in `-x64.dmg` or `-arm64.dmg`. Validation selects exactly one DMG matching the requested architecture, even when the download pattern matches both, and checks the executable architecture with `lipo` before running scenarios.
 
 Each validation job mounts its selected DMG at a unique path under `RUNNER_TEMP` and detaches only that mount during cleanup. Existing Snooz volumes on the self-hosted runner are not selected or detached.
 
@@ -24,6 +24,16 @@ Like the installer build's headless DMG smoke test, validation uses `ditto` to c
 Before executing scenarios, macOS validation verifies the app signature with `codesign --verify --deep --strict` and assesses it with Gatekeeper (`spctl`). Either failure stops validation. Diagnostic output is preserved in `target/validation-logs/macos-codesign.log` and `target/validation-logs/macos-gatekeeper.log`; validation does not bypass macOS security checks.
 
 The Intel runner must provide GitHub CLI (`gh`) for downloading release assets. Before downloading, the workflow adds the standard Intel Homebrew directory (`/usr/local/bin`) to `PATH` and installs `gh` with `brew install gh` if it is missing. Homebrew must already be installed and usable by the runner account. If neither `gh` nor Homebrew is available, the workflow stops with an explicit setup error.
+
+## Windows and Linux installers
+
+The orchestrator downloads the Windows installer ZIP and extracts its single
+installer executable before running it. The standalone Windows workflow also
+accepts a direct `.exe` when its asset pattern is set accordingly.
+
+The orchestrator validates the Linux `.deb`. To validate the portable ZIP
+instead, run the standalone Linux workflow with `installer_type` set to `zip`
+and `installer_asset_pattern` set to `Snooz-Linux-*.zip`.
 
 ## Workflow Diagram
 

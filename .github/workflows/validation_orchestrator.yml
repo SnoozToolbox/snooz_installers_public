@@ -9,23 +9,23 @@ on:
       installer_repo:
         description: Installer release repository (owner/name)
         required: true
-        default: SnoozToolbox/snooz-toolbox-ceams
+        default: SnoozToolbox/snooz-toolbox
       installer_tag_windows:
         description: Windows installer release tag to validate
         required: true
-        default: v1.0.1-rc3
+        default: v1.1.0
       installer_tag_linux:
         description: Linux installer release tag to validate
         required: true
-        default: v1.0.1-rc3
+        default: v1.1.0
       installer_tag_macos_x64:
         description: macOS x64 installer release tag to validate (leave empty to auto-derive)
         required: true
-        default: "v1.0.1-rc3"
+        default: "v1.1.0"
       installer_tag_macos_arm64:
         description: macOS arm64 installer release tag to validate (leave empty to auto-derive)
         required: true
-        default: "v1.0.1-rc3"
+        default: "v1.1.0"
       package_version:
         description: "CEAMS package version to validate (ex: 7.4.0)"
         required: true
@@ -37,11 +37,16 @@ on:
       dataset_tag:
         description: Dataset release tag
         required: true
-        default: v1.0.0
+        default: "v1.0.0"
       tools_to_process:
         description: "Comma-separated list of tool basenames to adapt in this run. Leave empty to run all tools."
         required: false
         default: ""
+      include_natus:
+        description: Include NATUS inputs (disable for public installers)
+        required: true
+        type: boolean
+        default: false
       gold_standard_repo:
         description: Gold-standard repository (owner/name)
         required: false
@@ -49,7 +54,7 @@ on:
       gold_standard_tag:
         description: "Gold-standard release tag. Leave empty to skip comparison (first-run bootstrap). Set e.g. v1.0.0 to compare."
         required: false
-        default: ""
+        default: "v1.1.0"
 
 jobs:
   validate_windows:
@@ -57,7 +62,8 @@ jobs:
     with:
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_windows }}
-      installer_asset_pattern: "Snooz*.exe"
+      include_natus: ${{ inputs.include_natus }}
+      installer_asset_pattern: "Snooz-Windows-Installer-*.zip"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
@@ -72,7 +78,8 @@ jobs:
       arch: x64
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_macos_x64 }}
-      installer_asset_pattern: "Snooz*-x64.dmg"
+      include_natus: ${{ inputs.include_natus }}
+      installer_asset_pattern: "Snooz-macOS-x64-*.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
@@ -87,7 +94,8 @@ jobs:
       arch: arm64
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_macos_arm64 }}
-      installer_asset_pattern: "Snooz*-arm64.dmg"
+      include_natus: ${{ inputs.include_natus }}
+      installer_asset_pattern: "Snooz-macOS-ARM64-*.dmg"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}
       dataset_tag: ${{ inputs.dataset_tag }}
@@ -101,7 +109,8 @@ jobs:
     with:
       installer_repo: ${{ inputs.installer_repo }}
       installer_tag: ${{ inputs.installer_tag_linux }}
-      installer_asset_pattern: "Snooz*.deb"
+      include_natus: ${{ inputs.include_natus }}
+      installer_asset_pattern: "Snooz-Linux-*.deb"
       installer_type: "deb"
       package_version: ${{ inputs.package_version }}
       dataset_repo: ${{ inputs.dataset_repo }}

@@ -4,8 +4,14 @@
       "comparisons": [
         {
           "fileName": "EEG_spectral_power_cohort_report_Welch.tsv",
-          "fileType": "bag-comparison",
-          "precision": 4,
+          "fileType": "table-tolerance",
+          "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+          "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
+          "numericTolerance": {
+            "columnPattern": "*",
+            "relative": 0,
+            "absolute": 0.0001
+          },
           "generatedSearchRoots": [
             "validation-workspaces"
           ]
@@ -24,8 +30,14 @@
       "comparisons": [
         {
           "fileName": "EEG_spectral_power_cohort_report_annotation.tsv",
-          "fileType": "bag-comparison",
-          "precision": 4,
+          "fileType": "table-tolerance",
+          "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+          "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
+          "numericTolerance": {
+            "columnPattern": "*",
+            "relative": 0,
+            "absolute": 0.0001
+          },
           "generatedSearchRoots": [
             "validation-workspaces"
           ]
@@ -44,8 +56,14 @@
       "comparisons": [
         {
           "fileName": "EEG_spectral_power_cohort_report_IRASA_periodic.tsv",
-          "fileType": "bag-comparison",
-          "precision": 4,
+          "fileType": "table-tolerance",
+          "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+          "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
+          "numericTolerance": {
+            "columnPattern": "*",
+            "relative": 0,
+            "absolute": 0.0001
+          },
           "generatedSearchRoots": [
             "validation-workspaces"
           ]
@@ -60,8 +78,14 @@
         },
         {
           "fileName": "EEG_spectral_power_cohort_report_IRASA_aperiodic.tsv",
-          "fileType": "bag-comparison",
-          "precision": 4,
+          "fileType": "table-tolerance",
+          "keyColumns": ["filename", "channel_label", "freq_low_Hz", "freq_high_Hz"],
+          "numericKeyColumns": ["freq_low_Hz", "freq_high_Hz"],
+          "numericTolerance": {
+            "columnPattern": "*",
+            "relative": 0,
+            "absolute": 0.0001
+          },
           "generatedSearchRoots": [
             "validation-workspaces"
           ]

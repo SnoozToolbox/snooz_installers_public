@@ -6,6 +6,11 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
+      include_natus:
+        description: Include NATUS inputs (disable for public installers)
+        required: true
+        type: boolean
+        default: false
       installer_repo:
         description: Installer release repository (owner/name)
         required: true
@@ -15,7 +20,7 @@ on:
         required: true
         default: v1.0.1-rc3
       installer_asset_pattern:
-        description: Installer asset name pattern (e.g. Snooz*.deb or SnoozSetup-portable-linux.zip)
+        description: Installer asset name pattern (e.g. Snooz-Linux-*.deb or Snooz-Linux-*.zip)
         required: true
         default: "Snooz*.deb"
       installer_type:
@@ -53,6 +58,11 @@ on:
 
   workflow_call:
     inputs:
+      include_natus:
+        description: Include NATUS inputs
+        required: false
+        type: boolean
+        default: false
       installer_repo:
         description: Installer release repository (owner/name)
         required: true
@@ -101,6 +111,8 @@ on:
 jobs:
   validate_linux:
     runs-on: ubuntu-latest
+    env:
+      INCLUDE_NATUS: ${{ inputs.include_natus }}
     steps:
       - name: Checkout workflow repository
         uses: actions/checkout@v5
@@ -155,7 +167,7 @@ jobs:
             --repo "${{ inputs.gold_standard_repo }}" \
             --dir gold-standards
 
-      - name: Extract gold standards assets for requested tools (optional)
+      - name: Extract gold standards assets (optional)
         shell: bash
         run: |
           GOLD_TAG="${{ inputs.gold_standard_tag }}"
@@ -267,13 +279,16 @@ jobs:
             exit 1
           fi
 
-          # The DEB package installs to /opt/Snooz Toolbox/
-          SNOOZ_APP_DIR="$INSTALL_DIR/opt/Snooz Toolbox"
+          if [ "$INSTALLER_TYPE" = "zip" ]; then
+            SNOOZ_APP_DIR="$INSTALL_DIR/Snooz Toolbox"
+          else
+            SNOOZ_APP_DIR="$INSTALL_DIR/opt/Snooz Toolbox"
+          fi
           
           if [ ! -d "$SNOOZ_APP_DIR" ]; then
             echo "Snooz application directory not found at: $SNOOZ_APP_DIR"
-            echo "Available directories under $INSTALL_DIR/opt:"
-            ls -la "$INSTALL_DIR/opt" 2>/dev/null || echo "No opt directory found"
+            echo "Available directories under $INSTALL_DIR:"
+            ls -la "$INSTALL_DIR"
             exit 1
           fi
           
@@ -357,6 +372,18 @@ jobs:
           echo "Swap after adding $SWAP_FILE:"
           swapon --show
           free -m
+
+      - name: Prepare non-NATUS cohort inputs for independent tools
+        shell: bash
+        env:
+          TOOLS_TO_PROCESS: ${{ inputs.tools_to_process }}
+        run: |
+          python3 ci/validation_tools/runner/prepare_cohort_inputs.py \
+            --tools-dir ci/validation_tools/tools \
+            --order-file ci/validation_tools/config/tool_execution_order.json \
+            --tools "$TOOLS_TO_PROCESS" \
+            --gold-standards-dir gold-standards/extracted \
+            --workspace-dir validation-workspaces
 
       - name: Run adapted headless scenarios and validate each tool immediately
         shell: bash

@@ -24,6 +24,7 @@ import sys
 from pathlib import Path
 
 from configuration import DEFAULT_ORDER_FILE, load_adaptations
+from natus_validation import filter_scenario_inputs, include_natus
 from resolve_tool_order import resolve_tools
 from validation_scenarios import expand_scenarios
 
@@ -65,6 +66,8 @@ def resolve_configured_value(spec, workspace_dir, private_dataset_dir):
 
     if kind == "workspacePath":
         relative_path = spec.get("relativePath")
+        if not include_natus() and "relativePathWithoutNatus" in spec:
+            relative_path = spec["relativePathWithoutNatus"]
         if not relative_path:
             raise ValueError("workspacePath specification requires relativePath")
         as_directory = bool(spec.get("asDirectory")) or str(relative_path).endswith(("/", "\\"))
@@ -291,6 +294,9 @@ def adapt_tool_scenario(source_path, dest_path, tool_name, tool_definition, work
         if not did_update and required:
             raise ValueError(f"Unable to update node '{identifier}' input '{input_name}' in {source_path}")
 
+    if not include_natus():
+        filter_scenario_inputs(scenario, tool_name)
+
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     with open(dest_path, 'w', encoding='utf-8') as f:
         json.dump(scenario, f, indent=2, ensure_ascii=False)
@@ -358,7 +364,10 @@ def main():
 
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(
-        json.dumps({"schema_version": 1, "runs": runs}, indent=2), encoding="utf-8"
+        json.dumps({
+            "schema_version": 1, "runs": runs, "include_natus": include_natus(),
+            "excluded_tools": [],
+        }, indent=2), encoding="utf-8"
     )
     print(f"\nValidation workspaces prepared with {adapted_count} scenario(s)")
     return 0

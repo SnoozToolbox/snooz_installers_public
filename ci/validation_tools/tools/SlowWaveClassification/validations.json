@@ -2,6 +2,7 @@
   "comparisons": [
     {
       "fileName": "01-01-0001_sw_carrier.tsv",
+      "goldFileNameWithoutNatus": "01-01-0001_sw_carrier_without_natus.tsv",
       "fileType": "absolute-tolerance",
       "absoluteTolerance": 0.05,
       "generatedSearchRoots": [
@@ -18,6 +19,7 @@
     },
     {
       "fileName": "learn-nsrr01_sw_carrier.tsv",
+      "goldFileNameWithoutNatus": "learn-nsrr01_sw_carrier_without_natus.tsv",
       "fileType": "absolute-tolerance",
       "absoluteTolerance": 0.05,
       "generatedSearchRoots": [
@@ -26,6 +28,7 @@
     },
     {
       "fileName": "learn-nsrr02_sw_carrier.tsv",
+      "goldFileNameWithoutNatus": "learn-nsrr02_sw_carrier_without_natus.tsv",
       "fileType": "absolute-tolerance",
       "absoluteTolerance": 0.05,
       "generatedSearchRoots": [
@@ -34,6 +37,7 @@
     },
     {
       "fileName": "sw_cohort_details_per_categories.tsv",
+      "goldFileNameWithoutNatus": "sw_cohort_details_per_categories_without_natus.tsv",
       "fileType": "bag-comparison",
       "precision": 3,
       "generatedSearchRoots": [

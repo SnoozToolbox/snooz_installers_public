@@ -6,6 +6,11 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
+      include_natus:
+        description: Include NATUS inputs (disable for public installers)
+        required: true
+        type: boolean
+        default: false
       arch:
         description: Architecture (x64 or arm64)
         required: true
@@ -49,6 +54,11 @@ on:
 
   workflow_call:
     inputs:
+      include_natus:
+        description: Include NATUS inputs
+        required: false
+        type: boolean
+        default: false
       arch:
         description: Architecture (x64 or arm64)
         required: true
@@ -97,6 +107,8 @@ on:
 jobs:
   validate_macos:
     runs-on: ${{ inputs.arch == 'x64' && fromJSON('["self-hosted", "macOS", "X64"]') || 'macos-latest' }}
+    env:
+      INCLUDE_NATUS: ${{ inputs.include_natus }}
     steps:
       - name: Checkout workflow repository
         uses: actions/checkout@v5
@@ -166,7 +178,7 @@ jobs:
             --repo "${{ inputs.gold_standard_repo }}" \
             --dir gold-standards
 
-      - name: Extract gold standards assets for requested tools (optional)
+      - name: Extract gold standards assets (optional)
         shell: bash
         run: |
           GOLD_TAG="${{ inputs.gold_standard_tag }}"
@@ -251,8 +263,8 @@ jobs:
           TARGET_ARCH: ${{ inputs.arch }}
         run: |
           case "$TARGET_ARCH" in
-            x64) MACH_ARCH="x86_64" ;;
-            arm64) MACH_ARCH="arm64" ;;
+            x64) MACH_ARCH="x86_64"; NAME_ARCH="x64" ;;
+            arm64) MACH_ARCH="arm64"; NAME_ARCH="ARM64" ;;
             *)
               echo "::error::Invalid architecture: $TARGET_ARCH (expected x64 or arm64)"
               exit 1
@@ -260,8 +272,13 @@ jobs:
           esac
           shopt -s nullglob
           INSTALLERS=(installer/*-"$TARGET_ARCH".dmg)
+          for candidate in installer/Snooz-macOS-"$NAME_ARCH"-*.dmg; do
+            if [[ "$candidate" != *-"$TARGET_ARCH".dmg ]]; then
+              INSTALLERS+=("$candidate")
+            fi
+          done
           if [ "${#INSTALLERS[@]}" -ne 1 ]; then
-            echo "::error::Expected exactly one installer ending in -$TARGET_ARCH.dmg; found ${#INSTALLERS[@]}"
+            echo "::error::Expected exactly one installer for $TARGET_ARCH; found ${#INSTALLERS[@]}"
             find installer -name "*.dmg" -type f
             exit 1
           fi
@@ -379,6 +396,18 @@ jobs:
             exit 1
           fi
           echo "JSON paths successfully adapted."
+
+      - name: Prepare non-NATUS cohort inputs for independent tools
+        shell: bash
+        env:
+          TOOLS_TO_PROCESS: ${{ inputs.tools_to_process }}
+        run: |
+          python3 ci/validation_tools/runner/prepare_cohort_inputs.py \
+            --tools-dir ci/validation_tools/tools \
+            --order-file ci/validation_tools/config/tool_execution_order.json \
+            --tools "$TOOLS_TO_PROCESS" \
+            --gold-standards-dir gold-standards/extracted \
+            --workspace-dir validation-workspaces
 
       - name: Run adapted headless scenarios and validate each tool immediately
         shell: bash
